@@ -13,24 +13,19 @@ VACUUM_PERMITTIVITY_F_PER_M = 8.8541878128e-12
 ATOMIC_MASS_UNIT_KG = 1.66053906660e-27
 RB87_MASS_KG = 86.9091805310 * ATOMIC_MASS_UNIT_KG
 
-TRAP_TONE_1_WAVELENGTH_M = 1529.376949e-9
-TRAP_TONE_2_WAVELENGTH_M = 1529.358429e-9
 COOLING_WAVELENGTH_M = 780e-9
-
-
-@dataclass(frozen=True, slots=True)
-class OpticalTone:
-    """Named laser tone with a wavelength and relative power split."""
-
-    name: str
-    wavelength_m: float
-    role: str
-    relative_intensity: float = 0.5
+REPUMP_WAVELENGTH_M = 780e-9
+RB87_COOLING_RESONANCE_HZ = 384.228115e12
+RB87_REPUMP_RESONANCE_HZ = 384.234683e12
 
 
 @dataclass(frozen=True, slots=True)
 class LensSpec:
-    """Mounted lens specification in SI units."""
+    """Mounted lens specification in SI units.
+
+    Retained as apparatus metadata even though the present cooling/repump model
+    treats the MOT beams as collimated throughout the cell.
+    """
 
     name: str
     focal_length_m: float
@@ -43,25 +38,6 @@ class LensSpec:
 
 
 @dataclass(frozen=True, slots=True)
-class TrapBeamGeometry:
-    """Shared geometry for the 1529 nm trapping axes."""
-
-    beam_diameter_m: float = 35e-3
-    incident_focus_offset_m: float = -10e-3
-    retro_focus_offset_m: float = 10e-3
-    mirror_gap_m: float = 40e-3
-    total_power_w_per_beam_pair: float = 0.5
-
-    @property
-    def input_radius_m(self) -> float:
-        return 0.5 * self.beam_diameter_m
-
-    @property
-    def focus_separation_m(self) -> float:
-        return self.retro_focus_offset_m - self.incident_focus_offset_m
-
-
-@dataclass(frozen=True, slots=True)
 class CellGeometry:
     """Glass-cell geometry."""
 
@@ -70,14 +46,17 @@ class CellGeometry:
 
 
 @dataclass(frozen=True, slots=True)
-class CoolingBeamConfig:
-    """Cooling-light overlay configuration."""
+class MOTBeamConfig:
+    """Configuration for one collimated MOT-light family."""
 
-    wavelength_m: float = COOLING_WAVELENGTH_M
+    name: str
+    role: str
+    wavelength_m: float
+    resonance_frequency_hz: float
+    detuning_hz: float
     beam_diameter_m: float = 12.7e-3
     power_w_per_beam: float = 2.0e-3
-    extra_propagation_m: float = 120e-3
-    detuning_hz: float = -12.0e6
+    propagation_length_m: float = 120e-3
 
     @property
     def beam_radius_m(self) -> float:
@@ -95,13 +74,12 @@ class AxisDefinition:
 
 @dataclass(frozen=True, slots=True)
 class PMOTSimulationConfig:
-    """Top-level parameter set for the current apparatus model."""
+    """Top-level parameter set for the present apparatus model."""
 
     lens: LensSpec
-    trap_beam: TrapBeamGeometry
     cell: CellGeometry
-    cooling: CoolingBeamConfig
-    trap_tones: tuple[OpticalTone, OpticalTone]
+    cooling: MOTBeamConfig
+    repump: MOTBeamConfig
     axes: tuple[AxisDefinition, AxisDefinition, AxisDefinition]
     samples_per_axis: int = 201
     volume_extent_m: float = 50e-3
@@ -160,38 +138,40 @@ def default_simulation_config() -> PMOTSimulationConfig:
 
     return PMOTSimulationConfig(
         lens=ac508_080_c_lens(),
-        trap_beam=TrapBeamGeometry(),
         cell=CellGeometry(),
-        cooling=CoolingBeamConfig(),
-        trap_tones=(
-            OpticalTone(
-                name="trap_tone_1",
-                wavelength_m=TRAP_TONE_1_WAVELENGTH_M,
-                role="1529 nm trapping tone",
-                relative_intensity=0.492762,
-            ),
-            OpticalTone(
-                name="trap_tone_2",
-                wavelength_m=TRAP_TONE_2_WAVELENGTH_M,
-                role="1529 nm trapping tone",
-                relative_intensity=0.507238,
-            ),
+        cooling=MOTBeamConfig(
+            name="cooling_780",
+            role="780 nm cooling light",
+            wavelength_m=COOLING_WAVELENGTH_M,
+            resonance_frequency_hz=RB87_COOLING_RESONANCE_HZ,
+            detuning_hz=-12.0e6,
+            beam_diameter_m=12.7e-3,
+            power_w_per_beam=2.0e-3,
+        ),
+        repump=MOTBeamConfig(
+            name="repump_780",
+            role="780 nm repump light",
+            wavelength_m=REPUMP_WAVELENGTH_M,
+            resonance_frequency_hz=RB87_REPUMP_RESONANCE_HZ,
+            detuning_hz=-1.0e6,
+            beam_diameter_m=12.7e-3,
+            power_w_per_beam=0.5e-3,
         ),
         axes=(
             AxisDefinition(
-                name="oblique_x",
+                name="horizontal_x",
                 cell_angle_of_incidence_deg=45.0,
-                description="first 45 degree axis through the cell",
+                description="first horizontal beam axis entering the cell at 45 degree AOI",
             ),
             AxisDefinition(
-                name="oblique_y",
+                name="horizontal_y",
                 cell_angle_of_incidence_deg=45.0,
-                description="second 45 degree axis through the cell",
+                description="second horizontal beam axis orthogonal to the first",
             ),
             AxisDefinition(
-                name="normal_z",
+                name="vertical_z",
                 cell_angle_of_incidence_deg=0.0,
-                description="axis normal to the two oblique directions",
+                description="vertical beam axis entering from the top of the cell",
             ),
         ),
     )
@@ -203,16 +183,16 @@ def describe_configuration(config: PMOTSimulationConfig | None = None) -> dict[s
     apparatus = config or default_simulation_config()
     return {
         "lens": apparatus.lens.name,
-        "trap_beam_diameter_mm": 1e3 * apparatus.trap_beam.beam_diameter_m,
-        "trap_incident_focus_offset_mm": 1e3 * apparatus.trap_beam.incident_focus_offset_m,
-        "trap_retro_focus_offset_mm": 1e3 * apparatus.trap_beam.retro_focus_offset_m,
-        "trap_total_power_w_per_beam_pair": apparatus.trap_beam.total_power_w_per_beam_pair,
         "cooling_beam_diameter_mm": 1e3 * apparatus.cooling.beam_diameter_m,
         "cooling_power_w_per_beam": apparatus.cooling.power_w_per_beam,
         "cooling_detuning_mhz": apparatus.cooling.detuning_hz / 1e6,
-        "trap_tone_wavelengths_nm": [1e9 * tone.wavelength_m for tone in apparatus.trap_tones],
-        "trap_tone_relative_intensities": [tone.relative_intensity for tone in apparatus.trap_tones],
+        "cooling_resonance_thz": apparatus.cooling.resonance_frequency_hz / 1e12,
+        "repump_beam_diameter_mm": 1e3 * apparatus.repump.beam_diameter_m,
+        "repump_power_w_per_beam": apparatus.repump.power_w_per_beam,
+        "repump_detuning_mhz": apparatus.repump.detuning_hz / 1e6,
+        "repump_resonance_thz": apparatus.repump.resonance_frequency_hz / 1e12,
         "axes": [axis.name for axis in apparatus.axes],
+        "axis_aoi_deg": {axis.name: axis.cell_angle_of_incidence_deg for axis in apparatus.axes},
         "volume_extent_mm": 1e3 * apparatus.volume_extent_m,
         "samples_per_axis": apparatus.samples_per_axis,
     }

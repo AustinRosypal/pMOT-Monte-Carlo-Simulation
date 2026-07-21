@@ -1,4 +1,4 @@
-"""Cooling-beam geometry and field-sampling utilities."""
+"""Cooling and repump beam geometry and field-sampling utilities."""
 
 from __future__ import annotations
 
@@ -13,105 +13,192 @@ from .beams import add
 from .beams import axis_direction_from_name
 from .beams import beam_frame_coordinates
 from .beams import dot
-from .beams import focused_waist_radius
 from .beams import normalize
 from .beams import scale
+from .configuration import MOTBeamConfig
 from .configuration import PMOTSimulationConfig
 from .configuration import default_simulation_config
 
 
 @dataclass(frozen=True, slots=True)
-class CoolingBeam:
-    """One focused 780 nm cooling beam in the 3D apparatus."""
+class MOTBeam:
+    """One collimated cooling or repump beam in the 3D apparatus."""
 
     label: str
+    family: str
     axis_name: str
+    propagation_sense: str
+    circular_polarization: str
     direction: Vec3
-    waist_position_m: Vec3
+    reference_position_m: Vec3
     power_w: float
     wavelength_m: float
-    waist_radius_m: float
+    resonance_frequency_hz: float
+    detuning_hz: float
+    beam_radius_m: float
 
     def __post_init__(self) -> None:
         if self.power_w < 0.0:
             raise ValueError("power_w must be non-negative")
         if self.wavelength_m <= 0.0:
             raise ValueError("wavelength_m must be positive")
-        if self.waist_radius_m <= 0.0:
-            raise ValueError("waist_radius_m must be positive")
+        if self.resonance_frequency_hz <= 0.0:
+            raise ValueError("resonance_frequency_hz must be positive")
+        if self.beam_radius_m <= 0.0:
+            raise ValueError("beam_radius_m must be positive")
+        if self.family not in {"cooling", "repump"}:
+            raise ValueError("family must be 'cooling' or 'repump'")
+        if self.propagation_sense not in {"incident", "retro"}:
+            raise ValueError("propagation_sense must be 'incident' or 'retro'")
+        if self.circular_polarization not in {"right", "left"}:
+            raise ValueError("circular_polarization must be 'right' or 'left'")
         object.__setattr__(self, "direction", normalize(self.direction))
 
     def gaussian_beam(self) -> GaussianBeam:
         return GaussianBeam(
             power_w=self.power_w,
             wavelength_m=self.wavelength_m,
-            waist_radius_m=self.waist_radius_m,
+            waist_radius_m=self.beam_radius_m,
         )
 
+    @property
+    def laser_frequency_hz(self) -> float:
+        return self.resonance_frequency_hz + self.detuning_hz
 
-def beam_intensity_w_per_m2(beam: CoolingBeam, position_m: Vec3) -> float:
-    """Return the local Gaussian intensity from one cooling beam."""
 
-    axial_m, radial_m = beam_frame_coordinates(position_m, beam.waist_position_m, beam.direction)
+def beam_intensity_w_per_m2(beam: MOTBeam, position_m: Vec3) -> float:
+    """Return the local Gaussian intensity from one collimated MOT beam."""
+
+    axial_m, radial_m = beam_frame_coordinates(position_m, beam.reference_position_m, beam.direction)
     return beam.gaussian_beam().intensity(radial_m=radial_m, axial_m=axial_m)
 
 
-def build_cooling_beams(
-    config: PMOTSimulationConfig | None = None,
-) -> list[CoolingBeam]:
-    """Build the six 780 nm cooling beams from the current apparatus configuration."""
-
-    apparatus = config or default_simulation_config()
-    waist_radius_m = focused_waist_radius(
-        wavelength_m=apparatus.cooling.wavelength_m,
-        focal_length_m=apparatus.lens.focal_length_m,
-        input_radius_m=apparatus.trap_beam.input_radius_m,
-    )
-
-    beams: list[CoolingBeam] = []
-    for axis in apparatus.axes:
+def _build_beam_family(
+    family_config: MOTBeamConfig,
+    family: str,
+    axes,
+) -> list[MOTBeam]:
+    beams: list[MOTBeam] = []
+    for axis in axes:
         axis_direction = axis_direction_from_name(axis.name)
-        incident_waist = scale(apparatus.trap_beam.incident_focus_offset_m, axis_direction)
-        retro_waist = scale(apparatus.trap_beam.retro_focus_offset_m, axis_direction)
+        reference_position = (0.0, 0.0, 0.0)
         beams.append(
-            CoolingBeam(
-                label=f"{axis.name}_incident_780",
+            MOTBeam(
+                label=f"{axis.name}_incident_{family_config.name}",
+                family=family,
                 axis_name=axis.name,
+                propagation_sense="incident",
+                circular_polarization="right",
                 direction=axis_direction,
-                waist_position_m=incident_waist,
-                power_w=apparatus.cooling.power_w_per_beam,
-                wavelength_m=apparatus.cooling.wavelength_m,
-                waist_radius_m=waist_radius_m,
+                reference_position_m=reference_position,
+                power_w=family_config.power_w_per_beam,
+                wavelength_m=family_config.wavelength_m,
+                resonance_frequency_hz=family_config.resonance_frequency_hz,
+                detuning_hz=family_config.detuning_hz,
+                beam_radius_m=family_config.beam_radius_m,
             )
         )
         beams.append(
-            CoolingBeam(
-                label=f"{axis.name}_retro_780",
+            MOTBeam(
+                label=f"{axis.name}_retro_{family_config.name}",
+                family=family,
                 axis_name=axis.name,
+                propagation_sense="retro",
+                circular_polarization="left",
                 direction=scale(-1.0, axis_direction),
-                waist_position_m=retro_waist,
-                power_w=apparatus.cooling.power_w_per_beam,
-                wavelength_m=apparatus.cooling.wavelength_m,
-                waist_radius_m=waist_radius_m,
+                reference_position_m=reference_position,
+                power_w=family_config.power_w_per_beam,
+                wavelength_m=family_config.wavelength_m,
+                resonance_frequency_hz=family_config.resonance_frequency_hz,
+                detuning_hz=family_config.detuning_hz,
+                beam_radius_m=family_config.beam_radius_m,
             )
         )
     return beams
 
 
-def total_intensity_w_per_m2(beams: list[CoolingBeam], position_m: Vec3) -> float:
+def build_mot_beams(
+    config: PMOTSimulationConfig | None = None,
+) -> list[MOTBeam]:
+    """Build the 12 MOT beams: 6 cooling and 6 repump beams."""
+
+    apparatus = config or default_simulation_config()
+    return _build_beam_family(apparatus.cooling, "cooling", apparatus.axes) + _build_beam_family(
+        apparatus.repump, "repump", apparatus.axes
+    )
+
+
+def total_intensity_w_per_m2(beams: list[MOTBeam], position_m: Vec3) -> float:
     return sum(beam_intensity_w_per_m2(beam, position_m) for beam in beams)
 
 
+def beams_for_axis(beams: list[MOTBeam], axis_name: str) -> list[MOTBeam]:
+    """Return the beams associated with one modeled apparatus axis."""
+
+    selected = [beam for beam in beams if beam.axis_name == axis_name]
+    if not selected:
+        raise ValueError(f"no MOT beams found for axis '{axis_name}'")
+    return selected
+
+
+def beams_for_family(beams: list[MOTBeam], family: str) -> list[MOTBeam]:
+    """Return the beams associated with one optical family."""
+
+    selected = [beam for beam in beams if beam.family == family]
+    if not selected:
+        raise ValueError(f"no MOT beams found for family '{family}'")
+    return selected
+
+
+def beams_for_polarization(beams: list[MOTBeam], circular_polarization: str) -> list[MOTBeam]:
+    """Return the beams associated with one circular-polarization handedness."""
+
+    selected = [beam for beam in beams if beam.circular_polarization == circular_polarization]
+    if not selected:
+        raise ValueError(f"no MOT beams found for polarization '{circular_polarization}'")
+    return selected
+
+
+def filter_beams(
+    beams: list[MOTBeam],
+    axis_name: str | None = None,
+    family: str | None = None,
+    circular_polarization: str | None = None,
+    propagation_sense: str | None = None,
+) -> list[MOTBeam]:
+    """Return beams matching the requested metadata filters."""
+
+    selected = beams
+    if axis_name is not None:
+        selected = [beam for beam in selected if beam.axis_name == axis_name]
+    if family is not None:
+        selected = [beam for beam in selected if beam.family == family]
+    if circular_polarization is not None:
+        selected = [beam for beam in selected if beam.circular_polarization == circular_polarization]
+    if propagation_sense is not None:
+        selected = [beam for beam in selected if beam.propagation_sense == propagation_sense]
+    if not selected:
+        raise ValueError("no MOT beams matched the requested filter combination")
+    return selected
+
+
+def axis_pair_intensity_w_per_m2(
+    beams: list[MOTBeam],
+    axis_name: str,
+    position_m: Vec3,
+) -> float:
+    """Return the summed intensity from all beams on one apparatus axis."""
+
+    return total_intensity_w_per_m2(beams_for_axis(beams, axis_name), position_m)
+
+
 def sample_intensity_along_line(
-    beams: list[CoolingBeam],
+    beams: list[MOTBeam],
     start_m: Vec3,
     stop_m: Vec3,
     sample_count: int = 501,
 ) -> tuple[list[float], list[float]]:
-    """Sample the total intensity along a Cartesian line segment.
-
-    The returned coordinate is centered at zero and runs from ``-L/2`` to ``+L/2``.
-    """
+    """Sample the total intensity along a Cartesian line segment."""
 
     if sample_count < 2:
         raise ValueError("sample_count must be at least 2")
@@ -134,12 +221,58 @@ def sample_intensity_along_line(
     return coordinates_mm, intensities
 
 
+def sample_axis_pair_intensity_along_line(
+    beams: list[MOTBeam],
+    axis_name: str,
+    start_m: Vec3,
+    stop_m: Vec3,
+    sample_count: int = 501,
+) -> tuple[list[float], list[float]]:
+    """Sample the intensity from one apparatus axis along a Cartesian line segment."""
+
+    return sample_intensity_along_line(beams_for_axis(beams, axis_name), start_m, stop_m, sample_count)
+
+
+def sample_family_intensity_along_line(
+    beams: list[MOTBeam],
+    family: str,
+    start_m: Vec3,
+    stop_m: Vec3,
+    sample_count: int = 501,
+) -> tuple[list[float], list[float]]:
+    """Sample the intensity from one optical family along a Cartesian line segment."""
+
+    return sample_intensity_along_line(beams_for_family(beams, family), start_m, stop_m, sample_count)
+
+
+def sample_filtered_intensity_along_line(
+    beams: list[MOTBeam],
+    start_m: Vec3,
+    stop_m: Vec3,
+    sample_count: int = 501,
+    axis_name: str | None = None,
+    family: str | None = None,
+    circular_polarization: str | None = None,
+    propagation_sense: str | None = None,
+) -> tuple[list[float], list[float]]:
+    """Sample the intensity from a filtered beam subset along a Cartesian line segment."""
+
+    selected = filter_beams(
+        beams,
+        axis_name=axis_name,
+        family=family,
+        circular_polarization=circular_polarization,
+        propagation_sense=propagation_sense,
+    )
+    return sample_intensity_along_line(selected, start_m, stop_m, sample_count)
+
+
 def sample_intensity_volume(
-    beams: list[CoolingBeam],
+    beams: list[MOTBeam],
     extent_m: float = 50e-3,
     samples_per_axis: int = 31,
 ) -> list[tuple[float, float, float, float]]:
-    """Sample the total cooling intensity on a 3D Cartesian grid."""
+    """Sample the total MOT intensity on a 3D Cartesian grid."""
 
     if samples_per_axis < 2:
         raise ValueError("samples_per_axis must be at least 2")
@@ -180,14 +313,14 @@ def orthonormal_transverse_basis(direction: Vec3) -> tuple[Vec3, Vec3]:
 
 
 def sample_intensity_cloud(
-    beams: list[CoolingBeam],
+    beams: list[MOTBeam],
     axial_extent_m: float = 50e-3,
     axial_samples: int = 21,
     radial_rings: int = 4,
     angular_samples: int = 16,
-    radial_waist_scale: float = 3.0,
+    radial_waist_scale: float = 1.0,
 ) -> list[tuple[float, float, float, float]]:
-    """Sample the cooling field around each beam axis for 3D visualizations."""
+    """Sample the MOT field around each beam axis for 3D visualizations."""
 
     if axial_samples < 2:
         raise ValueError("axial_samples must be at least 2")
@@ -197,7 +330,7 @@ def sample_intensity_cloud(
         gaussian = beam.gaussian_beam()
         for axial_index in range(axial_samples):
             axial_m = -axial_extent_m + axial_index * (2.0 * axial_extent_m) / (axial_samples - 1)
-            center = add(beam.waist_position_m, scale(axial_m, beam.direction))
+            center = add(beam.reference_position_m, scale(axial_m, beam.direction))
             local_waist = gaussian.waist_at(axial_m)
             max_radius = radial_waist_scale * local_waist
             points.append((center[0], center[1], center[2], total_intensity_w_per_m2(beams, center)))
@@ -214,14 +347,38 @@ def sample_intensity_cloud(
     return points
 
 
+def sample_intensity_cloud_by_polarization(
+    beams: list[MOTBeam],
+    axial_extent_m: float = 50e-3,
+    axial_samples: int = 21,
+    radial_rings: int = 4,
+    angular_samples: int = 16,
+    radial_waist_scale: float = 1.0,
+) -> dict[str, list[tuple[float, float, float, float]]]:
+    """Sample the MOT field around beam axes, grouped by beam handedness."""
+
+    cloud_by_polarization: dict[str, list[tuple[float, float, float, float]]] = {}
+    for circular_polarization in ("right", "left"):
+        selected = filter_beams(beams, circular_polarization=circular_polarization)
+        cloud_by_polarization[circular_polarization] = sample_intensity_cloud(
+            selected,
+            axial_extent_m=axial_extent_m,
+            axial_samples=axial_samples,
+            radial_rings=radial_rings,
+            angular_samples=angular_samples,
+            radial_waist_scale=radial_waist_scale,
+        )
+    return cloud_by_polarization
+
+
 def sample_intensity_slice(
-    beams: list[CoolingBeam],
+    beams: list[MOTBeam],
     plane: str,
     extent_m: float = 50e-3,
     samples_per_axis: int = 201,
     fixed_coordinate_m: float = 0.0,
 ) -> tuple[list[float], list[float], list[list[float]]]:
-    """Sample the total cooling intensity on a 2D slice."""
+    """Sample the total MOT intensity on a 2D slice."""
 
     if samples_per_axis < 2:
         raise ValueError("samples_per_axis must be at least 2")

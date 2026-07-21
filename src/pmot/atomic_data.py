@@ -11,16 +11,10 @@ from pathlib import Path
 import pandas as pd
 
 from .configuration import PLANCK_CONSTANT_J_S
+from .configuration import RB87_COOLING_RESONANCE_HZ
+from .configuration import RB87_REPUMP_RESONANCE_HZ
 from .configuration import SPEED_OF_LIGHT_M_PER_S
 from .configuration import VACUUM_PERMITTIVITY_F_PER_M
-
-
-RB87_D2_CENTER_OF_GRAVITY_HZ = 384.2304844685e12
-RB87_5S12_F2_SHIFT_HZ = 2.563005979089109e9
-RB87_5P32_F3_SHIFT_HZ = 193.7407e6
-RB87_COOLING_RESONANCE_HZ = (
-    RB87_D2_CENTER_OF_GRAVITY_HZ - RB87_5S12_F2_SHIFT_HZ + RB87_5P32_F3_SHIFT_HZ
-)
 
 
 @dataclass(frozen=True, slots=True)
@@ -28,6 +22,15 @@ class RB87CoolingTransition:
     """Basic Rb-87 cooling-transition parameters."""
 
     resonance_frequency_hz: float = RB87_COOLING_RESONANCE_HZ
+    linewidth_hz: float = 6.065e6
+    saturation_intensity_w_per_m2: float = 16.69
+
+
+@dataclass(frozen=True, slots=True)
+class RB87RepumpTransition:
+    """Basic Rb-87 repump-transition parameters."""
+
+    resonance_frequency_hz: float = RB87_REPUMP_RESONANCE_HZ
     linewidth_hz: float = 6.065e6
     saturation_intensity_w_per_m2: float = 16.69
 
@@ -59,6 +62,13 @@ def default_polarizability_csv_path(root: Path | None = None) -> Path:
     return project_root / "data" / "raw" / "Arora_CCSD_Differential_Polarizabilities.csv"
 
 
+def full_range_polarizability_csv_path(root: Path | None = None) -> Path:
+    """Return the full-range Arora CCSD polarizability table path."""
+
+    project_root = root or Path(__file__).resolve().parents[2]
+    return project_root / "data" / "raw" / "Arora_CCSD_FullRange_Differential_Polarizabilities.csv"
+
+
 def load_differential_polarizability_csv(
     csv_path: Path | None = None,
 ) -> list[DifferentialPolarizabilitySample]:
@@ -79,6 +89,39 @@ def load_differential_polarizability_csv(
     if not samples:
         raise ValueError(f"no polarizability samples found in {path}")
     return samples
+
+
+def wavelength_is_in_sample_range(
+    wavelength_nm: float,
+    samples: list[DifferentialPolarizabilitySample],
+) -> bool:
+    """Return whether a wavelength lies within a table's sampled range."""
+
+    if not samples:
+        return False
+    return samples[0].wavelength_nm <= wavelength_nm <= samples[-1].wavelength_nm
+
+
+def choose_polarizability_csv_path(
+    wavelength_nm: float,
+    preferred_csv_path: Path | None = None,
+    fallback_csv_path: Path | None = None,
+) -> Path:
+    """Choose the narrow or full-range CSV based on wavelength coverage."""
+
+    preferred_path = preferred_csv_path or default_polarizability_csv_path()
+    fallback_path = fallback_csv_path or full_range_polarizability_csv_path()
+    preferred_samples = load_differential_polarizability_csv(preferred_path)
+    if wavelength_is_in_sample_range(wavelength_nm, preferred_samples):
+        return preferred_path
+    fallback_samples = load_differential_polarizability_csv(fallback_path)
+    if wavelength_is_in_sample_range(wavelength_nm, fallback_samples):
+        return fallback_path
+    raise ValueError(
+        f"wavelength {wavelength_nm} nm is outside both table ranges: "
+        f"{preferred_samples[0].wavelength_nm} to {preferred_samples[-1].wavelength_nm} nm, "
+        f"{fallback_samples[0].wavelength_nm} to {fallback_samples[-1].wavelength_nm} nm"
+    )
 
 
 def interpolate_differential_polarizability(
@@ -112,10 +155,7 @@ def interpolate_differential_polarizability(
 def convert_differential_polarizability_to_mhz_per_intensity(
     sample: DifferentialPolarizabilitySample,
 ) -> DifferentialShiftCoefficients:
-    """Convert raw polarizabilities to MHz/[mW/(100 um)^2].
-
-    This matches the conversion demonstrated in the legacy Differential Plotting Macro.
-    """
+    """Convert raw polarizabilities to MHz/[mW/(100 um)^2]."""
 
     scalar_vector_factor = (
         -2.0
@@ -148,7 +188,8 @@ def differential_shift_coefficients_for_wavelength(
 ) -> DifferentialShiftCoefficients:
     """Return converted differential-shift coefficients for one wavelength."""
 
-    samples = load_differential_polarizability_csv(csv_path)
+    path = csv_path or choose_polarizability_csv_path(wavelength_nm)
+    samples = load_differential_polarizability_csv(path)
     sample = interpolate_differential_polarizability(wavelength_nm, samples)
     return convert_differential_polarizability_to_mhz_per_intensity(sample)
 

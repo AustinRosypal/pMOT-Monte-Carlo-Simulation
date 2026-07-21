@@ -74,9 +74,9 @@ def axis_direction_from_name(axis_name: str) -> Vec3:
     """Return the modeled 3D direction vector for a named apparatus axis."""
 
     mapping: dict[str, Vec3] = {
-        "oblique_x": normalize((1.0, 0.0, 1.0)),
-        "oblique_y": normalize((0.0, 1.0, 1.0)),
-        "normal_z": (0.0, 0.0, 1.0),
+        "horizontal_x": (1.0, 0.0, 0.0),
+        "horizontal_y": (0.0, 1.0, 0.0),
+        "vertical_z": (0.0, 0.0, 1.0),
     }
     if axis_name not in mapping:
         raise ValueError(f"unknown axis name: {axis_name}")

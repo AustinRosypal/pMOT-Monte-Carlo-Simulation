@@ -1,1 +1,3 @@
-ignoreThisFile.txt
+outputs/
+.venv_pMOT_MC/
+.vscode/
