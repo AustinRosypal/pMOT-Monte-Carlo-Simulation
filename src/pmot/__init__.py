@@ -21,8 +21,10 @@ from .configuration import MOTBeamConfig
 from .configuration import PMOTSimulationConfig
 from .configuration import default_simulation_config
 from .configuration import describe_configuration
+from .configuration import GRAVITY_ACCELERATION_M_PER_S2
 from .configuration import notebook_order
 from .configuration import project_paths
+from .configuration import STANDARD_GRAVITY_M_PER_S2
 from .fields import (
     MOTBeam,
     axis_pair_intensity_w_per_m2,
@@ -100,8 +102,10 @@ __all__ = [
     "PMOTSimulationConfig",
     "default_simulation_config",
     "describe_configuration",
+    "GRAVITY_ACCELERATION_M_PER_S2",
     "notebook_order",
     "project_paths",
+    "STANDARD_GRAVITY_M_PER_S2",
     "MOTBeam",
     "axis_pair_intensity_w_per_m2",
     "beam_intensity_w_per_m2",

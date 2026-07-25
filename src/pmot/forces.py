@@ -10,6 +10,7 @@ import numpy as np
 from .atomic_data import RB87CoolingTransition
 from .atomic_data import RB87RepumpTransition
 from .configuration import HBAR_J_S
+from .configuration import GRAVITY_ACCELERATION_M_PER_S2
 from .configuration import RB87_MASS_KG
 from .fields import MOTBeam
 from .fields import beam_intensity_w_per_m2
@@ -68,6 +69,12 @@ def dot(a: Vec3, b: Vec3) -> float:
 
 def norm(vector: Vec3) -> float:
     return float(np.sqrt(dot(vector, vector)))
+
+
+def gravitational_velocity_increment(time_step_s: float) -> Vec3:
+    """Return the velocity increment from gravity over one timestep."""
+
+    return scale(time_step_s, GRAVITY_ACCELERATION_M_PER_S2)
 
 
 def transition_for_beam(beam: MOTBeam) -> RB87CoolingTransition | RB87RepumpTransition:
@@ -277,6 +284,8 @@ def simulate_scattering_trajectory(
                     updated_velocity,
                     scale(recoil_velocity_m_per_s(beam, atom_mass_kg), emission_direction),
                 )
+
+        updated_velocity = add(updated_velocity, gravitational_velocity_increment(time_step_s))
 
         position = add(position, scale(time_step_s, updated_velocity))
         velocity = updated_velocity
