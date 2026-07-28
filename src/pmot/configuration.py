@@ -155,7 +155,7 @@ def default_simulation_config() -> PMOTSimulationConfig:
             role="780 nm repump light",
             wavelength_m=REPUMP_WAVELENGTH_M,
             resonance_frequency_hz=RB87_REPUMP_RESONANCE_HZ,
-            detuning_hz=-1.0e6,
+            detuning_hz=0.0,
             beam_diameter_m=12.7e-3,
             power_w_per_beam=0.5e-3,
         ),

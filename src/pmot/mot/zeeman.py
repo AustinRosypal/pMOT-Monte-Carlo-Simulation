@@ -163,6 +163,23 @@ def polarization_weights_for_quantization_axis(
     return {q_value: weight / normalization for q_value, weight in weights.items()}
 
 
+def zero_field_polarization_weights() -> dict[int, float]:
+    """Return an isotropic surrogate polarization decomposition at B = 0.
+
+    At exactly zero magnetic field there is no physical quantization axis.
+    The present incoherent rate model therefore uses an orientation-averaged
+    surrogate rather than privileging an arbitrary carried-over axis, which
+    would otherwise create an artificial beam-helicity bias in field-free
+    molasses tests.
+    """
+
+    return {
+        -1: 1.0 / 3.0,
+        0: 1.0 / 3.0,
+        +1: 1.0 / 3.0,
+    }
+
+
 def allowed_excited_manifolds(ground_state: GroundState) -> tuple[int, ...]:
     """Return the addressed excited hyperfine manifolds for one ground F."""
 

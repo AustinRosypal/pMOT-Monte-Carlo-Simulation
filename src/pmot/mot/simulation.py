@@ -28,6 +28,7 @@ from .zeeman import initial_ground_state
 from .zeeman import norm
 from .zeeman import polarization_weights_for_quantization_axis
 from .zeeman import transition_strength
+from .zeeman import zero_field_polarization_weights
 from .zeeman import zero_field_transition_frequency_hz
 from .zeeman import zeeman_shift_hz
 
@@ -57,7 +58,8 @@ class TransitionRateSample:
     polarization_weight: float
     line_strength: float
     intensity_w_per_m2: float
-    saturation_parameter: float
+    beam_saturation_parameter: float
+    total_saturation_parameter: float
     effective_detuning_hz: float
     scattering_rate_per_s: float
 
@@ -168,11 +170,19 @@ def transition_rate_samples(
     field_magnitude_t = norm(field_vector_t)
     q_axis = quantization_axis(field_vector_t, atom_state.last_quantization_axis)
     transition = RB87CoolingTransition()
+    beam_intensities = {beam.label: beam_intensity_w_per_m2(beam, atom_state.position_m) for beam in beams}
+    active_beams = [
+        beam for beam in beams if addressed_excited_states_for_beam_family(atom_state.ground_state, beam.family)
+    ]
+    total_saturation = sum(beam_intensities[beam.label] / transition.saturation_intensity_w_per_m2 for beam in active_beams)
 
     samples: list[TransitionRateSample] = []
     for beam in beams:
-        intensity = beam_intensity_w_per_m2(beam, atom_state.position_m)
-        polarization_weights = polarization_weights_for_quantization_axis(beam, q_axis)
+        intensity = beam_intensities[beam.label]
+        if field_magnitude_t <= 1.0e-18:
+            polarization_weights = zero_field_polarization_weights()
+        else:
+            polarization_weights = polarization_weights_for_quantization_axis(beam, q_axis)
         beam_saturation = intensity / transition.saturation_intensity_w_per_m2
         for excited_state in addressed_excited_states_for_beam_family(atom_state.ground_state, beam.family):
             q_value = excited_state.m_f_prime - atom_state.ground_state.m_f
@@ -195,7 +205,7 @@ def transition_rate_samples(
             )
             linewidth_hz = transition.linewidth_hz
             rate = 0.5 * linewidth_hz * effective_saturation / (
-                1.0 + beam_saturation + (2.0 * detuning_hz / linewidth_hz) ** 2
+                1.0 + total_saturation + (2.0 * detuning_hz / linewidth_hz) ** 2
             )
             samples.append(
                 TransitionRateSample(
@@ -207,7 +217,8 @@ def transition_rate_samples(
                     polarization_weight=polarization_weight,
                     line_strength=line_strength,
                     intensity_w_per_m2=intensity,
-                    saturation_parameter=effective_saturation,
+                    beam_saturation_parameter=effective_saturation,
+                    total_saturation_parameter=total_saturation,
                     effective_detuning_hz=detuning_hz,
                     scattering_rate_per_s=rate,
                 )
@@ -223,6 +234,15 @@ def _weighted_choice(weights: list[float], rng: np.random.Generator) -> int:
     cumulative = np.cumsum(np.asarray(weights, dtype=float))
     target = rng.uniform(0.0, float(cumulative[-1]))
     return int(np.searchsorted(cumulative, target, side="right"))
+
+
+def beam_scattering_rates(samples: list[TransitionRateSample]) -> dict[str, float]:
+    """Return the total scattering rate for each beam."""
+
+    rates: dict[str, float] = {}
+    for sample in samples:
+        rates[sample.beam_label] = rates.get(sample.beam_label, 0.0) + sample.scattering_rate_per_s
+    return rates
 
 
 def advance_mot_atom_one_step(
@@ -244,8 +264,13 @@ def advance_mot_atom_one_step(
     if total_rate > 0.0:
         scatter_probability = 1.0 - exp(-total_rate * time_step_s)
         if rng.uniform() < scatter_probability:
-            weights = [sample.scattering_rate_per_s for sample in transition_samples]
-            selected = transition_samples[_weighted_choice(weights, rng)]
+            rates_by_beam = beam_scattering_rates(transition_samples)
+            beam_labels = list(rates_by_beam)
+            beam_weights = [rates_by_beam[label] for label in beam_labels]
+            selected_beam_label = beam_labels[_weighted_choice(beam_weights, rng)]
+            beam_samples = [sample for sample in transition_samples if sample.beam_label == selected_beam_label]
+            transition_weights = [sample.scattering_rate_per_s for sample in beam_samples]
+            selected = beam_samples[_weighted_choice(transition_weights, rng)]
             selected_beam = next(beam for beam in beams if beam.label == selected.beam_label)
             kick_speed = recoil_velocity_m_per_s(selected_beam, atom_mass_kg=atom_mass_kg)
             updated_velocity = add(updated_velocity, scale(kick_speed, selected_beam.direction))

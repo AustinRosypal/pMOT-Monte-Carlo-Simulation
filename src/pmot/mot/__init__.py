@@ -63,6 +63,7 @@ from .zeeman import (
     local_spherical_basis,
     polarization_weights_for_quantization_axis,
     transition_strength,
+    zero_field_polarization_weights,
     zero_field_transition_frequency_hz,
     zeeman_shift_hz,
 )
@@ -122,6 +123,7 @@ __all__ = [
     "local_spherical_basis",
     "polarization_weights_for_quantization_axis",
     "transition_strength",
+    "zero_field_polarization_weights",
     "zero_field_transition_frequency_hz",
     "zeeman_shift_hz",
 ]
