@@ -148,7 +148,7 @@ def default_simulation_config() -> PMOTSimulationConfig:
             resonance_frequency_hz=RB87_COOLING_RESONANCE_HZ,
             detuning_hz=-12.0e6,
             beam_diameter_m=12.7e-3,
-            power_w_per_beam=2.0e-3,
+            power_w_per_beam=20.0e-3,
         ),
         repump=MOTBeamConfig(
             name="repump_780",

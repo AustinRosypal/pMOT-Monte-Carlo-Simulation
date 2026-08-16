@@ -68,4 +68,5 @@ def simple_mot_paths(root: Path | None = None) -> dict[str, Path]:
         "outputs_fields_simple_mot": project_root / "outputs" / "fields" / "mot_simple",
         "outputs_trajectories_simple_mot": project_root / "outputs" / "trajectories" / "mot_simple",
         "outputs_figures_simple_mot": project_root / "outputs" / "figures" / "mot_simple",
+        "outputs_statistics_simple_mot": project_root / "outputs" / "statistics" / "mot_simple",
     }

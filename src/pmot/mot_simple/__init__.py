@@ -8,6 +8,7 @@ from .configuration import (
     MU_B_OVER_H_HZ_PER_T,
 )
 from .plotting import (
+    draw_simple_mot_beam_volumes,
     plot_magnetic_component_grid,
     plot_simple_mot_diagnostics,
     plot_simple_mot_geometry,
@@ -28,13 +29,19 @@ from .simulation import (
     wavevector_magnitude_m_inv,
     zeeman_shift_hz,
 )
-
+from .loading import (
+    calculate_loading_rate_from_spectrum,
+    load_capture_spectrum,
+    LoadingRateResult,
+    save_loading_rate_result,
+)
 __all__ = [
     "default_simple_mot_apparatus",
     "default_simple_mot_config",
     "simple_mot_paths",
     "SimpleMOTConfig",
     "MU_B_OVER_H_HZ_PER_T",
+    "draw_simple_mot_beam_volumes",
     "plot_magnetic_component_grid",
     "plot_simple_mot_diagnostics",
     "plot_simple_mot_geometry",
@@ -44,11 +51,15 @@ __all__ = [
     "acceleration_m_per_s2",
     "beam_intensity",
     "build_simple_mot_beams",
+    "calculate_loading_rate_from_spectrum",
     "doppler_shift_hz",
+    "load_capture_spectrum",
+    "LoadingRateResult",
     "local_magnetic_field_t",
     "mean_force_n",
     "rate_samples",
     "rk4_step",
+    "save_loading_rate_result",
     "simulate_simple_mot_trajectory",
     "wavevector_magnitude_m_inv",
     "zeeman_shift_hz",
