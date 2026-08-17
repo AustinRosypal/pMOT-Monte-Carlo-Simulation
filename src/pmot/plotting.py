@@ -238,8 +238,9 @@ def plot_intensity_cloud_3d_by_polarization(
     axis = figure.add_subplot(111, projection="3d")
 
     polarization_styles = {
-        "right": {"color": "#d62828", "marker": "o", "label": "Right-handed circular"},
-        "left": {"color": "#1d4ed8", "marker": "^", "label": "Left-handed circular"},
+        "sigma+": {"color": "#d62828", "marker": "o", "label": r"$\sigma^+$"},
+        "sigma-": {"color": "#1d4ed8", "marker": "^", "label": r"$\sigma^-$"},
+        "pi": {"color": "#15803d", "marker": "s", "label": r"$\pi$"},
     }
     for circular_polarization, cloud_points in cloud_points_by_polarization.items():
         if not cloud_points:
@@ -364,8 +365,9 @@ def plot_apparatus_geometry_3d(beams, path: Path | None = None):
     axis = figure.add_subplot(111, projection="3d")
 
     polarization_colors = {
-        "right": "#d62828",
-        "left": "#1d4ed8",
+        "sigma+": "#d62828",
+        "sigma-": "#1d4ed8",
+        "pi": "#15803d",
     }
     axis_line_styles = {
         "horizontal_x": "-",
@@ -419,8 +421,8 @@ def plot_apparatus_geometry_3d(beams, path: Path | None = None):
     axis.set_ylabel("y [mm]")
     axis.set_zlabel("z [mm]")
     legend_items = [
-        Line2D([0], [0], color=polarization_colors["right"], lw=2.0, label="Right-handed circular"),
-        Line2D([0], [0], color=polarization_colors["left"], lw=2.0, label="Left-handed circular"),
+        Line2D([0], [0], color=polarization_colors["sigma+"], lw=2.0, label=r"$\sigma^+$ along propagation"),
+        Line2D([0], [0], color=polarization_colors["sigma-"], lw=2.0, label=r"$\sigma^-$ along propagation"),
         Line2D([0], [0], color="#475569", lw=2.4, label="Cooling beam family"),
         Line2D([0], [0], color="#475569", lw=1.2, label="Repump beam family"),
         Line2D([0], [0], color="#475569", lw=2.0, linestyle=axis_line_styles["horizontal_x"], label="Horizontal x axis"),

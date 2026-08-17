@@ -43,9 +43,8 @@ class CaptureSearchConfig:
     max_simulation_time_s: float = 50.0e-3
     time_step_s: float = 5.0e-6
     trap_core_radius_m: float = 2.0e-3
-    trap_window_radius_m: float = 12.0e-3
     escape_radius_m: float = 30.0e-3
-    required_turning_points: int = 4
+    required_core_entries: int = 2
     max_bracket_iterations: int = 24
     max_search_iterations: int = 24
     include_center_point: bool = True
@@ -105,7 +104,7 @@ class TrajectoryClassification:
     trapped: bool
     termination_reason: str
     entered_trap_core: bool
-    turning_point_count: int
+    core_entry_count: int
     elapsed_time_s: float
     minimum_radius_m: float
     final_radius_m: float
@@ -134,8 +133,8 @@ class CaptureVelocitySample:
     upper_classification: str
     lower_entered_trap_core: bool
     upper_entered_trap_core: bool
-    lower_turning_point_count: int
-    upper_turning_point_count: int
+    lower_core_entry_count: int
+    upper_core_entry_count: int
 
 
 def add(a: Vec3, b: Vec3) -> Vec3:
@@ -340,32 +339,28 @@ def classify_trajectory(
     )
     max_steps = int(np.ceil(search_config.max_simulation_time_s / search_config.time_step_s))
     entered_trap_core = False
-    turning_point_count = 0
+    core_entry_count = 0
     minimum_radius_m = norm(atom_state.position_m)
-    previous_radial_velocity = dot(atom_state.position_m, atom_state.velocity_m_per_s) / max(minimum_radius_m, 1.0e-15)
+    was_inside_trap_core = minimum_radius_m <= search_config.trap_core_radius_m
     elapsed_time_s = 0.0
 
     for _ in range(max_steps):
         radius_m = norm(atom_state.position_m)
         minimum_radius_m = min(minimum_radius_m, radius_m)
-        if radius_m <= search_config.trap_core_radius_m:
+        inside_trap_core = radius_m <= search_config.trap_core_radius_m
+        if inside_trap_core:
             entered_trap_core = True
+        if inside_trap_core and not was_inside_trap_core:
+            core_entry_count += 1
+        was_inside_trap_core = inside_trap_core
         radial_velocity = dot(atom_state.position_m, atom_state.velocity_m_per_s) / max(radius_m, 1.0e-15)
 
-        if entered_trap_core and radius_m <= search_config.trap_window_radius_m:
-            if radial_velocity != 0.0 and previous_radial_velocity != 0.0:
-                if np.sign(radial_velocity) != np.sign(previous_radial_velocity):
-                    turning_point_count += 1
-            previous_radial_velocity = radial_velocity
-        else:
-            previous_radial_velocity = radial_velocity
-
-        if entered_trap_core and turning_point_count >= search_config.required_turning_points:
+        if core_entry_count >= search_config.required_core_entries:
             return TrajectoryClassification(
                 trapped=True,
-                termination_reason="two_oscillations",
+                termination_reason="two_core_entries",
                 entered_trap_core=entered_trap_core,
-                turning_point_count=turning_point_count,
+                core_entry_count=core_entry_count,
                 elapsed_time_s=elapsed_time_s,
                 minimum_radius_m=minimum_radius_m,
                 final_radius_m=radius_m,
@@ -378,7 +373,7 @@ def classify_trajectory(
                 trapped=False,
                 termination_reason="escaped",
                 entered_trap_core=entered_trap_core,
-                turning_point_count=turning_point_count,
+                core_entry_count=core_entry_count,
                 elapsed_time_s=elapsed_time_s,
                 minimum_radius_m=minimum_radius_m,
                 final_radius_m=radius_m,
@@ -402,7 +397,7 @@ def classify_trajectory(
                 trapped=False,
                 termination_reason="non_finite",
                 entered_trap_core=entered_trap_core,
-                turning_point_count=turning_point_count,
+                core_entry_count=core_entry_count,
                 elapsed_time_s=elapsed_time_s,
                 minimum_radius_m=minimum_radius_m,
                 final_radius_m=norm(atom_state.position_m),
@@ -414,7 +409,7 @@ def classify_trajectory(
         trapped=False,
         termination_reason="timeout",
         entered_trap_core=entered_trap_core,
-        turning_point_count=turning_point_count,
+        core_entry_count=core_entry_count,
         elapsed_time_s=elapsed_time_s,
         minimum_radius_m=minimum_radius_m,
         final_radius_m=norm(atom_state.position_m),
@@ -508,8 +503,8 @@ def find_capture_velocity(
             upper_classification=upper_classification.termination_reason,
             lower_entered_trap_core=zero_classification.entered_trap_core,
             upper_entered_trap_core=upper_classification.entered_trap_core,
-            lower_turning_point_count=zero_classification.turning_point_count,
-            upper_turning_point_count=upper_classification.turning_point_count,
+            lower_core_entry_count=zero_classification.core_entry_count,
+            upper_core_entry_count=upper_classification.core_entry_count,
         )
 
     for _ in range(search_config.max_search_iterations):
@@ -552,8 +547,8 @@ def find_capture_velocity(
         upper_classification=upper_classification.termination_reason,
         lower_entered_trap_core=lower_classification.entered_trap_core,
         upper_entered_trap_core=upper_classification.entered_trap_core,
-        lower_turning_point_count=lower_classification.turning_point_count,
-        upper_turning_point_count=upper_classification.turning_point_count,
+        lower_core_entry_count=lower_classification.core_entry_count,
+        upper_core_entry_count=upper_classification.core_entry_count,
     )
 
 
@@ -595,8 +590,8 @@ def _sample_to_row(sample: CaptureVelocitySample) -> dict[str, object]:
         "upper_classification": sample.upper_classification,
         "lower_entered_trap_core": sample.lower_entered_trap_core,
         "upper_entered_trap_core": sample.upper_entered_trap_core,
-        "lower_turning_point_count": sample.lower_turning_point_count,
-        "upper_turning_point_count": sample.upper_turning_point_count,
+        "lower_core_entry_count": sample.lower_core_entry_count,
+        "upper_core_entry_count": sample.upper_core_entry_count,
         "x0_m": sample.initial_position_m[0],
         "y0_m": sample.initial_position_m[1],
         "z0_m": sample.initial_position_m[2],
@@ -803,8 +798,8 @@ def save_capture_velocity_results(
         "upper_classification",
         "lower_entered_trap_core",
         "upper_entered_trap_core",
-        "lower_turning_point_count",
-        "upper_turning_point_count",
+        "lower_core_entry_count",
+        "upper_core_entry_count",
         "x0_m",
         "y0_m",
         "z0_m",
@@ -861,8 +856,8 @@ def load_capture_velocity_samples(csv_path: Path) -> list[CaptureVelocitySample]
                     upper_classification=row["upper_classification"],
                     lower_entered_trap_core=row["lower_entered_trap_core"].lower() == "true",
                     upper_entered_trap_core=row["upper_entered_trap_core"].lower() == "true",
-                    lower_turning_point_count=int(row["lower_turning_point_count"]),
-                    upper_turning_point_count=int(row["upper_turning_point_count"]),
+                    lower_core_entry_count=int(row.get("lower_core_entry_count", row.get("lower_turning_point_count", 0))),
+                    upper_core_entry_count=int(row.get("upper_core_entry_count", row.get("upper_turning_point_count", 0))),
                 )
             )
     return samples
@@ -1193,9 +1188,8 @@ def build_argument_parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-simulation-time-ms", type=float, default=1e3 * defaults.max_simulation_time_s)
     parser.add_argument("--time-step-us", type=float, default=1e6 * defaults.time_step_s)
     parser.add_argument("--trap-core-radius-mm", type=float, default=1e3 * defaults.trap_core_radius_m)
-    parser.add_argument("--trap-window-radius-mm", type=float, default=1e3 * defaults.trap_window_radius_m)
     parser.add_argument("--escape-radius-mm", type=float, default=1e3 * defaults.escape_radius_m)
-    parser.add_argument("--required-turning-points", type=int, default=defaults.required_turning_points)
+    parser.add_argument("--required-core-entries", type=int, default=defaults.required_core_entries)
     parser.add_argument("--include-center-point", action="store_true", default=defaults.include_center_point)
     parser.add_argument("--no-include-center-point", dest="include_center_point", action="store_false")
     parser.add_argument("--analysis-velocity-step", type=float, default=defaults.analysis_velocity_step_m_per_s)
@@ -1223,9 +1217,8 @@ def search_config_from_args(args: argparse.Namespace) -> CaptureSearchConfig:
         max_simulation_time_s=1e-3 * args.max_simulation_time_ms,
         time_step_s=1e-6 * args.time_step_us,
         trap_core_radius_m=1e-3 * args.trap_core_radius_mm,
-        trap_window_radius_m=1e-3 * args.trap_window_radius_mm,
         escape_radius_m=1e-3 * args.escape_radius_mm,
-        required_turning_points=args.required_turning_points,
+        required_core_entries=args.required_core_entries,
         include_center_point=args.include_center_point,
         analysis_velocity_step_m_per_s=args.analysis_velocity_step,
         analysis_s_bin_count=args.analysis_s_bin_count,

@@ -57,7 +57,7 @@ class MOTBeamConfig:
     resonance_frequency_hz: float
     detuning_hz: float
     beam_diameter_m: float = 12.7e-3
-    power_w_per_beam: float = 2.0e-3
+    power_w_per_beam: float = 20.0e-3
     propagation_length_m: float = 120e-3
 
     @property
@@ -146,7 +146,7 @@ def default_simulation_config() -> PMOTSimulationConfig:
             role="780 nm cooling light",
             wavelength_m=COOLING_WAVELENGTH_M,
             resonance_frequency_hz=RB87_COOLING_RESONANCE_HZ,
-            detuning_hz=-12.0e6,
+            detuning_hz=-15.0e6,
             beam_diameter_m=12.7e-3,
             power_w_per_beam=20.0e-3,
         ),

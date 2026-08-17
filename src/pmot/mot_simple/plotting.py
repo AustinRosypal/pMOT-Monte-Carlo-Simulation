@@ -12,6 +12,8 @@ import numpy as np
 from ..mot.magnetic_fields import anti_helmholtz_field_t
 from .simulation import SimpleMOTBeam
 from .simulation import SimpleMOTTrajectoryRecord
+from ..forces import AtomState
+from .simulation import mean_force_n
 
 
 def _prepare_output(path: Path | None) -> None:
@@ -210,6 +212,144 @@ def plot_simple_mot_geometry(
     if path is not None:
         figure.savefig(path, dpi=180)
     return figure, axis
+
+
+def plot_beam_polarization_diagram(
+    beams: list[SimpleMOTBeam],
+    path: Path | None = None,
+):
+    """Show the propagation direction and propagation-frame helicity of all beams."""
+
+    figure = plt.figure(figsize=(13, 8), constrained_layout=True)
+    figure.patch.set_facecolor("#fbfaf6")
+    axis = figure.add_subplot(121, projection="3d")
+    table_axis = figure.add_subplot(122)
+    axis.set_facecolor("#fbfaf6")
+    table_axis.set_facecolor("#fbfaf6")
+
+    color_by_polarization = {"sigma+": "#b91c1c", "sigma-": "#1d4ed8", "pi": "#15803d"}
+    rows: list[list[str]] = []
+    for beam in beams:
+        direction = np.asarray(beam.direction, dtype=float)
+        start = -48.0 * direction
+        vector = 42.0 * direction
+        color = color_by_polarization[beam.circular_polarization]
+        polarization_label = {"sigma+": r"$\sigma^+$", "sigma-": r"$\sigma^-$", "pi": r"$\pi$"}[
+            beam.circular_polarization
+        ]
+        axis.quiver(*start, *vector, color=color, linewidth=2.5, arrow_length_ratio=0.16)
+        label_position = start + 0.48 * vector
+        axis.text(
+            *label_position,
+            f"{polarization_label}\n"
+            rf"$\hat{{k}}$=({direction[0]:+.0f},{direction[1]:+.0f},{direction[2]:+.0f})",
+            color=color,
+            ha="center",
+            va="center",
+            fontsize=9,
+        )
+        rows.append(
+            [
+                beam.axis_name.replace("horizontal_", "").replace("vertical_", ""),
+                beam.propagation_sense,
+                f"({direction[0]:+.0f}, {direction[1]:+.0f}, {direction[2]:+.0f})",
+                beam.circular_polarization,
+                f"{beam.polarization_sign:+.0f}",
+            ]
+        )
+
+    axis.scatter([0.0], [0.0], [0.0], color="#111827", s=50)
+    axis.set_title("Six Cooling Beams")
+    axis.set_xlabel("x [mm]")
+    axis.set_ylabel("y [mm]")
+    axis.set_zlabel("z [mm]")
+    axis.set_xlim(-55.0, 55.0)
+    axis.set_ylim(-55.0, 55.0)
+    axis.set_zlim(-55.0, 55.0)
+    axis.set_box_aspect((1.0, 1.0, 1.0))
+
+    table_axis.axis("off")
+    table_axis.set_title("Beam Convention", pad=14)
+    table = table_axis.table(
+        cellText=rows,
+        colLabels=["axis", "path", r"$\hat{k}$", "helicity", r"effective $\xi$"],
+        loc="center",
+        cellLoc="center",
+    )
+    table.auto_set_font_size(False)
+    table.set_fontsize(9)
+    table.scale(1.0, 1.6)
+    table_axis.text(
+        0.5,
+        0.12,
+        r"$\sigma^\pm$ is defined while looking along each beam's propagation direction."
+        "\nThe effective two-level Zeeman sign is axis-dependent; it is not a multilevel selection rule.",
+        transform=table_axis.transAxes,
+        ha="center",
+        va="center",
+        fontsize=9,
+    )
+    _prepare_output(path)
+    if path is not None:
+        figure.savefig(path, dpi=180)
+    return figure
+
+
+def plot_simple_mot_force_curves(
+    beams: list[SimpleMOTBeam],
+    coil_config,
+    simple_config,
+    position_extent_m: float = 8.0e-3,
+    velocity_extent_m_per_s: float = 15.0,
+    sample_count: int = 161,
+    path: Path | None = None,
+):
+    """Plot restoring-force and damping-force curves along all three axes.
+
+    These panels show radiation-pressure force only. Gravity enters trajectory
+    acceleration separately and is intentionally excluded from the force-law
+    symmetry plots.
+    """
+
+    positions = np.linspace(-position_extent_m, position_extent_m, sample_count)
+    velocities = np.linspace(-velocity_extent_m_per_s, velocity_extent_m_per_s, sample_count)
+    axes_spec = (("x", 0), ("y", 1), ("z", 2))
+    figure, axes = plt.subplots(3, 2, figsize=(12, 12), constrained_layout=True)
+    figure.patch.set_facecolor("#fbfaf6")
+    for row, (axis_name, component) in enumerate(axes_spec):
+        position_forces = []
+        velocity_forces = []
+        for coordinate in positions:
+            position = [0.0, 0.0, 0.0]
+            position[component] = float(coordinate)
+            force, _, _ = mean_force_n(beams, AtomState(tuple(position), (0.0, 0.0, 0.0)), coil_config, simple_config)
+            position_forces.append(force[component])
+        for speed in velocities:
+            velocity = [0.0, 0.0, 0.0]
+            velocity[component] = float(speed)
+            force, _, _ = mean_force_n(beams, AtomState((0.0, 0.0, 0.0), tuple(velocity)), coil_config, simple_config)
+            velocity_forces.append(force[component])
+
+        position_axis, velocity_axis = axes[row]
+        position_axis.plot(1e3 * positions, position_forces, color="#7c3aed")
+        velocity_axis.plot(velocities, velocity_forces, color="#0f766e")
+        for panel in (position_axis, velocity_axis):
+            panel.axhline(0.0, color="#64748b", linewidth=0.8)
+            panel.axvline(0.0, color="#64748b", linewidth=0.8)
+            panel.grid(True, alpha=0.25)
+            panel.set_facecolor("#fbfaf6")
+        position_axis.set_title(rf"Restoring curve: $F_{axis_name}({axis_name})$ at $v=0$")
+        position_axis.set_xlabel(f"{axis_name} [mm]")
+        position_axis.set_ylabel(f"$F_{axis_name}$ [N]")
+        velocity_axis.set_title(rf"Damping curve: $F_{axis_name}(v_{axis_name})$ at $r=0$")
+        velocity_axis.set_xlabel(rf"$v_{axis_name}$ [m/s]")
+        velocity_axis.set_ylabel(f"$F_{axis_name}$ [N]")
+
+    figure.suptitle("Simplified Two-Level MOT Force Curves (radiation pressure)", fontsize=15)
+    _prepare_output(path)
+    if path is not None:
+        figure.savefig(path, dpi=180)
+    return figure
 
 
 def plot_simple_mot_diagnostics(

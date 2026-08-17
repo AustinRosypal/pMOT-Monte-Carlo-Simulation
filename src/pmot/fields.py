@@ -50,8 +50,8 @@ class MOTBeam:
             raise ValueError("family must be 'cooling' or 'repump'")
         if self.propagation_sense not in {"incident", "retro"}:
             raise ValueError("propagation_sense must be 'incident' or 'retro'")
-        if self.circular_polarization not in {"right", "left"}:
-            raise ValueError("circular_polarization must be 'right' or 'left'")
+        if self.circular_polarization not in {"pi", "sigma+", "sigma-"}:
+            raise ValueError("circular_polarization must be 'pi', 'sigma+', or 'sigma-'")
         object.__setattr__(self, "direction", normalize(self.direction))
 
     def gaussian_beam(self) -> GaussianBeam:
@@ -88,7 +88,7 @@ def _build_beam_family(
                 family=family,
                 axis_name=axis.name,
                 propagation_sense="incident",
-                circular_polarization="right",
+                circular_polarization="sigma+",
                 direction=axis_direction,
                 reference_position_m=reference_position,
                 power_w=family_config.power_w_per_beam,
@@ -104,7 +104,7 @@ def _build_beam_family(
                 family=family,
                 axis_name=axis.name,
                 propagation_sense="retro",
-                circular_polarization="left",
+                circular_polarization="sigma-",
                 direction=scale(-1.0, axis_direction),
                 reference_position_m=reference_position,
                 power_w=family_config.power_w_per_beam,
@@ -358,7 +358,7 @@ def sample_intensity_cloud_by_polarization(
     """Sample the MOT field around beam axes, grouped by beam handedness."""
 
     cloud_by_polarization: dict[str, list[tuple[float, float, float, float]]] = {}
-    for circular_polarization in ("right", "left"):
+    for circular_polarization in ("sigma+", "sigma-", "pi"):
         selected = filter_beams(beams, circular_polarization=circular_polarization)
         cloud_by_polarization[circular_polarization] = sample_intensity_cloud(
             selected,

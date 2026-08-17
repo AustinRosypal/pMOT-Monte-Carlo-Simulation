@@ -9,9 +9,11 @@ from .configuration import (
 )
 from .plotting import (
     draw_simple_mot_beam_volumes,
+    plot_beam_polarization_diagram,
     plot_magnetic_component_grid,
     plot_simple_mot_diagnostics,
     plot_simple_mot_geometry,
+    plot_simple_mot_force_curves,
 )
 from .simulation import (
     SimpleMOTBeam,
@@ -42,9 +44,11 @@ __all__ = [
     "SimpleMOTConfig",
     "MU_B_OVER_H_HZ_PER_T",
     "draw_simple_mot_beam_volumes",
+    "plot_beam_polarization_diagram",
     "plot_magnetic_component_grid",
     "plot_simple_mot_diagnostics",
     "plot_simple_mot_geometry",
+    "plot_simple_mot_force_curves",
     "SimpleMOTBeam",
     "SimpleMOTRateSample",
     "SimpleMOTTrajectoryRecord",
