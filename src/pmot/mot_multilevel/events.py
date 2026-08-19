@@ -25,6 +25,9 @@ class EventChannel:
     beam_index: int | None = None
     excited_f: int | None = None
     q: int | None = None
+    detuning_rad_per_s: float | None = None
+    polarization_weight: float | None = None
+    saturation_parameter: float | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -78,6 +81,9 @@ def outgoing_channels(
                 beam_index=channel.beam_index,
                 excited_f=channel.transition.excited_f,
                 q=channel.transition.q,
+                detuning_rad_per_s=channel.detuning_rad_per_s,
+                polarization_weight=channel.polarization_weight,
+                saturation_parameter=channel.saturation_parameter,
             )
             for channel in ground_laser_channels(
                 structure,
@@ -100,6 +106,9 @@ def outgoing_channels(
             beam_index=channel.beam_index,
             excited_f=channel.transition.excited_f,
             q=channel.transition.q,
+            detuning_rad_per_s=channel.detuning_rad_per_s,
+            polarization_weight=channel.polarization_weight,
+            saturation_parameter=channel.saturation_parameter,
         )
         for channel in stimulated_emission_channels(
             structure,

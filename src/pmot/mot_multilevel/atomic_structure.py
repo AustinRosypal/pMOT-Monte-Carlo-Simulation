@@ -21,6 +21,7 @@ HBAR_J_S = 1.054571817e-34
 BOHR_MAGNETON_OVER_HBAR_RAD_PER_S_PER_T = BOHR_MAGNETON_J_PER_T / HBAR_J_S
 
 EXCITED_HYPERFINE_OFFSET_RAD_PER_S = {
+    0: -2.0 * pi * 495.815e6,
     1: -2.0 * pi * 423.597e6,
     2: -2.0 * pi * 266.650e6,
     3: 0.0,
@@ -133,7 +134,7 @@ def normalized_dipole_strength(ground_f: int, ground_m_f: int, excited_f: int, e
 
 @lru_cache(maxsize=1)
 def build_atomic_structure() -> AtomicStructure:
-    """Generate all 23 states and precompute allowed transition graphs."""
+    """Generate all ground/excited states and precompute allowed transition graphs."""
 
     states: list[InternalState] = []
     ground_indices: list[int] = []
@@ -145,7 +146,7 @@ def build_atomic_structure() -> AtomicStructure:
             states.append(
                 InternalState(index, "ground", f, m_f, 0.0, hyperfine_lande_g(f, GROUND_J, GROUND_J_LANDE))
             )
-    for f in (1, 2, 3):
+    for f in (0, 1, 2, 3):
         for m_f in range(-f, f + 1):
             index = len(states)
             excited_indices.append(index)
@@ -162,29 +163,31 @@ def build_atomic_structure() -> AtomicStructure:
 
     lookup = {(state.manifold, state.f, state.m_f): state.index for state in states}
     transitions: list[DipoleTransition] = []
-    for ground_m_f in range(-2, 3):
-        ground_index = lookup[("ground", 2, ground_m_f)]
-        for excited_f in (1, 2, 3):
-            for q in (-1, 0, 1):
-                excited_m_f = ground_m_f + q
-                if abs(excited_m_f) > excited_f:
-                    continue
-                strength = normalized_dipole_strength(2, ground_m_f, excited_f, excited_m_f)
-                if strength <= 0.0:
-                    continue
-                transitions.append(
-                    DipoleTransition(
-                        ground_index,
-                        lookup[("excited", excited_f, excited_m_f)],
-                        2,
-                        ground_m_f,
-                        excited_f,
-                        excited_m_f,
-                        q,
-                        strength,
-                        EXCITED_HYPERFINE_OFFSET_RAD_PER_S[excited_f],
+    excitation_manifolds_by_ground_f = {1: (0, 1, 2), 2: (1, 2, 3)}
+    for ground_f, excited_manifolds in excitation_manifolds_by_ground_f.items():
+        for ground_m_f in range(-ground_f, ground_f + 1):
+            ground_index = lookup[("ground", ground_f, ground_m_f)]
+            for excited_f in excited_manifolds:
+                for q in (-1, 0, 1):
+                    excited_m_f = ground_m_f + q
+                    if abs(excited_m_f) > excited_f:
+                        continue
+                    strength = normalized_dipole_strength(ground_f, ground_m_f, excited_f, excited_m_f)
+                    if strength <= 0.0:
+                        continue
+                    transitions.append(
+                        DipoleTransition(
+                            ground_index,
+                            lookup[("excited", excited_f, excited_m_f)],
+                            ground_f,
+                            ground_m_f,
+                            excited_f,
+                            excited_m_f,
+                            q,
+                            strength,
+                            EXCITED_HYPERFINE_OFFSET_RAD_PER_S[excited_f],
+                        )
                     )
-                )
 
     decay_channels: list[DecayChannel] = []
     for excited_index in excited_indices:

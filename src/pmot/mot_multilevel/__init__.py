@@ -11,6 +11,7 @@ from .configuration import DarkStateBehavior
 from .configuration import InitializationMode
 from .configuration import MultilevelMOTConfig
 from .configuration import default_multilevel_mot_config
+from .configuration import multilevel_mot_paths
 from .coupling import doppler_shift_rad_per_s
 from .coupling import effective_detuning_rad_per_s
 from .coupling import ground_laser_channels
@@ -27,11 +28,20 @@ from .polarization import propagation_frame_polarization
 from .polarization import quantization_axis
 from .polarization import spherical_basis
 from .trajectory import MultilevelAtomState
+from .trajectory import RepumpAbsorptionRecord
 from .trajectory import TrajectoryCounters
 from .trajectory import absorption_velocity_kick
 from .trajectory import recoil_speed_m_per_s
 from .trajectory import sample_initial_internal_state
 from .trajectory import spontaneous_emission_velocity_kick
 from .trajectory import stimulated_emission_velocity_kick
+from .simulation import MeanObservable
+from .simulation import MultilevelTrajectoryRecord
+from .simulation import build_multilevel_cooling_beams
+from .simulation import build_multilevel_mot_beams
+from .simulation import build_multilevel_repump_beams
+from .simulation import ground_state_mean_observable
+from .simulation import simulate_multilevel_trajectory
+from .simulation import unpolarized_f2_mean_observable
 
 __all__ = [name for name in globals() if not name.startswith("_")]

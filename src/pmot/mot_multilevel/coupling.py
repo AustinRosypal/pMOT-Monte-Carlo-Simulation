@@ -65,10 +65,19 @@ def effective_detuning_rad_per_s(
 ) -> float:
     """Return delta_L-F' - k.v - delta_Z in angular-frequency units."""
 
-    laser_detuning = config.cooling_detuning_rad_per_s
+    if beam.family == "cooling":
+        laser_detuning = config.cooling_detuning_rad_per_s
+        hyperfine_offset = transition.hyperfine_offset_rad_per_s
+    elif beam.family == "repump":
+        laser_detuning = config.repump_detuning_rad_per_s
+        hyperfine_offset = transition.hyperfine_offset_rad_per_s - structure.states[
+            structure.state_index("excited", 2, 0)
+        ].energy_offset_rad_per_s
+    else:
+        raise ValueError(f"unsupported beam family: {beam.family}")
     return (
         laser_detuning
-        - transition.hyperfine_offset_rad_per_s
+        - hyperfine_offset
         - doppler_shift_rad_per_s(beam, velocity_m_per_s)
         - zeeman_shift_rad_per_s(structure, transition, field_magnitude_t)
     )
@@ -96,19 +105,27 @@ def ground_laser_channels(
     quantization_axis_vector: Vec3,
     config: MultilevelMOTConfig,
 ) -> list[LaserChannel]:
-    """Enumerate only precomputed transitions outgoing from one bright ground state."""
+    """Enumerate laser-driven transitions for the addressed ground manifold."""
 
     state = structure.states[state_index]
-    if not state.is_ground or state.f == 1:
+    if not state.is_ground:
         return []
     channels: list[LaserChannel] = []
     for beam_index, beam in enumerate(beams):
-        if beam.family != "cooling":
+        if beam.family == "cooling":
+            if state.f != 2:
+                continue
+            enabled_manifolds = config.enabled_excited_manifolds
+        elif beam.family == "repump":
+            if not config.repumper_enabled or state.f != 1 or beam.power_w <= 0.0:
+                continue
+            enabled_manifolds = config.enabled_repump_excited_manifolds
+        else:
             continue
         intensity = beam_intensity_w_per_m2(beam, position_m)
         weights = polarization_weights(beam_polarization_vector(beam), quantization_axis_vector)
         for transition in structure.absorption_by_ground[state_index]:
-            if transition.excited_f not in config.enabled_excited_manifolds:
+            if transition.excited_f not in enabled_manifolds:
                 continue
             polarization_weight = weights[transition.q]
             saturation = intensity / config.saturation_intensity_w_per_m2 * transition.c_squared * polarization_weight
@@ -149,12 +166,22 @@ def stimulated_emission_channels(
         return []
     channels: list[LaserChannel] = []
     for beam_index, beam in enumerate(beams):
-        if beam.family != "cooling":
+        if beam.family == "cooling":
+            enabled_manifolds = config.enabled_excited_manifolds
+            addressed_ground_f = 2
+        elif beam.family == "repump":
+            if not config.repumper_enabled or beam.power_w <= 0.0:
+                continue
+            enabled_manifolds = config.enabled_repump_excited_manifolds
+            addressed_ground_f = 1
+        else:
             continue
         intensity = beam_intensity_w_per_m2(beam, position_m)
         weights = polarization_weights(beam_polarization_vector(beam), quantization_axis_vector)
         for transition in structure.transitions_by_excited[state_index]:
-            if transition.excited_f not in config.enabled_excited_manifolds:
+            if transition.ground_f != addressed_ground_f:
+                continue
+            if transition.excited_f not in enabled_manifolds:
                 continue
             polarization_weight = weights[transition.q]
             saturation = intensity / config.saturation_intensity_w_per_m2 * transition.c_squared * polarization_weight

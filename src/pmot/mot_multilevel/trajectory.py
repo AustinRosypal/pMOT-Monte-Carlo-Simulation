@@ -35,6 +35,29 @@ class TrajectoryCounters:
     photons_before_dark: int = 0
     dark_entry_time_s: float | None = None
     dark_parent_excited_f: int | None = None
+    f1_visit_count: int = 0
+    total_f1_time_s: float = 0.0
+    repump_absorption_events: int = 0
+    f1_returns_to_f2: int = 0
+
+
+@dataclass(frozen=True, slots=True)
+class RepumpAbsorptionRecord:
+    """Diagnostics for one repump absorption event."""
+
+    time_s: float
+    beam_index: int
+    initial_f: int
+    initial_m_f: int
+    excited_f: int
+    excited_m_f: int
+    position_m: Vec3
+    velocity_m_per_s: Vec3
+    magnetic_field_t: Vec3
+    detuning_rad_per_s: float
+    polarization_weight: float
+    saturation_parameter: float
+    rate_per_s: float
 
 
 def sample_initial_internal_state(

@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 import numpy as np
 
 from pmot.mot_multilevel import EventChannel
 from pmot.mot_multilevel import absorption_velocity_kick
 from pmot.mot_multilevel import build_atomic_structure
+from pmot.mot_multilevel import build_multilevel_mot_beams
 from pmot.mot_multilevel import outgoing_channels
 from pmot.mot_multilevel import recoil_speed_m_per_s
 from pmot.mot_multilevel import sample_channel
@@ -43,9 +46,21 @@ def test_excited_state_lifetime_statistics() -> None:
 def test_dark_ground_states_have_no_outgoing_channels_without_repumper() -> None:
     structure = build_atomic_structure()
     config = default_multilevel_mot_config()
+    beams = build_multilevel_mot_beams(config=replace(config, repumper_enabled=True))
     for m_f in (-1, 0, 1):
         state_index = structure.state_index("ground", 1, m_f)
-        assert outgoing_channels(structure, state_index, [], (0.0, 0.0, 0.0), (0.0, 0.0, 0.0), 0.0, (0.0, 0.0, 1.0), config) == []
+        assert outgoing_channels(structure, state_index, beams, (0.0, 0.0, 0.0), (0.0, 0.0, 0.0), 0.0, (0.0, 0.0, 1.0), config) == []
+
+
+def test_f1_ground_states_have_repump_channels_when_enabled() -> None:
+    structure = build_atomic_structure()
+    config = replace(default_multilevel_mot_config(), repumper_enabled=True)
+    beams = build_multilevel_mot_beams(config=config)
+    for m_f in (-1, 0, 1):
+        state_index = structure.state_index("ground", 1, m_f)
+        channels = outgoing_channels(structure, state_index, beams, (0.0, 0.0, 0.0), (0.0, 0.0, 0.0), 0.0, (0.0, 0.0, 1.0), config)
+        assert channels
+        assert all(beams[channel.beam_index].family == "repump" for channel in channels)
 
 
 def test_recoil_kick_magnitudes() -> None:
