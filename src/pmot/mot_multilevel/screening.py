@@ -38,16 +38,18 @@ def core_entry_count(record: MultilevelTrajectoryRecord, core_radius_m: float = 
     return int(np.count_nonzero(inside & np.concatenate(([True], ~inside[:-1]))))
 
 
-def capture_classification(record: MultilevelTrajectoryRecord) -> str:
-    """Apply the project's inexpensive two-entry core criterion."""
+def capture_classification(record: MultilevelTrajectoryRecord, *, repumper_enabled: bool = False) -> str:
+    """Classify a completed trace without hiding incomplete event-capped runs."""
 
-    if core_entry_count(record) >= 2:
-        return "trapped_two_core_entries"
-    if record.counters.dark_entry_time_s is not None:
-        return "untrapped_dark"
     if record.termination_reason == "max_events":
         return "indeterminate_event_cap"
-    return "untrapped_no_reentry"
+    if record.termination_reason == "escaped":
+        return "escaped"
+    if core_entry_count(record) >= 2:
+        return "candidate_trapped_two_core_entries"
+    if record.counters.dark_entry_time_s is not None and not repumper_enabled:
+        return "untrapped_dark"
+    return "indeterminate_duration"
 
 
 def trajectory_lifetime_s(record: MultilevelTrajectoryRecord) -> float:
@@ -271,7 +273,10 @@ def run_capture_screening(root: Path | None = None, seed: int = 31082026) -> dic
         position = tuple(1e-3 * value for value in position_mm)
         m_f = (-2, -1, 0, 1, 2)[index % 5]
         initial = MultilevelAtomState(position, velocity, structure.state_index("ground", 2, m_f))
-        record = simulate_multilevel_trajectory(initial, 5e-3, coil, beams=beams, structure=structure, config=config, seed=seed + index, max_events=5_000)
+        record = simulate_multilevel_trajectory(
+            initial, 5e-3, coil, beams=beams, structure=structure, config=config,
+            seed=seed + index, max_events=5_000, escape_radius_m=30.0e-3,
+        )
         records.append(record); classification = capture_classification(record)
         plot_screening_trajectory(record, structure, output / f"trajectory_{index:02d}.png", index, beams)
         plot_velocity_and_beam_rates(record, beams, output / f"trajectory_{index:02d}_velocity_and_beam_rates.png", index)
@@ -286,7 +291,7 @@ def run_capture_screening(root: Path | None = None, seed: int = 31082026) -> dic
     output.mkdir(parents=True, exist_ok=True)
     with (output / "screening_summary.csv").open("w", newline="") as stream:
         writer = csv.DictWriter(stream, fieldnames=summaries[0].keys()); writer.writeheader(); writer.writerows(summaries)
-    result = {"seed": seed, "duration_ms": 5.0, "core_radius_mm": 2.0, "trapped_count": sum(item["classification"].startswith("trapped") for item in summaries), "dark_untrapped_count": sum(item["classification"] == "untrapped_dark" for item in summaries), "indeterminate_count": sum(item["classification"].startswith("indeterminate") for item in summaries), "animations": [str(path) for path in animation_paths], "runs": summaries}
+    result = {"seed": seed, "duration_ms": 5.0, "core_radius_mm": 2.0, "two_core_entry_candidate_count": sum(item["classification"] == "candidate_trapped_two_core_entries" for item in summaries), "dark_untrapped_count": sum(item["classification"] == "untrapped_dark" for item in summaries), "indeterminate_count": sum(item["classification"].startswith("indeterminate") for item in summaries), "escaped_count": sum(item["classification"] == "escaped" for item in summaries), "animations": [str(path) for path in animation_paths], "runs": summaries}
     (output / "screening_summary.json").write_text(json.dumps(result, indent=2) + "\n")
     return result
 

@@ -81,6 +81,7 @@ class MultilevelSamplingConfig:
     points_per_disc: int = 8
     duration_s: float = 5.0e-3
     max_events: int = 5_000
+    escape_radius_m: float = 30.0e-3
     include_center_point: bool = True
     seed: int = 0
     save_every: int = 25
@@ -164,6 +165,7 @@ def simulate_launch_sample(
         config=config,
         seed=search.seed + sample_index,
         max_events=search.max_events,
+        escape_radius_m=search.escape_radius_m,
     )
     radii = resampled_radii_m(record)
     counters = asdict(record.counters)
@@ -181,7 +183,7 @@ def simulate_launch_sample(
         initial_state_index=initial_state_index,
         initial_f=initial_internal.f,
         initial_m_f=initial_internal.m_f,
-        classification=capture_classification(record),
+        classification=capture_classification(record, repumper_enabled=config.repumper_enabled),
         core_entries=core_entry_count(record),
         lifetime_s=trajectory_lifetime_s(record),
         minimum_radius_m=float(np.min(radii)),
@@ -297,6 +299,7 @@ def build_argument_parser() -> argparse.ArgumentParser:
     parser.add_argument("--launch-speed", type=float, default=defaults.launch_speed_m_per_s)
     parser.add_argument("--duration-ms", type=float, default=1e3 * defaults.duration_s)
     parser.add_argument("--max-events", type=int, default=defaults.max_events)
+    parser.add_argument("--escape-radius-mm", type=float, default=1e3 * defaults.escape_radius_m)
     parser.add_argument("--include-center-point", action="store_true", default=defaults.include_center_point)
     parser.add_argument("--no-include-center-point", dest="include_center_point", action="store_false")
     parser.add_argument("--save-every", type=int, default=defaults.save_every)
@@ -314,6 +317,7 @@ def search_config_from_args(args: argparse.Namespace) -> MultilevelSamplingConfi
         points_per_disc=args.points_per_disc,
         duration_s=1e-3 * args.duration_ms,
         max_events=args.max_events,
+        escape_radius_m=1e-3 * args.escape_radius_mm,
         include_center_point=args.include_center_point,
         seed=args.seed,
         save_every=args.save_every,

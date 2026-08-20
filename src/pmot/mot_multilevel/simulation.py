@@ -178,6 +178,19 @@ def _propagate_ballistic(position: Vec3, velocity: Vec3, dt_s: float, include_gr
     return tuple(r), tuple(v)
 
 
+def _is_outward_escape(position: Vec3, velocity: Vec3, escape_radius_m: float | None) -> bool:
+    """Return whether the atom is beyond the escape sphere and moving outward."""
+
+    if escape_radius_m is None:
+        return False
+    position_array = np.asarray(position)
+    radius_m = float(np.linalg.norm(position_array))
+    if radius_m < escape_radius_m:
+        return False
+    radial_velocity_m_per_s = float(np.dot(position_array, velocity)) / max(radius_m, 1.0e-15)
+    return radial_velocity_m_per_s > 0.0
+
+
 def _append_record(record, time_s, state, observable, field_t, event_type, beam_index):
     record.times_s.append(time_s)
     record.positions_m.append(state.position_m)
@@ -201,6 +214,7 @@ def simulate_multilevel_trajectory(
     config: MultilevelMOTConfig | None = None,
     seed: int = 12345,
     max_events: int = 100_000,
+    escape_radius_m: float | None = None,
 ) -> MultilevelTrajectoryRecord:
     """Simulate one piecewise-ballistic, event-driven multilevel trajectory.
 
@@ -211,6 +225,8 @@ def simulate_multilevel_trajectory(
 
     if duration_s <= 0.0 or max_events <= 0:
         raise ValueError("duration_s and max_events must be positive")
+    if escape_radius_m is not None and escape_radius_m <= 0.0:
+        raise ValueError("escape_radius_m must be positive when provided")
     cfg = config or default_multilevel_mot_config()
     atom_structure = structure or build_atomic_structure()
     optical_beams = build_multilevel_mot_beams(config=cfg) if beams is None else beams
@@ -241,6 +257,9 @@ def simulate_multilevel_trajectory(
         internal = atom_structure.states[state.internal_state_index]
         if time_s >= duration_s:
             record.termination_reason = "duration"
+            break
+        if _is_outward_escape(state.position_m, state.velocity_m_per_s, escape_radius_m):
+            record.termination_reason = "escaped"
             break
         if internal.is_dark and not cfg.repumper_enabled:
             record.counters.dark_entry_time_s = record.counters.dark_entry_time_s or time_s
@@ -276,6 +295,21 @@ def simulate_multilevel_trajectory(
         dt_s = min(waiting, duration_s - time_s)
         position, velocity = _propagate_ballistic(state.position_m, state.velocity_m_per_s, dt_s, cfg.include_gravity)
         time_s += dt_s
+        if _is_outward_escape(position, velocity, escape_radius_m):
+            state = MultilevelAtomState(position, velocity, state.internal_state_index, axis, state.dark)
+            field_at_escape = local_magnetic_field_t(position, coil_config)
+            if internal.is_ground:
+                escape_observable = ground_state_mean_observable(
+                    atom_structure, state.internal_state_index, optical_beams,
+                    position, velocity, coil_config, cfg, axis,
+                )
+            else:
+                escape_observable = MeanObservable(
+                    (0.0, 0.0, 0.0), 0.0, tuple(0.0 for _ in optical_beams), field_at_escape,
+                )
+            _append_record(record, time_s, state, escape_observable, field_at_escape, "escaped", None)
+            record.termination_reason = "escaped"
+            break
         if sampled is None or waiting > dt_s:
             state = MultilevelAtomState(position, velocity, state.internal_state_index, axis, state.dark)
             _append_record(record, time_s, state, observable, field_t, "duration", None)

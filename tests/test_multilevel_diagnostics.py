@@ -1,6 +1,7 @@
 """Trajectory-coupled and force-law diagnostics analogous to mot_simple tests."""
 
 from dataclasses import replace
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -17,9 +18,13 @@ from pmot.mot_multilevel.simulation import MultilevelTrajectoryRecord
 from pmot.mot_multilevel.sampling import MultilevelSamplingConfig
 from pmot.mot_multilevel.sampling import generate_launch_samples
 from pmot.mot_multilevel.screening import core_entry_count
+from pmot.mot_multilevel.screening import capture_classification
 from pmot.mot_multilevel.screening import beam_rate_column
 from pmot.mot_multilevel.screening import hyperfine_walk_frame_indices
 from pmot.mot_multilevel.screening import lifetime_file_tag
+from pmot.mot_multilevel.performance import generate_performance_bundle
+from pmot.mot_multilevel.performance import bounded_trajectory_diagnostics
+from pmot.mot_multilevel.performance import trajectory_performance_summary
 
 
 @pytest.fixture(scope="module")
@@ -160,3 +165,80 @@ def test_two_core_entry_counter_requires_an_intervening_exit() -> None:
         positions_m=[(3e-3, 0, 0), (1e-3, 0, 0), (0, 0, 0), (3e-3, 0, 0), (1e-3, 0, 0)],
     )
     assert core_entry_count(record) == 2
+
+
+def test_performance_bundle_saves_all_requested_histories_and_plots(apparatus, tmp_path) -> None:
+    structure, _, coil, config = apparatus
+    repump_config = replace(config, repumper_enabled=True)
+    beams = build_multilevel_mot_beams(config=repump_config)
+    initial = MultilevelAtomState((1e-3, 0, 0), (-0.2, 0, 0), structure.state_index("ground", 2, 0))
+    record = simulate_multilevel_trajectory(
+        initial, 2e-6, coil, beams=beams, structure=structure,
+        config=repump_config, seed=17, max_events=1_000,
+    )
+    result = generate_performance_bundle(record, structure, beams, tmp_path, 0)
+    assert len(result["outputs"]) == 8
+    assert all(Path(path).is_file() for path in result["outputs"])
+    with np.load(tmp_path / "trajectory_000.npz") as data:
+        assert data["position_m"].shape[1] == 3
+        assert data["velocity_m_per_s"].shape[1] == 3
+        assert data["beam_available_absorption_rate_per_s"].shape[1] == len(beams)
+        assert len(data["F"]) == len(record.times_s)
+        assert set(data["beam_family"]) == {"cooling", "repump"}
+
+
+def test_performance_summary_flags_event_cap() -> None:
+    record = MultilevelTrajectoryRecord(
+        times_s=[0.0, 1e-6],
+        positions_m=[(2e-3, 0, 0), (1e-3, 0, 0)],
+        velocities_m_per_s=[(-1, 0, 0), (-0.5, 0, 0)],
+        termination_reason="max_events",
+    )
+    summary = trajectory_performance_summary(record)
+    assert not summary["completed_requested_duration"]
+    assert summary["final_speed_m_per_s"] < summary["initial_speed_m_per_s"]
+
+
+def test_event_cap_takes_precedence_over_dark_visit() -> None:
+    record = MultilevelTrajectoryRecord(
+        times_s=[0.0],
+        positions_m=[(0.0, 0.0, 0.0)],
+        termination_reason="max_events",
+    )
+    record.counters.dark_entry_time_s = 1e-6
+    assert capture_classification(record, repumper_enabled=True) == "indeterminate_event_cap"
+    assert capture_classification(record, repumper_enabled=False) == "indeterminate_event_cap"
+
+
+def test_repumped_f1_visit_is_not_classified_as_terminal_dark() -> None:
+    record = MultilevelTrajectoryRecord(
+        times_s=[0.0, 5e-3],
+        positions_m=[(4e-3, 0.0, 0.0), (3e-3, 0.0, 0.0)],
+        termination_reason="duration",
+    )
+    record.counters.dark_entry_time_s = 1e-6
+    assert capture_classification(record, repumper_enabled=True) == "indeterminate_duration"
+    assert capture_classification(record, repumper_enabled=False) == "untrapped_dark"
+
+
+def test_multilevel_trajectory_stops_on_outward_escape(apparatus) -> None:
+    structure, _, coil, config = apparatus
+    initial = MultilevelAtomState((29e-3, 0.0, 0.0), (2.0, 0.0, 0.0), structure.state_index("ground", 2, 0))
+    record = simulate_multilevel_trajectory(
+        initial, 10e-3, coil, beams=[], structure=structure, config=config,
+        seed=8, max_events=100, escape_radius_m=30e-3,
+    )
+    assert record.termination_reason == "escaped"
+    assert np.linalg.norm(record.positions_m[-1]) >= 30e-3
+
+
+def test_bounded_diagnostic_requires_completed_long_final_window() -> None:
+    record = MultilevelTrajectoryRecord(
+        times_s=[0.0, 4e-3, 5e-3],
+        positions_m=[(8e-3, 0.0, 0.0), (1e-3, 0.0, 0.0), (0.5e-3, 0.0, 0.0)],
+        termination_reason="duration",
+    )
+    diagnostic = bounded_trajectory_diagnostics(record)
+    assert diagnostic["candidate_bounded_trapped"]
+    record.termination_reason = "max_events"
+    assert not bounded_trajectory_diagnostics(record)["candidate_bounded_trapped"]

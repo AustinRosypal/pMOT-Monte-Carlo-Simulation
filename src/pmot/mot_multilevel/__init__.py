@@ -1,4 +1,4 @@
-"""Isolated event-driven multilevel Rb-87 D2 MOT model."""
+"""Efficient rate-equation MOT plus isolated legacy photon-jump diagnostics."""
 
 from .atomic_structure import AtomicStructure
 from .atomic_structure import DecayChannel
@@ -43,5 +43,14 @@ from .simulation import build_multilevel_repump_beams
 from .simulation import ground_state_mean_observable
 from .simulation import simulate_multilevel_trajectory
 from .simulation import unpolarized_f2_mean_observable
+from .rate_equations import RateEquationAtomState
+from .rate_equations import RateEquationModel
+from .rate_equations import RateEquationObservable
+from .rate_equations import RateEquationTrajectoryConfig
+from .rate_equations import RateEquationTrajectoryRecord
+from .rate_equations import assemble_rate_matrix
+from .rate_equations import build_rate_equation_model
+from .rate_equations import rate_equation_observable
+from .rate_equations import simulate_rate_equation_trajectory
 
 __all__ = [name for name in globals() if not name.startswith("_")]
