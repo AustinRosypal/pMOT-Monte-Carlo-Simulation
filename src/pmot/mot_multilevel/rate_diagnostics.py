@@ -10,7 +10,11 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 
-from .rate_equations import RateEquationModel, RateEquationTrajectoryRecord
+from .rate_equations import (
+    RateEquationModel,
+    RateEquationTrajectoryRecord,
+    rate_equation_observable,
+)
 from .screening import draw_multilevel_mot_beam_volumes
 
 
@@ -209,6 +213,221 @@ def plot_rate_equation_performance(
     figure.savefig(path, dpi=180, bbox_inches="tight")
     plt.close(figure)
     return path
+
+
+def hyperfine_manifold_occupation_percent(
+    record: RateEquationTrajectoryRecord,
+    model: RateEquationModel,
+) -> tuple[list[str], np.ndarray]:
+    """Return time-averaged population percentages grouped by hyperfine level.
+
+    The efficient solver has population probabilities rather than a single
+    occupied state.  Consequently these values are the time integrals of the
+    manifold populations, divided by the elapsed trajectory time.  All mF
+    substates belonging to the same ``|g/e>, F`` manifold are combined.
+    """
+
+    times = np.asarray(record.times_s, dtype=float)
+    populations = np.asarray(record.populations, dtype=float)
+    if populations.ndim != 2 or populations.shape != (len(times), model.state_count):
+        raise ValueError("trajectory populations must have shape (time, state_count)")
+    if len(times) == 0:
+        raise ValueError("trajectory must contain at least one time sample")
+
+    local_states = [
+        model.structure.states[index]
+        for index in np.concatenate((model.ground_indices, model.excited_indices))
+    ]
+    groups = [
+        (manifold, f)
+        for manifold in ("ground", "excited")
+        for f in sorted({state.f for state in local_states if state.manifold == manifold})
+    ]
+    elapsed = float(times[-1] - times[0])
+    percentages = []
+    for manifold, f in groups:
+        indices = [
+            index
+            for index, state in enumerate(local_states)
+            if state.manifold == manifold and state.f == f
+        ]
+        manifold_population = np.sum(populations[:, indices], axis=1)
+        average = (
+            float(np.trapezoid(manifold_population, times) / elapsed)
+            if elapsed > 0.0
+            else float(manifold_population[0])
+        )
+        percentages.append(100.0 * average)
+    labels = [
+        rf"$|{'g' if manifold == 'ground' else 'e'}\rangle\ F={f}$"
+        for manifold, f in groups
+    ]
+    return labels, np.asarray(percentages)
+
+
+def plot_hyperfine_manifold_occupation(
+    record: RateEquationTrajectoryRecord,
+    model: RateEquationModel,
+    path: Path | None = None,
+):
+    """Plot percentage of trajectory time assigned to each hyperfine level."""
+
+    labels, percentages = hyperfine_manifold_occupation_percent(record, model)
+    colors = ["#1d4ed8", "#0f766e", "#f59e0b", "#ea580c", "#dc2626", "#7c3aed"]
+    figure, axis = plt.subplots(figsize=(10.5, 5.2), constrained_layout=True)
+    bars = axis.bar(labels, percentages, color=colors[: len(labels)], edgecolor="#111827", linewidth=.7)
+    axis.bar_label(bars, labels=[f"{value:.2f}%" for value in percentages], padding=3, fontsize=9)
+    axis.set(
+        title="Time-averaged hyperfine-manifold occupation",
+        xlabel="Hyperfine level (summed over all $m_F$ substates)",
+        ylabel="Percentage of trajectory time [%]",
+        ylim=(0.0, max(5.0, 1.12 * float(np.max(percentages)))),
+    )
+    axis.grid(axis="y", alpha=.25)
+    axis.text(
+        .01,
+        .98,
+        r"Rate-equation interpretation: $100 T^{-1}\int_0^T P_{\mathrm{manifold}}(t)\,dt$",
+        transform=axis.transAxes,
+        va="top",
+        fontsize=9,
+        color="#374151",
+    )
+    if path is not None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        figure.savefig(path, dpi=180, bbox_inches="tight")
+    return figure
+
+
+def plot_rate_equation_time_diagnostics(
+    record: RateEquationTrajectoryRecord,
+    beams,
+    path: Path | None = None,
+):
+    """Plot position, velocity, scattering, and optical force versus time."""
+
+    times_ms = 1e3 * np.asarray(record.times_s, dtype=float)
+    positions_mm = 1e3 * np.asarray(record.positions_m, dtype=float)
+    velocities = np.asarray(record.velocities_m_per_s, dtype=float)
+    forces = np.asarray(record.forces_n, dtype=float)
+    beam_rates = np.asarray(record.beam_scattering_rates_per_s, dtype=float)
+    colors = ("#b91c1c", "#1d4ed8", "#15803d")
+    figure, panels = plt.subplots(2, 2, figsize=(14, 9), constrained_layout=True)
+    for component, (label, color) in enumerate(zip("xyz", colors)):
+        panels[0, 0].plot(times_ms, positions_mm[:, component], color=color, label=label)
+        panels[0, 1].plot(times_ms, velocities[:, component], color=color, label=rf"$v_{label}$")
+        panels[1, 1].plot(times_ms, forces[:, component], color=color, label=rf"$F_{label}$")
+    for beam_index, beam in enumerate(beams):
+        panels[1, 0].plot(
+            times_ms,
+            beam_rates[:, beam_index],
+            linewidth=1.0,
+            alpha=.72,
+            label=beam.label,
+        )
+    panels[1, 0].plot(
+        times_ms,
+        record.total_scattering_rates_per_s,
+        color="#111827",
+        linewidth=2.0,
+        linestyle="--",
+        label="total",
+    )
+    panels[0, 0].set(title="Cartesian position", ylabel="Position [mm]")
+    panels[0, 1].set(title="Cartesian velocity", ylabel="Velocity [m/s]")
+    panels[1, 0].set(title="Per-beam absorption/scattering rates", ylabel=r"Rate [s$^{-1}$]")
+    panels[1, 1].set(
+        title="Mean radiation-pressure force (gravity excluded)",
+        ylabel="Force [N]",
+    )
+    for panel in panels.flat:
+        panel.set_xlabel("Time [ms]")
+        panel.grid(alpha=.25)
+        panel.legend(loc="best", fontsize=8)
+    if path is not None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        figure.savefig(path, dpi=180, bbox_inches="tight")
+    return figure
+
+
+def plot_rate_equation_force_potential_curves(
+    model: RateEquationModel,
+    beams,
+    coil_config,
+    config,
+    path: Path | None = None,
+    *,
+    position_extent_m: float = 8.0e-3,
+    velocity_extent_m_per_s: float = 15.0,
+    sample_count: int = 81,
+):
+    """Plot quasi-steady restoring, damping, and axis-integrated potential curves."""
+
+    if sample_count < 3 or sample_count % 2 == 0:
+        raise ValueError("sample_count must be an odd integer of at least 3")
+    positions = np.linspace(-position_extent_m, position_extent_m, sample_count)
+    velocities = np.linspace(-velocity_extent_m_per_s, velocity_extent_m_per_s, sample_count)
+    figure, panels = plt.subplots(3, 3, figsize=(16, 12), constrained_layout=True)
+    for component, label in enumerate("xyz"):
+        restoring = []
+        damping = []
+        for coordinate in positions:
+            position = np.zeros(3)
+            position[component] = coordinate
+            restoring.append(
+                rate_equation_observable(
+                    model, beams, tuple(position), (0.0, 0.0, 0.0), coil_config, config,
+                ).force_n[component]
+            )
+        for speed in velocities:
+            velocity = np.zeros(3)
+            velocity[component] = speed
+            damping.append(
+                rate_equation_observable(
+                    model, beams, (0.0, 0.0, 0.0), tuple(velocity), coil_config, config,
+                ).force_n[component]
+            )
+        restoring = np.asarray(restoring)
+        potential_j = np.zeros_like(restoring)
+        potential_j[1:] = -np.cumsum(
+            .5 * (restoring[1:] + restoring[:-1]) * np.diff(positions)
+        )
+        potential_j -= potential_j[sample_count // 2]
+        panels[component, 0].plot(1e3 * positions, restoring, color="#7c3aed")
+        panels[component, 1].plot(velocities, damping, color="#0f766e")
+        panels[component, 2].plot(
+            1e3 * positions,
+            1e3 * potential_j / 1.380649e-23,
+            color="#c2410c",
+        )
+        panels[component, 0].set(
+            title=rf"Restoring: $F_{label}({label})$ at $v=0$",
+            xlabel=f"{label} [mm]",
+            ylabel=rf"$F_{label}$ [N]",
+        )
+        panels[component, 1].set(
+            title=rf"Damping: $F_{label}(v_{label})$ at $r=0$",
+            xlabel=rf"$v_{label}$ [m/s]",
+            ylabel=rf"$F_{label}$ [N]",
+        )
+        panels[component, 2].set(
+            title=rf"Axis potential $U_{label}({label})-U_{label}(0)$",
+            xlabel=f"{label} [mm]",
+            ylabel=r"Potential [$k_B$ mK]",
+        )
+        for panel in panels[component]:
+            panel.axhline(0.0, color=".4", linewidth=.8)
+            panel.axvline(0.0, color=".4", linewidth=.8)
+            panel.grid(alpha=.25)
+    figure.suptitle(
+        "Full multilevel rate-equation MOT force and effective 1D potential curves\n"
+        "Quasi-steady internal populations; radiation pressure only; gravity excluded",
+        fontsize=14,
+    )
+    if path is not None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        figure.savefig(path, dpi=180, bbox_inches="tight")
+    return figure
 
 
 __all__ = [name for name in globals() if not name.startswith("_")]

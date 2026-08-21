@@ -50,7 +50,10 @@ Outputs are written under
 Run and visualize a configurable full-MOT launch directly in
 `notebooks/mot_multilevel/full_mot_single_trajectory.ipynb`. It adapts the
 `Single Trajectory` controls and 3D beam/path view from the simplified-MOT disc
-geometry notebook to the efficient fixed-timestep population-rate engine.
+geometry notebook to the efficient fixed-timestep population-rate engine. Each
+run also displays Cartesian motion, per-beam scattering and force histories,
+restoring/damping and effective one-dimensional potential curves, magnetic-field
+component surfaces, and time-averaged hyperfine-manifold occupation percentages.
 
 The expensive photon-jump animation remains available outside the main
 algorithm for short pedagogical and regression runs:

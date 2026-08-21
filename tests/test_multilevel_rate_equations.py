@@ -17,6 +17,7 @@ from pmot.mot_multilevel.rate_equations import (
     simulate_rate_equation_trajectory,
     steady_state_populations,
 )
+from pmot.mot_multilevel.rate_diagnostics import hyperfine_manifold_occupation_percent
 
 
 @pytest.fixture(scope="module")
@@ -151,3 +152,30 @@ def test_deterministic_trajectory_refines_with_smaller_timestep(rate_apparatus) 
 
     assert fine_position_error < coarse_position_error
     assert fine_velocity_error < coarse_velocity_error
+
+
+def test_hyperfine_occupation_groups_mf_states_and_sums_to_100_percent(rate_apparatus) -> None:
+    model, beams, coil, config = rate_apparatus
+    record = simulate_rate_equation_trajectory(
+        RateEquationAtomState((1e-3, 0, 0), (-1.0, 0.1, 0.0)),
+        25e-6,
+        coil,
+        beams=beams,
+        model=model,
+        config=config,
+        trajectory_config=RateEquationTrajectoryConfig(
+            time_step_s=5e-6,
+            include_diffusion=False,
+        ),
+    )
+    labels, percentages = hyperfine_manifold_occupation_percent(record, model)
+    assert labels == [
+        r"$|g\rangle\ F=1$",
+        r"$|g\rangle\ F=2$",
+        r"$|e\rangle\ F=0$",
+        r"$|e\rangle\ F=1$",
+        r"$|e\rangle\ F=2$",
+        r"$|e\rangle\ F=3$",
+    ]
+    assert np.all(percentages >= 0.0)
+    assert np.sum(percentages) == pytest.approx(100.0)
