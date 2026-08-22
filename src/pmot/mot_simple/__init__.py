@@ -34,7 +34,9 @@ from .simulation import (
 from .loading import (
     calculate_loading_rate_from_spectrum,
     load_capture_spectrum,
+    LOADING_RATE_PREFACTOR,
     LoadingRateResult,
+    SPEED_DISTRIBUTION_PREFACTOR_S3_PER_M3,
     save_loading_rate_result,
 )
 __all__ = [
@@ -58,12 +60,14 @@ __all__ = [
     "calculate_loading_rate_from_spectrum",
     "doppler_shift_hz",
     "load_capture_spectrum",
+    "LOADING_RATE_PREFACTOR",
     "LoadingRateResult",
     "local_magnetic_field_t",
     "mean_force_n",
     "rate_samples",
     "rk4_step",
     "save_loading_rate_result",
+    "SPEED_DISTRIBUTION_PREFACTOR_S3_PER_M3",
     "simulate_simple_mot_trajectory",
     "wavevector_magnitude_m_inv",
     "zeeman_shift_hz",

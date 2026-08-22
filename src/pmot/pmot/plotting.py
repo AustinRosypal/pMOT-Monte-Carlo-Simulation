@@ -1,4 +1,4 @@
-"""Notebook-oriented plotting helpers for the pMOT field studies."""
+"""Notebook-oriented plotting helpers for preliminary pMOT field studies."""
 
 from __future__ import annotations
 

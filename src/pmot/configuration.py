@@ -93,13 +93,13 @@ def project_paths(root: Path | None = None) -> dict[str, Path]:
     project_root = root or Path(__file__).resolve().parents[2]
     return {
         "root": project_root,
-        "data_raw": project_root / "data" / "raw",
-        "data_processed": project_root / "data" / "processed",
-        "outputs_fields": project_root / "outputs" / "fields",
-        "outputs_trajectories": project_root / "outputs" / "trajectories",
-        "outputs_statistics": project_root / "outputs" / "statistics",
-        "outputs_figures": project_root / "outputs" / "figures",
-        "notebooks": project_root / "notebooks",
+        "data_raw": project_root / "data" / "raw" / "pmot",
+        "data_processed": project_root / "data" / "processed" / "pmot",
+        "outputs_fields": project_root / "outputs" / "fields" / "pmot",
+        "outputs_trajectories": project_root / "outputs" / "trajectories" / "pmot",
+        "outputs_statistics": project_root / "outputs" / "statistics" / "pmot",
+        "outputs_figures": project_root / "outputs" / "figures" / "pmot",
+        "notebooks": project_root / "notebooks" / "pmot",
     }
 
 

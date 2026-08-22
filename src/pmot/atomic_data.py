@@ -59,14 +59,14 @@ def default_polarizability_csv_path(root: Path | None = None) -> Path:
     """Return the raw Arora CCSD polarizability table path."""
 
     project_root = root or Path(__file__).resolve().parents[2]
-    return project_root / "data" / "raw" / "Arora_CCSD_Differential_Polarizabilities.csv"
+    return project_root / "data" / "raw" / "pmot" / "Arora_CCSD_Differential_Polarizabilities.csv"
 
 
 def full_range_polarizability_csv_path(root: Path | None = None) -> Path:
     """Return the full-range Arora CCSD polarizability table path."""
 
     project_root = root or Path(__file__).resolve().parents[2]
-    return project_root / "data" / "raw" / "Arora_CCSD_FullRange_Differential_Polarizabilities.csv"
+    return project_root / "data" / "raw" / "pmot" / "Arora_CCSD_FullRange_Differential_Polarizabilities.csv"
 
 
 def load_differential_polarizability_csv(

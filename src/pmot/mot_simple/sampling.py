@@ -199,6 +199,15 @@ def sample_octant_direction(rng: np.random.Generator) -> tuple[float, float, Vec
     return theta_rad, phi_rad, spherical_octant_direction(theta_rad, phi_rad)
 
 
+def sample_full_sphere_direction(rng: np.random.Generator) -> tuple[float, float, Vec3]:
+    """Sample one direction uniformly over the complete solid angle."""
+
+    cos_theta = float(rng.uniform(-1.0, 1.0))
+    theta_rad = float(np.arccos(cos_theta))
+    phi_rad = float(rng.uniform(0.0, 2.0 * pi))
+    return theta_rad, phi_rad, spherical_octant_direction(theta_rad, phi_rad)
+
+
 def sample_incident_disc(
     disc_index: int,
     radial_distance_m: float,
@@ -207,6 +216,29 @@ def sample_incident_disc(
     """Sample one incident disc within the first octant."""
 
     theta_rad, phi_rad, outward_unit_vector = sample_octant_direction(rng)
+    incident_unit_vector = scale(-1.0, outward_unit_vector)
+    basis_u, basis_v = choose_transverse_basis(incident_unit_vector)
+    center_position_m = scale(radial_distance_m, outward_unit_vector)
+    return DiscSample(
+        disc_index=disc_index,
+        theta_rad=theta_rad,
+        phi_rad=phi_rad,
+        outward_unit_vector=outward_unit_vector,
+        incident_unit_vector=incident_unit_vector,
+        center_position_m=center_position_m,
+        basis_u=basis_u,
+        basis_v=basis_v,
+    )
+
+
+def sample_incident_disc_full_sphere(
+    disc_index: int,
+    radial_distance_m: float,
+    rng: np.random.Generator,
+) -> DiscSample:
+    """Sample one incident disc with its normal uniform over 4 pi steradians."""
+
+    theta_rad, phi_rad, outward_unit_vector = sample_full_sphere_direction(rng)
     incident_unit_vector = scale(-1.0, outward_unit_vector)
     basis_u, basis_v = choose_transverse_basis(incident_unit_vector)
     center_position_m = scale(radial_distance_m, outward_unit_vector)

@@ -94,10 +94,11 @@ radiation pressure explicitly and state when gravity is excluded.
   it no longer contains a multilevel state/scattering engine.
 - `src/pmot/configuration.py`, `beams.py`, `fields.py`: shared apparatus and beam
   geometry.
-- `data/raw`: differential-polarizability datasets for the later pMOT phase.
+- `data/raw/pmot`: differential-polarizability datasets for the later pMOT phase.
 - `notebooks/mot_simple`: current interactive validation and sampling notebooks.
 - `tests`: automated physics and numerical checks.
-- `BFIELD.md`, `ZEEMAN.md`, `SAMPLINGALGORITHM.md`: historical derivations and
+- `docs/shared/BFIELD.md`, `docs/mot_multilevel/ZEEMAN.md`, and
+  `docs/mot_simple/SAMPLINGALGORITHM.md`: historical derivations and
   requirements; this file and explicit user decisions take precedence if they
   conflict.
 

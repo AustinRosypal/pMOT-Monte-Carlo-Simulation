@@ -1,7 +1,7 @@
 # Multilevel MOT package
 
 The main full-MOT trajectory algorithm is the efficient adiabatic-elimination
-population-rate model specified by `EFFICIENT_MOT.md`. It retains the full
+population-rate model specified by `docs/mot_multilevel/EFFICIENT_MOT.md`. It retains the full
 hyperfine/Zeeman structure, cooling light, and repumper without tracking
 individual photon jumps. `pmot.mot_simple` remains the validated two-level
 regression model.
@@ -46,6 +46,21 @@ data, 3D trajectory, population, scattering, position, and velocity plots with:
 
 Outputs are written under
 `outputs/trajectories/mot_multilevel/rate_equation`.
+
+Run the checkpointed 50-disc, 25-point capture-velocity and loading-rate study
+with deterministic mean-force trajectories using:
+
+```bash
+OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+/home/ajrosy/pMOT_MonteCarlo/.venv_pMOT_MC/bin/python \
+  -m pmot.mot_multilevel.rate_capture --disc-count 50 --points-per-disc 25 --workers 8
+```
+
+The command reports every simulation number, checkpoints partial CSV data, and
+resumes by default.  It saves sample-level capture brackets, the velocity
+spectrum and capture cross section, per-disc plots, a capture heatmap, the
+loading-rate integral, Monte Carlo uncertainty, and complete run metadata under
+`outputs/statistics/mot_multilevel/loading_rate_50_discs_25_points`.
 
 Run and visualize a configurable full-MOT launch directly in
 `notebooks/mot_multilevel/full_mot_single_trajectory.ipynb`. It adapts the

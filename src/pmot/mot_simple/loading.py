@@ -13,7 +13,10 @@ import numpy as np
 from .configuration import simple_mot_paths
 
 
-LOADING_RATE_PREFATOR = 2.296e9
+SPEED_DISTRIBUTION_PREFACTOR_S3_PER_M3 = 2.80e-7
+LOADING_RATE_PREFACTOR = 9.1196e5
+# Backward-compatible alias for the original misspelled public constant.
+LOADING_RATE_PREFATOR = LOADING_RATE_PREFACTOR
 THERMAL_SCALE_M2_PER_S2 = 5.667e4
 
 
@@ -98,7 +101,8 @@ def save_loading_rate_result(result: LoadingRateResult, output_path: Path) -> Pa
                 "sample_count": result.sample_count,
                 "nonzero_cross_section_count": result.nonzero_cross_section_count,
                 "quadrature_method": result.quadrature_method,
-                "formula": "R = 2.296e9 * integral sigma_cap(v) * v^3 * exp(-v^2 / 5.667e4) dv",
+                "speed_distribution": "f(v) = 2.80e-7 * v^2 * exp(-v^2 / 5.667e4)",
+                "formula": "R = 9.1196e5 * integral sigma_cap(v) * v^3 * exp(-v^2 / 5.667e4) dv",
             },
             handle,
             indent=2,

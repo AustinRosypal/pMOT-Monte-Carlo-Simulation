@@ -61,7 +61,7 @@ from .forces import (
     transition_for_beam,
     wavevector_magnitude_m_inv,
 )
-from .trajectories import (
+from .pmot.trajectories import (
     AnimationSamples,
     TrajectoryDiagnostics,
     animation_samples,
@@ -69,7 +69,7 @@ from .trajectories import (
     trajectory_diagnostics,
     unit_vector_from_angles,
 )
-from .plotting import (
+from .pmot.plotting import (
     plot_apparatus_geometry_3d,
     plot_beam_crossing_zoom,
     plot_intensity_cloud_3d,
