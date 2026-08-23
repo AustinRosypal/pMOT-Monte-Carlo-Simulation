@@ -18,11 +18,20 @@ Work must proceed in validated stages:
    optimize trapping wavelengths, powers, and intensity gradients.
 
 The obsolete preliminary multilevel attempt has been removed. The replacement
-is isolated in `src/pmot/mot_multilevel` and follows `MULTILEVEL_MOT.md` using a
-23-state, event-driven, no-repumper model. `src/pmot/mot` now contains only the
-reusable anti-Helmholtz field implementation and its plots. The future repumper
-extension must include all relevant dipole-allowed transitions, including
-F=1 -> F'=0.
+is isolated in `src/pmot/mot_multilevel`. Its authoritative production model is
+the efficient 24-state, repumper-enabled, adiabatic population-rate-equation
+MOT. `docs/mot_multilevel/EFFICIENT_MOT.md` defines the solver architecture;
+`docs/mot_multilevel/REPUMPER.md`, this file, and the package README define the
+24-state repumper transition graph. Any 23-state basis wording retained in
+`EFFICIENT_MOT.md` is superseded by those sources.
+It contains 8 ground states and 16 excited states; the extra excited state
+relative to the original 23-state cooling-only specification is F'=0, retained
+because the repumper includes every relevant dipole-allowed transition from
+F=1. Long trajectories, capture/loading calculations, force sweeps, and
+temperature calculations must use this rate-equation model. The event-driven
+Gillespie implementation is retained only for short regression, diagnostic,
+and visualization comparisons. `src/pmot/mot` contains only the reusable
+anti-Helmholtz field implementation and its plots.
 
 ## Authoritative two-level MOT assumptions
 
@@ -50,7 +59,7 @@ Specify beam polarization as `pi`, `sigma+`, or `sigma-`; avoid ambiguous RCP/LC
 labels. Here sigma+/sigma- are helicities defined from the perspective of the
 propagating beam (the observer looks along k). A local atomic sigma+/pi/sigma-
 decomposition relative to a magnetic-field quantization axis is a separate
-operation required in the later multilevel model.
+operation required in the current multilevel model.
 
 ## Capture-velocity convention
 
@@ -59,9 +68,11 @@ operation required in the later multilevel model.
 - All launch velocities on a disc are parallel to the disc normal; offset
   points do not individually aim at the origin.
 - Sample disc points uniformly in area.
-- Current early-exit trapped criterion: the atom enters the central 2 mm-radius
-  core twice, with an intervening exit. This is deliberately inexpensive and
-  must be convergence-checked against longer bounded-trajectory diagnostics.
+- Current early-exit trapped criterion: an atom is trapped if it either remains
+  continuously inside the central 2 mm-radius core for at least 5 ms, or enters
+  that core twice with an intervening exit. Either route is sufficient. This is
+  deliberately inexpensive and must be convergence-checked against longer
+  bounded-trajectory diagnostics.
 - Capture-speed binary search requires an explicitly trapped lower bound and
   untrapped upper bound and assumes local monotonicity with incident speed.
 
@@ -88,8 +99,9 @@ radiation pressure explicitly and state when gravity is excluded.
 
 - `src/pmot/mot_simple`: authoritative current two-level MOT, sampling, plots,
   and loading-rate analysis.
-- `src/pmot/mot_multilevel`: isolated replacement multilevel atomic structure,
-  light coupling, Gillespie event, recoil, and validation layers.
+- `src/pmot/mot_multilevel`: authoritative 24-state, repumper-enabled
+  population-rate MOT; it also retains isolated Gillespie event/recoil layers
+  for short regression and diagnostic comparisons.
 - `src/pmot/mot`: reusable anti-Helmholtz field implementation and field plots;
   it no longer contains a multilevel state/scattering engine.
 - `src/pmot/configuration.py`, `beams.py`, `fields.py`: shared apparatus and beam
@@ -99,8 +111,38 @@ radiation pressure explicitly and state when gravity is excluded.
 - `tests`: automated physics and numerical checks.
 - `docs/shared/BFIELD.md`, `docs/mot_multilevel/ZEEMAN.md`, and
   `docs/mot_simple/SAMPLINGALGORITHM.md`: historical derivations and
-  requirements; this file and explicit user decisions take precedence if they
-  conflict.
+  requirements. `docs/mot_multilevel/MULTILEVEL_MOT.md` is the historical
+  23-state, no-repumper specification. `docs/mot_multilevel/EFFICIENT_MOT.md`
+  defines the production solver architecture, while
+  `docs/mot_multilevel/REPUMPER.md` and
+  `src/pmot/mot_multilevel/README.md` define the production repumper extension;
+  together they supersede the historical specification as described above.
+  This file and explicit user decisions take precedence if documents conflict.
+
+## Authoritative multilevel MOT assumptions
+
+- Atom: state-resolved Rb-87 D2 system with 8 ground and 16 excited states.
+- Include cooling light and the repumper; the repumper transition graph must
+  retain all relevant F=1 channels, including F=1 -> F'=0.
+- Use the adiabatically eliminated population-rate equations for production
+  mean force, capture/loading, and Langevin temperature trajectories.
+- Use angular-frequency units consistently inside `mot_multilevel`.
+- Recompute local intensities, Doppler and Zeeman shifts, polarization
+  decomposition, state populations, scattering, and force at every required
+  trajectory evaluation.
+- Production capture/loading trajectories use deterministic multilevel mean
+  force with recoil diffusion disabled so classifications are reproducible and
+  can support the local-monotonicity assumption. Bracket and scan checks must
+  still verify that assumption in representative regimes.
+- Production temperature trajectories use the same multilevel rate-equation
+  force with recoil diffusion enabled through the Langevin model.
+- The retained event-driven photon-jump engine is not the production engine;
+  use it for short cross-checks of the rate approximation and internal-state
+  dynamics.
+- Quantitative multilevel force, capture/loading, and temperature claims remain
+  provisional until the applicable force-grid or trajectory timestep/duration
+  convergence checks and representative comparisons against the event-driven
+  engine have been documented.
 
 ## Python environment and commands
 
