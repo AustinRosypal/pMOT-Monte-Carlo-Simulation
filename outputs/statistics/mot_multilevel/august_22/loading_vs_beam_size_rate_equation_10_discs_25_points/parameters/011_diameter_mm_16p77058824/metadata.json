@@ -1,0 +1,457 @@
+{
+  "apparatus_config": {
+    "axes": [
+      {
+        "cell_angle_of_incidence_deg": 45.0,
+        "description": "first horizontal beam axis entering the cell at 45 degree AOI",
+        "name": "horizontal_x"
+      },
+      {
+        "cell_angle_of_incidence_deg": 45.0,
+        "description": "second horizontal beam axis orthogonal to the first",
+        "name": "horizontal_y"
+      },
+      {
+        "cell_angle_of_incidence_deg": 0.0,
+        "description": "vertical beam axis entering from the top of the cell",
+        "name": "vertical_z"
+      }
+    ],
+    "cell": {
+      "outer_diameter_m": 0.03,
+      "wall_thickness_m": 0.005
+    },
+    "cooling": {
+      "beam_diameter_m": 0.016770588235294117,
+      "detuning_hz": -15000000.0,
+      "name": "cooling_780",
+      "power_w_per_beam": 0.03487539584075708,
+      "propagation_length_m": 0.12,
+      "resonance_frequency_hz": 384228115000000.0,
+      "role": "780 nm cooling light",
+      "wavelength_m": 7.8e-07
+    },
+    "lens": {
+      "back_focal_length_m": 0.0669,
+      "center_thickness_m": 0.0205,
+      "effective_focal_length_m": 0.0803,
+      "focal_length_m": 0.0803,
+      "mount_half_height_m": 0.033,
+      "mount_length_m": 0.0277,
+      "mount_overhang_m": 0.0039,
+      "name": "AC508-080-C"
+    },
+    "repump": {
+      "beam_diameter_m": 0.0127,
+      "detuning_hz": 0.0,
+      "name": "repump_780",
+      "power_w_per_beam": 0.0005,
+      "propagation_length_m": 0.12,
+      "resonance_frequency_hz": 384234683000000.0,
+      "role": "780 nm repump light",
+      "wavelength_m": 7.8e-07
+    },
+    "samples_per_axis": 201,
+    "volume_extent_m": 0.05
+  },
+  "beam_components": [
+    {
+      "axis_name": "horizontal_x",
+      "beam_radius_m": 0.008385294117647058,
+      "circular_polarization": "sigma+",
+      "detuning_hz": -15000000.0,
+      "direction": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "family": "cooling",
+      "label": "horizontal_x_incident_cooling_780",
+      "power_w": 0.03487539584075708,
+      "propagation_sense": "incident",
+      "reference_position_m": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "resonance_frequency_hz": 384228115000000.0,
+      "wavelength_m": 7.8e-07
+    },
+    {
+      "axis_name": "horizontal_x",
+      "beam_radius_m": 0.008385294117647058,
+      "circular_polarization": "sigma+",
+      "detuning_hz": -15000000.0,
+      "direction": [
+        -1.0,
+        -0.0,
+        -0.0
+      ],
+      "family": "cooling",
+      "label": "horizontal_x_retro_cooling_780",
+      "power_w": 0.03487539584075708,
+      "propagation_sense": "retro",
+      "reference_position_m": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "resonance_frequency_hz": 384228115000000.0,
+      "wavelength_m": 7.8e-07
+    },
+    {
+      "axis_name": "horizontal_y",
+      "beam_radius_m": 0.008385294117647058,
+      "circular_polarization": "sigma+",
+      "detuning_hz": -15000000.0,
+      "direction": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "family": "cooling",
+      "label": "horizontal_y_incident_cooling_780",
+      "power_w": 0.03487539584075708,
+      "propagation_sense": "incident",
+      "reference_position_m": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "resonance_frequency_hz": 384228115000000.0,
+      "wavelength_m": 7.8e-07
+    },
+    {
+      "axis_name": "horizontal_y",
+      "beam_radius_m": 0.008385294117647058,
+      "circular_polarization": "sigma+",
+      "detuning_hz": -15000000.0,
+      "direction": [
+        -0.0,
+        -1.0,
+        -0.0
+      ],
+      "family": "cooling",
+      "label": "horizontal_y_retro_cooling_780",
+      "power_w": 0.03487539584075708,
+      "propagation_sense": "retro",
+      "reference_position_m": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "resonance_frequency_hz": 384228115000000.0,
+      "wavelength_m": 7.8e-07
+    },
+    {
+      "axis_name": "vertical_z",
+      "beam_radius_m": 0.008385294117647058,
+      "circular_polarization": "sigma-",
+      "detuning_hz": -15000000.0,
+      "direction": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "family": "cooling",
+      "label": "vertical_z_incident_cooling_780",
+      "power_w": 0.03487539584075708,
+      "propagation_sense": "incident",
+      "reference_position_m": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "resonance_frequency_hz": 384228115000000.0,
+      "wavelength_m": 7.8e-07
+    },
+    {
+      "axis_name": "vertical_z",
+      "beam_radius_m": 0.008385294117647058,
+      "circular_polarization": "sigma-",
+      "detuning_hz": -15000000.0,
+      "direction": [
+        -0.0,
+        -0.0,
+        -1.0
+      ],
+      "family": "cooling",
+      "label": "vertical_z_retro_cooling_780",
+      "power_w": 0.03487539584075708,
+      "propagation_sense": "retro",
+      "reference_position_m": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "resonance_frequency_hz": 384228115000000.0,
+      "wavelength_m": 7.8e-07
+    },
+    {
+      "axis_name": "horizontal_x",
+      "beam_radius_m": 0.00635,
+      "circular_polarization": "sigma+",
+      "detuning_hz": 0.0,
+      "direction": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "family": "repump",
+      "label": "horizontal_x_incident_repump_780",
+      "power_w": 0.0001,
+      "propagation_sense": "incident",
+      "reference_position_m": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "resonance_frequency_hz": 384234683000000.0,
+      "wavelength_m": 7.80232684e-07
+    },
+    {
+      "axis_name": "horizontal_x",
+      "beam_radius_m": 0.00635,
+      "circular_polarization": "sigma+",
+      "detuning_hz": 0.0,
+      "direction": [
+        -1.0,
+        -0.0,
+        -0.0
+      ],
+      "family": "repump",
+      "label": "horizontal_x_retro_repump_780",
+      "power_w": 0.0001,
+      "propagation_sense": "retro",
+      "reference_position_m": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "resonance_frequency_hz": 384234683000000.0,
+      "wavelength_m": 7.80232684e-07
+    },
+    {
+      "axis_name": "horizontal_y",
+      "beam_radius_m": 0.00635,
+      "circular_polarization": "sigma+",
+      "detuning_hz": 0.0,
+      "direction": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "family": "repump",
+      "label": "horizontal_y_incident_repump_780",
+      "power_w": 0.0001,
+      "propagation_sense": "incident",
+      "reference_position_m": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "resonance_frequency_hz": 384234683000000.0,
+      "wavelength_m": 7.80232684e-07
+    },
+    {
+      "axis_name": "horizontal_y",
+      "beam_radius_m": 0.00635,
+      "circular_polarization": "sigma+",
+      "detuning_hz": 0.0,
+      "direction": [
+        -0.0,
+        -1.0,
+        -0.0
+      ],
+      "family": "repump",
+      "label": "horizontal_y_retro_repump_780",
+      "power_w": 0.0001,
+      "propagation_sense": "retro",
+      "reference_position_m": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "resonance_frequency_hz": 384234683000000.0,
+      "wavelength_m": 7.80232684e-07
+    },
+    {
+      "axis_name": "vertical_z",
+      "beam_radius_m": 0.00635,
+      "circular_polarization": "sigma-",
+      "detuning_hz": 0.0,
+      "direction": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "family": "repump",
+      "label": "vertical_z_incident_repump_780",
+      "power_w": 0.0001,
+      "propagation_sense": "incident",
+      "reference_position_m": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "resonance_frequency_hz": 384234683000000.0,
+      "wavelength_m": 7.80232684e-07
+    },
+    {
+      "axis_name": "vertical_z",
+      "beam_radius_m": 0.00635,
+      "circular_polarization": "sigma-",
+      "detuning_hz": 0.0,
+      "direction": [
+        -0.0,
+        -0.0,
+        -1.0
+      ],
+      "family": "repump",
+      "label": "vertical_z_retro_repump_780",
+      "power_w": 0.0001,
+      "propagation_sense": "retro",
+      "reference_position_m": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "resonance_frequency_hz": 384234683000000.0,
+      "wavelength_m": 7.80232684e-07
+    }
+  ],
+  "capture_dynamics": "deterministic multilevel mean force; 24 indexed states (the 23-state cooling specification plus repumper-required F'=0); recoil diffusion disabled",
+  "capture_endpoint_policy": "two_core_entries and bounded_core_residence are trapped: respectively, two entries into the 2 mm core with an intervening exit, or at least 5 ms of continuous residence in that core. Escaped and timeout are explicit untrapped endpoints; non_finite and all other reasons are fatal",
+  "capture_integrator": "semi-implicit Euler; fixed external-motion timestep",
+  "coil_config": {
+    "center_separation_m": 0.04,
+    "current_a": 2.9656772626236667,
+    "radius_m": 0.04,
+    "turns_per_coil": 50
+  },
+  "common_random_geometry_note": "the same seeded 10 disc directions and 25 impact points per disc are reused across plot points, improving paired comparisons and correlating neighboring plotted estimates",
+  "geometry_sampler": "10 directions uniform in solid angle in one symmetry octant; 25 independent uniform-area random points per disc with uniform azimuth; no forced center or boundary points; all velocities are parallel to the disc's inward normal rather than aimed point-by-point at the origin",
+  "geometry_sha256": "c7390fac66b2f9801ddf5c74afa7bce9326f05b148a90714e542c0f18f1d5000",
+  "internal_frequency_units": "angular frequency in rad/s",
+  "model": "multilevel steady-state population-rate MOT",
+  "multilevel_config": {
+    "cooling_detuning_rad_per_s": -94247779.60769379,
+    "dark_state_behavior": "terminate",
+    "diagnostics_enabled": false,
+    "enabled_excited_manifolds": [
+      1,
+      2,
+      3
+    ],
+    "enabled_repump_excited_manifolds": [
+      0,
+      1,
+      2
+    ],
+    "include_gravity": true,
+    "initialization_mode": "validation",
+    "magnetic_field_epsilon_t": 1e-12,
+    "natural_linewidth_rad_per_s": 38138934.81458009,
+    "repump_detuning_rad_per_s": 0.0,
+    "repump_power_w_per_beam": 0.0001,
+    "repump_wavelength_m": 7.80232684e-07,
+    "repumper_enabled": true,
+    "saturation_intensity_w_per_m2": 16.7,
+    "wavelength_m": 7.8e-07
+  },
+  "parameter": {
+    "beam_diameter_mm": 16.770588235294117,
+    "capture_threshold_simulation_count": 250,
+    "capture_velocity_mean_m_per_s": 28.538125,
+    "capture_velocity_std_m_per_s": 5.861302316358541,
+    "cooling_peak_intensity_ratio": 18.90802626481423,
+    "cooling_peak_intensity_w_per_m2": 315.7640386223976,
+    "cooling_power_w_per_beam": 0.03487539584075708,
+    "cooling_specification_state_count": 23,
+    "elapsed_s": 0.030999999999039574,
+    "geometry_sha256": "c7390fac66b2f9801ddf5c74afa7bce9326f05b148a90714e542c0f18f1d5000",
+    "indexed_state_count": 24,
+    "launch_disc_count": 10,
+    "loading_integral_m6_per_s4": 92.6789961344021,
+    "loading_rate_atoms_per_s": 84519537.31472933,
+    "loading_rate_disc_cluster_standard_error_atoms_per_s": 8477112.393175812,
+    "maximum_capture_threshold_m_per_s": 40.859375,
+    "model": "multilevel steady-state population-rate MOT",
+    "parameter_index": 11,
+    "parameter_key": "011_diameter_mm_16p77058824",
+    "points_per_disc": 25,
+    "replicate_loading_rate_95_percent_half_width_atoms_per_s": 19176560.51958309,
+    "replicate_loading_rate_mean_atoms_per_s": 84519537.31472936,
+    "replicate_loading_rate_sample_std_atoms_per_s": 26806983.143676378,
+    "replicate_loading_rate_standard_error_atoms_per_s": 8477112.393175812,
+    "repump_peak_intensity_w_per_m2": 1.5788201931119883,
+    "repump_power_w_per_beam": 0.0001,
+    "repumper_fprime0_extension": true,
+    "run_signature": "69056d998af1ef45d5425a111e4bf4bfa0f2e50a540471686918e368a355d56f",
+    "sample_count": 250,
+    "sampling_disc_radius_mm": 12.0,
+    "simulation_replicate_count": 10,
+    "spectrum_velocity_max_m_per_s": 41.25,
+    "spectrum_velocity_min_m_per_s": 0.0,
+    "spectrum_velocity_step_m_per_s": 0.25,
+    "upper_escaped_count": 250,
+    "upper_other_count": 0,
+    "upper_timeout_count": 0,
+    "valid_bracket_count": 250,
+    "zero_capture_no_bracket_count": 0
+  },
+  "parameter_value": 16.770588235294117,
+  "plot_point_error_bar": "direction-clustered sample standard error across the 10 disc-level loading rates; a Student-t 95 percent half-width (9 degrees of freedom) is also saved",
+  "plot_point_estimator": "loading rate calculated from all 250 capture thresholds; because the estimator is linear, this equals the arithmetic mean of 10 disc-level rates, each calculated from 25 random impact points",
+  "rate_equation_approximation": "quasi-steady populations; no optical coherences or sub-Doppler physics",
+  "replicate_loading_rate_statistics": {
+    "mean_atoms_per_s": 84519537.31472936,
+    "nominal_student_t_95_percent_half_width_atoms_per_s": 19176560.51958309,
+    "sample_std_atoms_per_s": 26806983.143676378,
+    "standard_error_atoms_per_s": 8477112.393175812
+  },
+  "replicate_loading_rates_file": "replicate_loading_rates.csv",
+  "scientific_limitations": [
+    "The fixed 12 mm-radius sampling disc caps the reported capture cross section at pi*(12 mm)^2. Because the random design inserts no exact boundary point, any high-diameter aperture limitation must be assessed from the saved near-rim samples."
+  ],
+  "search_config": {
+    "analysis_s_bin_count": 24,
+    "analysis_velocity_max_m_per_s": 30.0,
+    "analysis_velocity_min_m_per_s": 1.0,
+    "analysis_velocity_step_m_per_s": 0.25,
+    "bounded_core_residence_s": 0.005,
+    "disc_count": 10,
+    "disc_radius_m": 0.012,
+    "escape_radius_m": 0.03,
+    "include_center_point": false,
+    "initial_velocity_guess_m_per_s": 20.0,
+    "max_bracket_iterations": 24,
+    "max_search_iterations": 24,
+    "max_simulation_time_s": 0.05,
+    "phase_space": "octant",
+    "points_per_disc": 25,
+    "radial_distance_m": 0.015,
+    "required_core_entries": 2,
+    "save_every": 10,
+    "seed": 20260821,
+    "time_step_s": 5e-06,
+    "trap_core_radius_m": 0.002,
+    "velocity_tolerance_m_per_s": 0.25,
+    "worker_count": 1
+  },
+  "spectrum_bounds": {
+    "maximum_capture_threshold_m_per_s": 40.859375,
+    "upper_bound_rule": "max(configured ceiling, one full analysis step above maximum capture threshold)",
+    "velocity_max_m_per_s": 41.25,
+    "velocity_min_m_per_s": 0.0,
+    "velocity_step_m_per_s": 0.25
+  },
+  "sweep_kind": "beam_size",
+  "timeout_interpretation": "untrapped under search_config.max_simulation_time_s; compare with a longer timeout during capture convergence validation",
+  "upper_termination_counts": {
+    "escaped": 250,
+    "other": 0,
+    "other_reasons": [],
+    "timeout": 0
+  }
+}

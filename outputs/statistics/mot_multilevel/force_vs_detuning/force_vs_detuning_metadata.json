@@ -1,0 +1,163 @@
+{
+  "schema_version": 3,
+  "status": "completed",
+  "created_utc": "2026-08-23T09:47:24.893977+00:00",
+  "updated_utc": "2026-08-23T09:48:13.959307+00:00",
+  "resume_enabled": true,
+  "resumed_point_count": 0,
+  "completed_point_count": 25,
+  "total_point_count": 25,
+  "deterministic_evaluation_count_per_point": 1,
+  "total_deterministic_evaluations": 25,
+  "wall_time_s_current_invocation": 49.07111090000035,
+  "resume_signature": {
+    "schema_version": 3,
+    "detuning_n_values": [
+      -0.5,
+      -0.8958333333333333,
+      -1.2916666666666665,
+      -1.6875,
+      -2.083333333333333,
+      -2.4791666666666665,
+      -2.875,
+      -3.270833333333333,
+      -3.6666666666666665,
+      -4.0625,
+      -4.458333333333333,
+      -4.854166666666666,
+      -5.25,
+      -5.645833333333333,
+      -6.041666666666666,
+      -6.4375,
+      -6.833333333333333,
+      -7.229166666666666,
+      -7.625,
+      -8.020833333333332,
+      -8.416666666666666,
+      -8.8125,
+      -9.208333333333332,
+      -9.604166666666666,
+      -10.0
+    ],
+    "deterministic_evaluation_count_per_point": 1,
+    "numerics": {
+      "position_step_m": 0.0001,
+      "velocity_extent_m_per_s": 50.0,
+      "velocity_step_m_per_s": 0.25,
+      "restoring_relative_tolerance": 0.02,
+      "turnaround_absolute_tolerance_m_per_s": 0.05
+    },
+    "multilevel_config": {
+      "cooling_detuning_rad_per_s": -94247779.60769379,
+      "repump_detuning_rad_per_s": 0.0,
+      "repump_power_w_per_beam": 0.0001,
+      "natural_linewidth_rad_per_s": 38138934.81458009,
+      "saturation_intensity_w_per_m2": 16.69,
+      "wavelength_m": 7.8e-07,
+      "repump_wavelength_m": 7.80232684e-07,
+      "magnetic_field_epsilon_t": 1e-12,
+      "enabled_excited_manifolds": [
+        1,
+        2,
+        3
+      ],
+      "enabled_repump_excited_manifolds": [
+        0,
+        1,
+        2
+      ],
+      "repumper_enabled": true,
+      "initialization_mode": "validation",
+      "dark_state_behavior": "terminate",
+      "include_gravity": true,
+      "diagnostics_enabled": false
+    },
+    "apparatus_config": {
+      "lens": {
+        "name": "AC508-080-C",
+        "focal_length_m": 0.0803,
+        "effective_focal_length_m": 0.0803,
+        "back_focal_length_m": 0.0669,
+        "center_thickness_m": 0.0205,
+        "mount_length_m": 0.0277,
+        "mount_overhang_m": 0.0039,
+        "mount_half_height_m": 0.033
+      },
+      "cell": {
+        "outer_diameter_m": 0.03,
+        "wall_thickness_m": 0.005
+      },
+      "cooling": {
+        "name": "cooling_780",
+        "role": "780 nm cooling light",
+        "wavelength_m": 7.8e-07,
+        "resonance_frequency_hz": 384228115000000.0,
+        "detuning_hz": -15000000.0,
+        "beam_diameter_m": 0.0127,
+        "power_w_per_beam": 0.02,
+        "propagation_length_m": 0.12
+      },
+      "repump": {
+        "name": "repump_780",
+        "role": "780 nm repump light",
+        "wavelength_m": 7.8e-07,
+        "resonance_frequency_hz": 384234683000000.0,
+        "detuning_hz": 0.0,
+        "beam_diameter_m": 0.0127,
+        "power_w_per_beam": 0.0005,
+        "propagation_length_m": 0.12
+      },
+      "axes": [
+        {
+          "name": "horizontal_x",
+          "cell_angle_of_incidence_deg": 45.0,
+          "description": "first horizontal beam axis entering the cell at 45 degree AOI"
+        },
+        {
+          "name": "horizontal_y",
+          "cell_angle_of_incidence_deg": 45.0,
+          "description": "second horizontal beam axis orthogonal to the first"
+        },
+        {
+          "name": "vertical_z",
+          "cell_angle_of_incidence_deg": 0.0,
+          "description": "vertical beam axis entering from the top of the cell"
+        }
+      ],
+      "samples_per_axis": 201,
+      "volume_extent_m": 0.05
+    },
+    "coil_config": {
+      "radius_m": 0.04,
+      "turns_per_coil": 50,
+      "current_a": 2.9656772626236667,
+      "center_separation_m": 0.04
+    },
+    "model_state_count": 24
+  },
+  "all_convergence_checks_passed": true,
+  "detuning_definition": "Delta = n Gamma; Gamma is angular frequency and negative n is red detuning",
+  "restoring_slope_definition": "signed dF_i/dx_i at r=0 and v=0; a stable restoring slope is negative; radiation pressure only, gravity excluded",
+  "turnaround_definition": "positive v_i where F_i(v_i) reaches its most negative value (strongest force opposing positive motion), refined by a local three-point parabola; this is an extremum, not a force zero crossing",
+  "convergence_definition": "reported restoring slope uses half the configured position step and is compared with the configured coarse step; reported turnaround uses half the configured velocity step and is compared with the coarse grid",
+  "statistical_uncertainty_applicable": false,
+  "numerical_uncertainty_definition": "absolute fine-minus-coarse difference from the single deterministic calculation; plotted as numerical-resolution whiskers and not as statistical error",
+  "solver": "quasi-steady multilevel population-rate force",
+  "model_state_count": 24,
+  "cooling_only_specification_state_count": 23,
+  "state_count_note": "current model has 24 indexed states because the required repumper extension retains F'=0; the cooling-only specification had 23",
+  "repumper_enabled": true,
+  "gravity_included_in_force": false,
+  "linewidth_rad_per_s": 38138934.81458009,
+  "linewidth_hz": 6070000.0,
+  "limitations": [
+    "The rate-equation model includes populations but excludes optical coherences and sub-Doppler physics.",
+    "Turnaround is the global minimum within the configured positive-velocity window.",
+    "Rows that fail coarse/fine convergence remain checkpointed and are visibly flagged in plots."
+  ],
+  "outputs": {
+    "force_sweep_csv": "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\statistics\\mot_multilevel\\force_vs_detuning\\force_vs_detuning.csv",
+    "restoring_slope_plot": "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\figures\\mot_multilevel\\force_vs_detuning\\restoring_slope_vs_detuning.png",
+    "damping_turnaround_plot": "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\figures\\mot_multilevel\\force_vs_detuning\\damping_turnaround_vs_detuning.png"
+  }
+}

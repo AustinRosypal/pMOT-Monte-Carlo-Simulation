@@ -1,0 +1,35 @@
+{
+  "capture_threshold_simulation_count": 250,
+  "formula": "R = 9.1196e5 integral sigma_cap(v) v^3 exp(-v^2/5.667e4) dv",
+  "launch_disc_count": 10,
+  "loading_integral_m6_per_s4": 43.32701747315645,
+  "loading_rate_atoms_per_s": 39512506.85481976,
+  "maximum_capture_threshold_m_per_s": 36.40625,
+  "points_per_disc": 25,
+  "primary_uncertainty": "direction-clustered standard error across 10 independently oriented disc-level rates, each estimated from 25 random impact points",
+  "quadrature_method": "trapezoid",
+  "replicate_loading_rate_statistics": {
+    "mean_atoms_per_s": 39512506.85481976,
+    "nominal_student_t_95_percent_half_width_atoms_per_s": 9833730.482518189,
+    "sample_std_atoms_per_s": 13746607.323827473,
+    "standard_error_atoms_per_s": 4347058.924324664
+  },
+  "sampling_uncertainty": {
+    "disc_cluster_95_percent_half_width_atoms_per_s": 8520235.491676342,
+    "disc_cluster_standard_error_atoms_per_s": 4347058.924324664,
+    "disc_count": 10,
+    "point_95_percent_half_width_atoms_per_s": 5212728.735596857,
+    "point_count": 250,
+    "point_standard_error_atoms_per_s": 2659555.4773453353
+  },
+  "simulation_replicate_count": 10,
+  "upper_termination_counts": {
+    "escaped": 250,
+    "other": 0,
+    "other_reasons": [],
+    "timeout": 0
+  },
+  "velocity_max_m_per_s": 36.75,
+  "velocity_min_m_per_s": 0.0,
+  "velocity_step_m_per_s": 0.25
+}

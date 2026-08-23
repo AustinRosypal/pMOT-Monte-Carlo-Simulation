@@ -1,0 +1,211 @@
+{
+  "schema_version": 5,
+  "status": "completed",
+  "created_utc": "2026-08-23T09:50:25.662949+00:00",
+  "updated_utc": "2026-08-23T10:39:30.867169+00:00",
+  "resume_enabled": true,
+  "resumed_point_count": 25,
+  "completed_point_count": 25,
+  "completed_ensemble_row_count": 250,
+  "total_point_count": 25,
+  "ensemble_realization_count_per_point": 10,
+  "atoms_per_ensemble": 25,
+  "trajectory_count_per_point": 250,
+  "wall_time_s_current_invocation": 0.23805890000221552,
+  "worker_count_current_invocation": 20,
+  "resume_signature": {
+    "schema_version": 5,
+    "solver": "24_state_repumper_adiabatic_population_rate_equation_langevin",
+    "physical_model_statement": "At each cooling detuning, ten independently seeded realizations of a preloaded 25-atom Rb-87 cloud are evolved in the fixed default six-beam MOT using the repumper-enabled 24-state adiabatic population-rate equations and Langevin recoil diffusion.  Each realization's reported final temperature is the time average over the final 5 ms of the unbiased, instantaneous-center-of-mass-subtracted three-dimensional velocity variance; the plotted point is the arithmetic mean of the ten realization temperatures. Only the cooling detuning Delta=n Gamma changes between points.",
+    "detuning_n_values": [
+      -10.0,
+      -9.0,
+      -8.0,
+      -7.0,
+      -6.0,
+      -5.0,
+      -4.0,
+      -3.0,
+      -2.5,
+      -2.25,
+      -2.0,
+      -1.75,
+      -1.5,
+      -1.25,
+      -1.0,
+      -0.8,
+      -0.7,
+      -0.6,
+      -0.5,
+      -0.4,
+      -0.3,
+      -0.25,
+      -0.2,
+      -0.15,
+      -0.1
+    ],
+    "ensemble_realization_count": 10,
+    "atoms_per_ensemble": 25,
+    "trajectory_count_per_point": 250,
+    "duration_s": 0.025,
+    "time_step_s": 4.9999999999999996e-06,
+    "initial_temperature_k": 0.002,
+    "initial_position_sigma_m": 0.00025,
+    "seed": 20260822,
+    "plateau_window_s": 0.005,
+    "record_interval_s": 0.0001,
+    "minimum_survivor_count_per_ensemble": 5,
+    "stationarity_limit": 0.15,
+    "temperature_core_radius_m": 0.002,
+    "escape_radius_m": 0.03,
+    "configuration_invariance_audit": {
+      "passed": true,
+      "point_count": 25,
+      "allowed_varied_fields": [
+        "multilevel_config.cooling_detuning_rad_per_s",
+        "apparatus_config.cooling.detuning_hz",
+        "cooling_beams[*].detuning_hz"
+      ],
+      "fixed_configuration_sha256": "d864f55b5b473eced4c177989a84e989d6a80698de41c0c956d79af728c88ffd"
+    },
+    "multilevel_config": {
+      "cooling_detuning_rad_per_s": -94247779.60769379,
+      "repump_detuning_rad_per_s": 0.0,
+      "repump_power_w_per_beam": 0.0001,
+      "natural_linewidth_rad_per_s": 38138934.81458009,
+      "saturation_intensity_w_per_m2": 16.69,
+      "wavelength_m": 7.8e-07,
+      "repump_wavelength_m": 7.80232684e-07,
+      "magnetic_field_epsilon_t": 1e-12,
+      "enabled_excited_manifolds": [
+        1,
+        2,
+        3
+      ],
+      "enabled_repump_excited_manifolds": [
+        0,
+        1,
+        2
+      ],
+      "repumper_enabled": true,
+      "initialization_mode": "validation",
+      "dark_state_behavior": "terminate",
+      "include_gravity": true,
+      "diagnostics_enabled": false
+    },
+    "apparatus_config": {
+      "lens": {
+        "name": "AC508-080-C",
+        "focal_length_m": 0.0803,
+        "effective_focal_length_m": 0.0803,
+        "back_focal_length_m": 0.0669,
+        "center_thickness_m": 0.0205,
+        "mount_length_m": 0.0277,
+        "mount_overhang_m": 0.0039,
+        "mount_half_height_m": 0.033
+      },
+      "cell": {
+        "outer_diameter_m": 0.03,
+        "wall_thickness_m": 0.005
+      },
+      "cooling": {
+        "name": "cooling_780",
+        "role": "780 nm cooling light",
+        "wavelength_m": 7.8e-07,
+        "resonance_frequency_hz": 384228115000000.0,
+        "detuning_hz": -15000000.0,
+        "beam_diameter_m": 0.0127,
+        "power_w_per_beam": 0.02,
+        "propagation_length_m": 0.12
+      },
+      "repump": {
+        "name": "repump_780",
+        "role": "780 nm repump light",
+        "wavelength_m": 7.8e-07,
+        "resonance_frequency_hz": 384234683000000.0,
+        "detuning_hz": 0.0,
+        "beam_diameter_m": 0.0127,
+        "power_w_per_beam": 0.0005,
+        "propagation_length_m": 0.12
+      },
+      "axes": [
+        {
+          "name": "horizontal_x",
+          "cell_angle_of_incidence_deg": 45.0,
+          "description": "first horizontal beam axis entering the cell at 45 degree AOI"
+        },
+        {
+          "name": "horizontal_y",
+          "cell_angle_of_incidence_deg": 45.0,
+          "description": "second horizontal beam axis orthogonal to the first"
+        },
+        {
+          "name": "vertical_z",
+          "cell_angle_of_incidence_deg": 0.0,
+          "description": "vertical beam axis entering from the top of the cell"
+        }
+      ],
+      "samples_per_axis": 201,
+      "volume_extent_m": 0.05
+    },
+    "coil_config": {
+      "radius_m": 0.04,
+      "turns_per_coil": 50,
+      "current_a": 2.9656772626236667,
+      "center_separation_m": 0.04
+    }
+  },
+  "physical_model_statement": "At each cooling detuning, ten independently seeded realizations of a preloaded 25-atom Rb-87 cloud are evolved in the fixed default six-beam MOT using the repumper-enabled 24-state adiabatic population-rate equations and Langevin recoil diffusion.  Each realization's reported final temperature is the time average over the final 5 ms of the unbiased, instantaneous-center-of-mass-subtracted three-dimensional velocity variance; the plotted point is the arithmetic mean of the ten realization temperatures. Only the cooling detuning Delta=n Gamma changes between points.",
+  "study_design_rationale": "Temperature is estimated from ten independently sampled preloaded 25-atom clouds. Incident capture disks are not used because their required launch speed would add a second varied physical input.",
+  "temperature_definition": "For every time and realization: T_i=m*s_i^2/k_B where s_i^2 is the unbiased sample variance about that realization's instantaneous COM velocity; average x/y/z and then average the final plateau in time.",
+  "reported_point_definition": "arithmetic mean of the ten independently calculated realization plateau temperatures",
+  "equilibrium_quality_definition": "valid only when all ten clouds meet the minimum final-core survivor count and both stationarity metrics; quality-flagged values are saved and plotted as diagnostics, not claimed equilibrium temperatures",
+  "point_quality_status_counts": {
+    "insufficient_survivors": 1,
+    "nonstationary": 22,
+    "valid": 2
+  },
+  "temperature_uncertainty_definition": "one SEM and a two-sided 95% Student-t interval across the ten independent ensemble-realization temperatures",
+  "survivor_fraction_uncertainty_definition": "primary: 95% Student-t interval across ten 25-atom realization fractions; secondary: pooled two-sided 95% Wilson score interval over 250 trajectories",
+  "temperature_survivor_definition": "reaches requested duration, remains within 2 mm throughout the final temperature plateau, and has the common time grid needed for an ensemble variance; this is a temperature-analysis survivor definition, not a replacement for the hybrid loading/capture criterion",
+  "only_varied_physical_parameter": "cooling detuning Delta=n Gamma",
+  "configuration_invariance_audit": {
+    "passed": true,
+    "point_count": 25,
+    "allowed_varied_fields": [
+      "multilevel_config.cooling_detuning_rad_per_s",
+      "apparatus_config.cooling.detuning_hz",
+      "cooling_beams[*].detuning_hz"
+    ],
+    "fixed_configuration_sha256": "d864f55b5b473eced4c177989a84e989d6a80698de41c0c956d79af728c88ffd"
+  },
+  "common_initial_condition_strategy": "ten independent initial phase-space clouds drawn once and reused exactly at every detuning",
+  "recoil_seed_strategy": "SeedSequence([seed,1,point_index,ensemble_index,atom_index]); streams are independent across atoms, realizations, and detunings",
+  "detuning_grid_rationale": "one-linewidth spacing on the far-red wing, finer spacing through the likely cooling minimum, and the finest spacing near resonance",
+  "doppler_equation": "T_D=hbar Gamma/(2 k_B)",
+  "linewidth_convention": "Gamma is angular frequency in rad/s",
+  "linewidth_rad_per_s": 38138934.81458009,
+  "doppler_temperature_k": 0.00014565702718741794,
+  "diffusion_enabled": true,
+  "repumper_enabled": true,
+  "effective_repump_power_w_per_beam": 0.0001,
+  "apparatus_config_repump_note": "The nested resume-signature apparatus_config is the generic shared apparatus record. The simulated repumper power is the effective value above and in multilevel_config (0.1 mW per beam), not the generic apparatus repump entry.",
+  "model_state_count": 24,
+  "ground_state_count": 8,
+  "excited_state_count": 16,
+  "limitations": [
+    "Temperature is conditioned on final-core survival and can have survivor bias.",
+    "The population-rate approximation omits optical coherences and sub-Doppler cooling.",
+    "The model omits density-dependent collisions and photon reabsorption.",
+    "The Doppler line is an ideal reference rather than a guaranteed full-MOT limit.",
+    "Quality-flagged values do not establish equilibrium within the 25 ms run.",
+    "Timestep and duration convergence remain required for quantitative claims."
+  ],
+  "outputs": {
+    "temperature_summary_csv": "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\statistics\\mot_multilevel\\temperature_vs_detuning_10x25_preloaded_ensembles\\temperature_vs_detuning.csv",
+    "temperature_ensemble_csv": "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\statistics\\mot_multilevel\\temperature_vs_detuning_10x25_preloaded_ensembles\\temperature_vs_detuning_ensembles.csv",
+    "temperature_plot": "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\figures\\mot_multilevel\\temperature_vs_detuning_10x25_preloaded_ensembles\\temperature_vs_detuning.png",
+    "metadata_json": "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\statistics\\mot_multilevel\\temperature_vs_detuning_10x25_preloaded_ensembles\\temperature_vs_detuning_metadata.json",
+    "physical_model_markdown": "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\statistics\\mot_multilevel\\temperature_vs_detuning_10x25_preloaded_ensembles\\physical_model.md"
+  }
+}
