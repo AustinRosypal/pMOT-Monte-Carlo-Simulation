@@ -45,9 +45,10 @@ class CaptureSearchConfig:
     trap_core_radius_m: float = 2.0e-3
     escape_radius_m: float = 30.0e-3
     required_core_entries: int = 2
+    bounded_core_residence_s: float = 5.0e-3
     max_bracket_iterations: int = 24
     max_search_iterations: int = 24
-    include_center_point: bool = True
+    include_center_point: bool = False
     analysis_velocity_step_m_per_s: float = 0.25
     analysis_s_bin_count: int = 24
     analysis_velocity_min_m_per_s: float = 1.0
@@ -285,11 +286,12 @@ def sample_disc_points(
     include_center_point: bool,
     rng: np.random.Generator,
 ) -> list[PointSample]:
-    """Sample launch points over the disc with exact center coverage.
+    """Sample independent, uniformly distributed launch points over a disc.
 
-    The first point is placed at s = 0 when include_center_point is enabled
-    upstream. Remaining points use stratified area sampling to cover impact
-    parameter smoothly out to s_max.
+    Production Monte Carlo uses ``include_center_point=False`` so every point
+    has ``s = R * sqrt(U)`` and an independent uniform azimuth.  The explicit
+    ``include_center_point=True`` opt-in is retained for legacy diagnostics;
+    only that mode prepends the measure-zero center.  The rim is never forced.
     """
 
     points: list[PointSample] = []
@@ -298,7 +300,6 @@ def sample_disc_points(
 
     center_position_m = disc.center_position_m
     launch_axis_unit_vector = normalize(scale(-1.0, center_position_m))
-    point_start_index = 0
     if include_center_point:
         points.append(
             PointSample(
@@ -314,18 +315,11 @@ def sample_disc_points(
                 launch_axis_unit_vector=launch_axis_unit_vector,
             )
         )
-        point_start_index = 1
 
-    remaining_point_count = points_per_disc - point_start_index
-    for remaining_index in range(remaining_point_count):
-        point_index = remaining_index + point_start_index
+    point_start_index = int(include_center_point)
+    for point_index in range(point_start_index, points_per_disc):
         theta_prime_rad = float(rng.uniform(0.0, 2.0 * pi))
-        if remaining_index == remaining_point_count - 1:
-            area_fraction = 1.0
-        else:
-            lower_fraction = remaining_index / max(1, remaining_point_count)
-            upper_fraction = (remaining_index + 1) / max(1, remaining_point_count)
-            area_fraction = float(rng.uniform(lower_fraction, upper_fraction))
+        area_fraction = float(rng.uniform(0.0, 1.0))
         s_m = disc_radius_m * float(np.sqrt(area_fraction))
         offset = add(
             scale(s_m * float(np.cos(theta_prime_rad)), disc.basis_u),
@@ -369,21 +363,34 @@ def classify_trajectory(
         position_m=point.initial_position_m,
         velocity_m_per_s=scale(incident_speed_m_per_s, point.incident_unit_vector),
     )
+    if search_config.time_step_s <= 0.0:
+        raise ValueError("time_step_s must be positive")
+    if search_config.max_simulation_time_s < 0.0:
+        raise ValueError("max_simulation_time_s must be non-negative")
+    if search_config.bounded_core_residence_s < 0.0:
+        raise ValueError("bounded_core_residence_s must be non-negative")
+
     max_steps = int(np.ceil(search_config.max_simulation_time_s / search_config.time_step_s))
-    entered_trap_core = False
-    core_entry_count = 0
     minimum_radius_m = norm(atom_state.position_m)
     was_inside_trap_core = minimum_radius_m <= search_config.trap_core_radius_m
+    entered_trap_core = was_inside_trap_core
+    core_entry_count = int(was_inside_trap_core)
+    inside_since_s: float | None = 0.0 if was_inside_trap_core else None
     elapsed_time_s = 0.0
 
-    for _ in range(max_steps):
+    # Evaluate both the initial state and the state at the requested timeout.
+    # Residence time is accumulated from sampled core entry until a sampled
+    # exit resets it; this is conservative at a boundary crossed within a step.
+    for _ in range(max_steps + 1):
         radius_m = norm(atom_state.position_m)
         minimum_radius_m = min(minimum_radius_m, radius_m)
         inside_trap_core = radius_m <= search_config.trap_core_radius_m
-        if inside_trap_core:
-            entered_trap_core = True
+        entered_trap_core = entered_trap_core or inside_trap_core
         if inside_trap_core and not was_inside_trap_core:
             core_entry_count += 1
+            inside_since_s = elapsed_time_s
+        elif not inside_trap_core:
+            inside_since_s = None
         was_inside_trap_core = inside_trap_core
         radial_velocity = dot(atom_state.position_m, atom_state.velocity_m_per_s) / max(radius_m, 1.0e-15)
 
@@ -391,6 +398,22 @@ def classify_trajectory(
             return TrajectoryClassification(
                 trapped=True,
                 termination_reason="two_core_entries",
+                entered_trap_core=entered_trap_core,
+                core_entry_count=core_entry_count,
+                elapsed_time_s=elapsed_time_s,
+                minimum_radius_m=minimum_radius_m,
+                final_radius_m=radius_m,
+                final_position_m=atom_state.position_m,
+                final_velocity_m_per_s=atom_state.velocity_m_per_s,
+            )
+
+        if (
+            inside_since_s is not None
+            and elapsed_time_s - inside_since_s >= search_config.bounded_core_residence_s
+        ):
+            return TrajectoryClassification(
+                trapped=True,
+                termination_reason="bounded_core_residence",
                 entered_trap_core=entered_trap_core,
                 core_entry_count=core_entry_count,
                 elapsed_time_s=elapsed_time_s,
@@ -413,14 +436,21 @@ def classify_trajectory(
                 final_velocity_m_per_s=atom_state.velocity_m_per_s,
             )
 
+        if elapsed_time_s >= search_config.max_simulation_time_s - 1.0e-15:
+            break
+
+        step_time_s = min(
+            search_config.time_step_s,
+            search_config.max_simulation_time_s - elapsed_time_s,
+        )
         atom_state, _, _, _ = rk4_step(
             beams,
             atom_state,
-            search_config.time_step_s,
+            step_time_s,
             coil_config,
             simple_config=simple_config,
         )
-        elapsed_time_s += search_config.time_step_s
+        elapsed_time_s += step_time_s
 
         if not np.all(np.isfinite(np.asarray(atom_state.position_m))) or not np.all(
             np.isfinite(np.asarray(atom_state.velocity_m_per_s))
@@ -1222,6 +1252,13 @@ def build_argument_parser() -> argparse.ArgumentParser:
     parser.add_argument("--trap-core-radius-mm", type=float, default=1e3 * defaults.trap_core_radius_m)
     parser.add_argument("--escape-radius-mm", type=float, default=1e3 * defaults.escape_radius_m)
     parser.add_argument("--required-core-entries", type=int, default=defaults.required_core_entries)
+    parser.add_argument(
+        "--bounded-core-residence-ms",
+        "--required-core-residence-ms",
+        dest="bounded_core_residence_ms",
+        type=float,
+        default=1e3 * defaults.bounded_core_residence_s,
+    )
     parser.add_argument("--include-center-point", action="store_true", default=defaults.include_center_point)
     parser.add_argument("--no-include-center-point", dest="include_center_point", action="store_false")
     parser.add_argument("--analysis-velocity-step", type=float, default=defaults.analysis_velocity_step_m_per_s)
@@ -1251,6 +1288,7 @@ def search_config_from_args(args: argparse.Namespace) -> CaptureSearchConfig:
         trap_core_radius_m=1e-3 * args.trap_core_radius_mm,
         escape_radius_m=1e-3 * args.escape_radius_mm,
         required_core_entries=args.required_core_entries,
+        bounded_core_residence_s=1e-3 * args.bounded_core_residence_ms,
         include_center_point=args.include_center_point,
         analysis_velocity_step_m_per_s=args.analysis_velocity_step,
         analysis_s_bin_count=args.analysis_s_bin_count,

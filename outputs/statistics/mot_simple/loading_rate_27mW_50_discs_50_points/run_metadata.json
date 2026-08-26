@@ -1,0 +1,357 @@
+{
+  "all_built_beams_have_requested_power": true,
+  "anti_helmholtz_axial_gradient_g_per_cm": 10.0,
+  "anti_helmholtz_axial_gradient_t_per_m": 0.1,
+  "apparatus_config": {
+    "axes": [
+      {
+        "cell_angle_of_incidence_deg": 45.0,
+        "description": "first horizontal beam axis entering the cell at 45 degree AOI",
+        "name": "horizontal_x"
+      },
+      {
+        "cell_angle_of_incidence_deg": 45.0,
+        "description": "second horizontal beam axis orthogonal to the first",
+        "name": "horizontal_y"
+      },
+      {
+        "cell_angle_of_incidence_deg": 0.0,
+        "description": "vertical beam axis entering from the top of the cell",
+        "name": "vertical_z"
+      }
+    ],
+    "cell": {
+      "outer_diameter_m": 0.03,
+      "wall_thickness_m": 0.005
+    },
+    "cooling": {
+      "beam_diameter_m": 0.0127,
+      "detuning_hz": -15000000.0,
+      "name": "cooling_780",
+      "power_w_per_beam": 0.027,
+      "propagation_length_m": 0.12,
+      "resonance_frequency_hz": 384228115000000.0,
+      "role": "780 nm cooling light",
+      "wavelength_m": 7.8e-07
+    },
+    "lens": {
+      "back_focal_length_m": 0.0669,
+      "center_thickness_m": 0.0205,
+      "effective_focal_length_m": 0.0803,
+      "focal_length_m": 0.0803,
+      "mount_half_height_m": 0.033,
+      "mount_length_m": 0.0277,
+      "mount_overhang_m": 0.0039,
+      "name": "AC508-080-C"
+    },
+    "repump": {
+      "beam_diameter_m": 0.0127,
+      "detuning_hz": 0.0,
+      "name": "repump_780",
+      "power_w_per_beam": 0.0005,
+      "propagation_length_m": 0.12,
+      "resonance_frequency_hz": 384234683000000.0,
+      "role": "780 nm repump light",
+      "wavelength_m": 7.8e-07
+    },
+    "samples_per_axis": 201,
+    "volume_extent_m": 0.05
+  },
+  "built_cooling_beam_count": 6,
+  "built_cooling_beam_powers_w": [
+    0.027,
+    0.027,
+    0.027,
+    0.027,
+    0.027,
+    0.027
+  ],
+  "capture_dynamics": "deterministic RK4 mean force with gravity; recoil diffusion absent",
+  "capture_search_config": {
+    "analysis_s_bin_count": 24,
+    "analysis_velocity_max_m_per_s": 30.0,
+    "analysis_velocity_min_m_per_s": 1.0,
+    "analysis_velocity_step_m_per_s": 0.25,
+    "bounded_core_residence_s": 0.005,
+    "disc_count": 50,
+    "disc_radius_m": 0.012,
+    "escape_radius_m": 0.03,
+    "include_center_point": false,
+    "initial_velocity_guess_m_per_s": 20.0,
+    "max_bracket_iterations": 24,
+    "max_search_iterations": 24,
+    "max_simulation_time_s": 0.05,
+    "points_per_disc": 50,
+    "radial_distance_m": 0.015,
+    "required_core_entries": 2,
+    "save_every": 25,
+    "seed": 0,
+    "time_step_s": 5e-06,
+    "trap_core_radius_m": 0.002,
+    "velocity_tolerance_m_per_s": 0.25
+  },
+  "checkpoint_every_completed_samples": 25,
+  "coil_config": {
+    "center_separation_m": 0.04,
+    "current_a": 2.9656772626236667,
+    "radius_m": 0.04,
+    "turns_per_coil": 50
+  },
+  "completed_sample_count": 2500,
+  "completion_fraction": 1.0,
+  "configuration_invariance_audit": {
+    "apparatus_changed_fields": [
+      "cooling.power_w_per_beam"
+    ],
+    "apparatus_only_cooling_power_changed": true,
+    "coil_config_changed_fields": [],
+    "coil_config_matches_default": true,
+    "search_config_changed_fields": [
+      "disc_count",
+      "points_per_disc"
+    ],
+    "search_only_requested_counts_changed": true,
+    "simple_config_changed_fields": [],
+    "simple_config_matches_default": true
+  },
+  "cooling_power_mw_per_beam": 27.0,
+  "cooling_power_w_per_beam": 0.027,
+  "cross_section_method": "for each speed and direction disc, sigma=pi*R_disc^2 times the captured point fraction; reported sigma is the mean over discs with disc-cluster SEM and a Student-t 95% interval clipped to [0, pi*R_disc^2]",
+  "effective_saturation": {
+    "beam_center_effective_saturation_parameter": 1.0029104151628667,
+    "beam_center_on_resonance_saturation_parameter": 25.54112954704834,
+    "beam_center_peak_intensity_w_per_m2": 426.2814521402368,
+    "definition": "s_eff = (I0/I_sat) / [1 + (2*Delta/Gamma)^2]",
+    "detuning_reduction_denominator": 25.467009975064034
+  },
+  "elapsed_wall_time_s": 1942.5360128999455,
+  "eta_s": 0.0,
+  "expected_sample_count": 2500,
+  "git": {
+    "branch": "main",
+    "dirty_path_count": 21,
+    "dirty_status_lines": [
+      "M src/pmot/__pycache__/__init__.cpython-312.pyc",
+      " M src/pmot/__pycache__/atomic_data.cpython-312.pyc",
+      " M src/pmot/__pycache__/beams.cpython-312.pyc",
+      " M src/pmot/__pycache__/configuration.cpython-312.pyc",
+      " M src/pmot/__pycache__/fields.cpython-312.pyc",
+      " M src/pmot/__pycache__/forces.cpython-312.pyc",
+      " M src/pmot/mot/__pycache__/__init__.cpython-312.pyc",
+      " M src/pmot/mot/__pycache__/configuration.cpython-312.pyc",
+      " M src/pmot/mot/__pycache__/magnetic_fields.cpython-312.pyc",
+      " M src/pmot/mot/__pycache__/plotting.cpython-312.pyc",
+      " M src/pmot/mot_simple/__pycache__/__init__.cpython-312.pyc",
+      " M src/pmot/mot_simple/__pycache__/configuration.cpython-312.pyc",
+      " M src/pmot/mot_simple/__pycache__/loading.cpython-312.pyc",
+      " M src/pmot/mot_simple/__pycache__/plotting.cpython-312.pyc",
+      " M src/pmot/mot_simple/__pycache__/sampling.cpython-312.pyc",
+      " M src/pmot/mot_simple/__pycache__/simulation.cpython-312.pyc",
+      " M src/pmot/mot_simple/sampling.py",
+      " M tests/mot_simple/test_mot_simple_sampling.py",
+      "?? outputs/statistics/mot_simple/loading_rate_27mW_50_discs_50_points/launch_geometry.csv",
+      "?? src/pmot/mot_simple/power_loading_study.py",
+      "?? tests/mot_simple/test_mot_simple_power_loading_study.py"
+    ],
+    "dirty_status_truncated": false,
+    "head_commit": "1285ac556737137d1c83657b7499ed1bd476c7ee",
+    "is_dirty": true
+  },
+  "limitations": [
+    "The deterministic effective two-level model omits recoil diffusion and internal-state structure.",
+    "The capture-speed binary search assumes a locally monotonic trapped/untrapped boundary.",
+    "The sampling follows the authoritative one-octant convention, although gravity breaks exact z-reflection symmetry.",
+    "The 12 mm sampling-disc radius caps the reported projected capture cross section.",
+    "The quoted uncertainty is Monte Carlo direction-cluster uncertainty, not a full model-systematic uncertainty."
+  ],
+  "loading_method": "integrate one capture spectrum per direction disc by trapezoid quadrature, then report the mean, disc-cluster SEM, and Student-t 95% interval",
+  "loading_rate": {
+    "confidence_level": 0.95,
+    "disc_count": 50,
+    "formula": "R = 9.1196e5 * integral sigma_capture(v) * v^3 * exp[-v^2/(5.667e4)] dv",
+    "geometry_sha256": "232e0628099eaa04e7f3f4268e2256ef415e22039383ef87775533affefb0fa5",
+    "loading_integral_from_mean_spectrum_m6_per_s4": 1.0706790826340178,
+    "loading_integral_mean_m6_per_s4": 1.0706790826340176,
+    "loading_rate_by_disc_csv": "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\statistics\\mot_simple\\loading_rate_27mW_50_discs_50_points\\loading_rate_by_disc.csv",
+    "loading_rate_disc_cluster_sem_atoms_per_s": 116123.23524158832,
+    "loading_rate_from_mean_spectrum_atoms_per_s": 976416.4961989189,
+    "loading_rate_mean_atoms_per_s": 976416.4961989186,
+    "loading_rate_prefactor": 911960.0,
+    "loading_rate_sample_std_atoms_per_s": 821115.2709264779,
+    "loading_rate_t95_lower_atoms_per_s": 743058.1182020893,
+    "loading_rate_t95_upper_atoms_per_s": 1209774.8741957478,
+    "model": "mot_simple deterministic effective two-level mean-force MOT",
+    "point_count": 2500,
+    "primary_uncertainty": "disc-clustered standard error across incident directions",
+    "quadrature_method": "trapezoid",
+    "raw_integral_units": "m^6/s^4",
+    "run_signature_sha256": "9497afee2168aad749c94089d07f958e75f30994b0e85523d4744a244278596e",
+    "samples_csv": "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\statistics\\mot_simple\\loading_rate_27mW_50_discs_50_points\\capture_velocity_samples.csv",
+    "spectrum_csv": "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\statistics\\mot_simple\\loading_rate_27mW_50_discs_50_points\\capture_velocity_spectrum.csv",
+    "student_t_critical_95": 2.0095752371292392,
+    "thermal_scale_m2_per_s2": 56670.0,
+    "velocity_grid_sample_count": 117,
+    "velocity_max_m_per_s": 30.0,
+    "velocity_min_m_per_s": 1.0
+  },
+  "model": "mot_simple deterministic effective two-level mean-force MOT",
+  "output_manifest": {
+    "capture_summary_json": "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\statistics\\mot_simple\\loading_rate_27mW_50_discs_50_points\\capture_velocity_summary.json",
+    "cross_section_plot": "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\figures\\mot_simple\\loading_rate_27mW_50_discs_50_points\\capture_cross_section_vs_velocity.png",
+    "figures_directory": "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\figures\\mot_simple\\loading_rate_27mW_50_discs_50_points",
+    "final_samples_csv": "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\statistics\\mot_simple\\loading_rate_27mW_50_discs_50_points\\capture_velocity_samples.csv",
+    "geometry_csv": "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\statistics\\mot_simple\\loading_rate_27mW_50_discs_50_points\\launch_geometry.csv",
+    "impact_parameter_plot": "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\figures\\mot_simple\\loading_rate_27mW_50_discs_50_points\\capture_velocity_vs_impact_parameter.png",
+    "loading_by_disc_csv": "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\statistics\\mot_simple\\loading_rate_27mW_50_discs_50_points\\loading_rate_by_disc.csv",
+    "loading_json": "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\statistics\\mot_simple\\loading_rate_27mW_50_discs_50_points\\loading_rate_result.json",
+    "loading_rate_by_disc_plot": "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\figures\\mot_simple\\loading_rate_27mW_50_discs_50_points\\loading_rate_by_disc.png",
+    "metadata_json": "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\statistics\\mot_simple\\loading_rate_27mW_50_discs_50_points\\run_metadata.json",
+    "partial_samples_csv": "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\statistics\\mot_simple\\loading_rate_27mW_50_discs_50_points\\capture_velocity_partial_samples.csv",
+    "spectrum_csv": "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\statistics\\mot_simple\\loading_rate_27mW_50_discs_50_points\\capture_velocity_spectrum.csv",
+    "statistics_directory": "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\statistics\\mot_simple\\loading_rate_27mW_50_discs_50_points"
+  },
+  "progress_every_completed_samples": 10,
+  "run_signature_sha256": "9497afee2168aad749c94089d07f958e75f30994b0e85523d4744a244278596e",
+  "sampling_method": "disc normals uniform in solid angle in one symmetry octant; each disc is perpendicular to its incident direction; independent points uniform in area using s=R*sqrt(U); every launch velocity is parallel to the disc normal",
+  "schema_version": 1,
+  "signature_payload": {
+    "apparatus_config": {
+      "axes": [
+        {
+          "cell_angle_of_incidence_deg": 45.0,
+          "description": "first horizontal beam axis entering the cell at 45 degree AOI",
+          "name": "horizontal_x"
+        },
+        {
+          "cell_angle_of_incidence_deg": 45.0,
+          "description": "second horizontal beam axis orthogonal to the first",
+          "name": "horizontal_y"
+        },
+        {
+          "cell_angle_of_incidence_deg": 0.0,
+          "description": "vertical beam axis entering from the top of the cell",
+          "name": "vertical_z"
+        }
+      ],
+      "cell": {
+        "outer_diameter_m": 0.03,
+        "wall_thickness_m": 0.005
+      },
+      "cooling": {
+        "beam_diameter_m": 0.0127,
+        "detuning_hz": -15000000.0,
+        "name": "cooling_780",
+        "power_w_per_beam": 0.027,
+        "propagation_length_m": 0.12,
+        "resonance_frequency_hz": 384228115000000.0,
+        "role": "780 nm cooling light",
+        "wavelength_m": 7.8e-07
+      },
+      "lens": {
+        "back_focal_length_m": 0.0669,
+        "center_thickness_m": 0.0205,
+        "effective_focal_length_m": 0.0803,
+        "focal_length_m": 0.0803,
+        "mount_half_height_m": 0.033,
+        "mount_length_m": 0.0277,
+        "mount_overhang_m": 0.0039,
+        "name": "AC508-080-C"
+      },
+      "repump": {
+        "beam_diameter_m": 0.0127,
+        "detuning_hz": 0.0,
+        "name": "repump_780",
+        "power_w_per_beam": 0.0005,
+        "propagation_length_m": 0.12,
+        "resonance_frequency_hz": 384234683000000.0,
+        "role": "780 nm repump light",
+        "wavelength_m": 7.8e-07
+      },
+      "samples_per_axis": 201,
+      "volume_extent_m": 0.05
+    },
+    "capture_search_config": {
+      "analysis_s_bin_count": 24,
+      "analysis_velocity_max_m_per_s": 30.0,
+      "analysis_velocity_min_m_per_s": 1.0,
+      "analysis_velocity_step_m_per_s": 0.25,
+      "bounded_core_residence_s": 0.005,
+      "disc_count": 50,
+      "disc_radius_m": 0.012,
+      "escape_radius_m": 0.03,
+      "include_center_point": false,
+      "initial_velocity_guess_m_per_s": 20.0,
+      "max_bracket_iterations": 24,
+      "max_search_iterations": 24,
+      "max_simulation_time_s": 0.05,
+      "points_per_disc": 50,
+      "radial_distance_m": 0.015,
+      "required_core_entries": 2,
+      "save_every": 25,
+      "seed": 0,
+      "time_step_s": 5e-06,
+      "trap_core_radius_m": 0.002,
+      "velocity_tolerance_m_per_s": 0.25
+    },
+    "coil_config": {
+      "center_separation_m": 0.04,
+      "current_a": 2.9656772626236667,
+      "radius_m": 0.04,
+      "turns_per_coil": 50
+    },
+    "geometry_sha256": "232e0628099eaa04e7f3f4268e2256ef415e22039383ef87775533affefb0fa5",
+    "model": "mot_simple deterministic effective two-level mean-force MOT",
+    "physics_source_sha256": {
+      "power_loading_study.py": "189016556746a5db5c3bb1a3ebf318b92426f0467dadba30fb0dd269e645764c",
+      "sampling.py": "5c6ab53d0245450fc1491f5a09beb92e7ff2f78f902d4342d1c74982daf46a95",
+      "simulation.py": "477844fac4361411cce6775aa6b536310da16a1c101135ff69ecbf2fe2682803"
+    },
+    "schema_version": 1,
+    "simple_mot_config": {
+      "axis_polarization_sign": {
+        "horizontal_x": 1.0,
+        "horizontal_y": 1.0,
+        "vertical_z": -1.0
+      },
+      "cooling_detuning_hz": -15000000.0,
+      "effective_magnetic_moment_hz_per_t": 13996245000.0,
+      "gravity_acceleration_m_per_s2": [
+        0.0,
+        0.0,
+        -9.80665
+      ],
+      "include_gravity": true,
+      "linewidth_hz": 6065000.0,
+      "plot_extent_m": 0.02,
+      "sample_count_per_axis": 181,
+      "saturation_intensity_w_per_m2": 16.69
+    },
+    "study_name": "loading_rate_27mW_50_discs_50_points"
+  },
+  "simple_mot_config": {
+    "axis_polarization_sign": {
+      "horizontal_x": 1.0,
+      "horizontal_y": 1.0,
+      "vertical_z": -1.0
+    },
+    "cooling_detuning_hz": -15000000.0,
+    "effective_magnetic_moment_hz_per_t": 13996245000.0,
+    "gravity_acceleration_m_per_s2": [
+      0.0,
+      0.0,
+      -9.80665
+    ],
+    "include_gravity": true,
+    "linewidth_hz": 6065000.0,
+    "plot_extent_m": 0.02,
+    "sample_count_per_axis": 181,
+    "saturation_intensity_w_per_m2": 16.69
+  },
+  "started_utc": "2026-08-26T16:07:18.187195+00:00",
+  "state_model": "effective two-level Rb-87 D2 atom; no multilevel state engine",
+  "status": "completed",
+  "study_name": "loading_rate_27mW_50_discs_50_points",
+  "trapped_definition": "inside the 2 mm-radius core continuously for 5 ms OR 2 core entries with an intervening exit",
+  "updated_utc": "2026-08-26T16:39:40.820390+00:00",
+  "worker_count": 20
+}
