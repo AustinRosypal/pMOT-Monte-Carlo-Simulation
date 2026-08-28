@@ -136,6 +136,23 @@ radiation pressure explicitly and state when gravity is excluded.
   still verify that assumption in representative regimes.
 - Production temperature trajectories use the same multilevel rate-equation
   force with recoil diffusion enabled through the Langevin model.
+- The August 2026 sampling-disc-radius loading campaign uses 27 mW in each of
+  the six cooling beams (the -15 MHz center-beam effective saturation is about
+  one) and 0.1 mW in each repump beam. Its phase-one radii are 5, 12, 15, 20,
+  25, and 30 mm; each radius uses 100 full-sphere incident-direction discs and
+  100 independent uniform-area points per disc. Reuse one normalized seeded
+  geometry across the six radii so only the disc radius changes, then use an
+  independent seed for the 100-by-100 confirmation run. Cross sections are
+  direction-averaged projected areas with no 4-pi or octant multiplicity
+  factor. Treat direction discs as the independent clusters for Student-t
+  loading-rate and cross-section intervals.
+- The multilevel temperature-sweep Doppler overlay is detuning dependent:
+  `T_D = -hbar*Gamma^2/(8*k_B*Delta) *
+  [1 + s_eff + (2*Delta/Gamma)^2]`, with angular-frequency `Delta < 0` and
+  `Gamma`. Use the single-cooling-beam Gaussian-center convention
+  `s_eff = s_0/[1 + (2*Delta/Gamma)^2]`, `s_0 = I_0/I_sat`, and recompute it
+  at every detuning. The constant `hbar*Gamma/(2*k_B)` line belongs only to
+  the simplified benchmark/special low-saturation point.
 - The retained event-driven photon-jump engine is not the production engine;
   use it for short cross-checks of the rate approximation and internal-state
   dynamics.

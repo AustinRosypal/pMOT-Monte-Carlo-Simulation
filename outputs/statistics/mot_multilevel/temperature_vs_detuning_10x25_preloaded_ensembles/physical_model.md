@@ -21,7 +21,9 @@ temperature only when it passes the survivor and stationarity checks below.
 - Evolution: 25 ms with 5 microsecond steps and Langevin recoil diffusion enabled.
 - Final plateau: last 5 ms; a temperature survivor reaches the requested duration and stays within the 2 mm core throughout this final interval.
 - Detuning grid: 25 values from n=-10 to n=-0.1, with Delta=n Gamma and Gamma/(2 pi)=6.07 MHz.
-- Doppler reference: T_D=hbar Gamma/(2 k_B)=145.657 microkelvin.
+- Detuning-dependent Doppler reference: T_D=-hbar Gamma^2/[8 k_B Delta] * [1+s_eff+(2 Delta/Gamma)^2], evaluated independently at every detuning using angular-frequency units and red Delta<0.
+- Saturation convention: s_eff=s_0/[1+(2 Delta/Gamma)^2], where s_0=I_0/I_sat and I_0=2P/(pi w^2) is the Gaussian peak intensity at the center of one cooling beam. The fixed 20 mW, 12.7 mm-diameter cooling beams give s_0=18.919355.
+- Across the saved detuning grid, this reference spans 287.223 to 7003.08 microkelvin and is plotted as a curve, not a constant line.
 
 The ten random initial phase-space clouds are drawn once and reused at every
 detuning (common random initial conditions). Langevin recoil streams are
@@ -66,6 +68,6 @@ captured. This run uses 250 trajectories per detuning and reports an interval.
 - A survivor-only temperature is conditional on remaining in the final core and can exhibit survivor bias; survivor fraction is therefore shown separately.
 - The adiabatic rate equations omit optical coherences and sub-Doppler polarization-gradient cooling.
 - Atoms are noninteracting; density-dependent reabsorption and collisions are absent.
-- The Doppler line is a reference, not a claim that this full magnetic MOT must attain the ideal low-saturation optical-molasses limit.
+- The detuning-dependent Doppler curve is an analytical reference using the explicitly defined per-beam s_eff; it is not a claim that the full 24-state magnetic MOT must attain it.
 - The 25 ms evolution is finite; quality-flagged values diagnose where this duration or the final-core sample does not establish equilibrium.
 - Quantitative claims remain provisional until timestep and duration convergence are checked independently.

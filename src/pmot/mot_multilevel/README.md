@@ -62,6 +62,29 @@ spectrum and capture cross section, per-disc plots, a capture heatmap, the
 loading-rate integral, Monte Carlo uncertainty, and complete run metadata under
 `outputs/statistics/mot_multilevel/loading_rate_50_discs_25_points`.
 
+Run the 27 mW cooling/0.1 mW repump full-sphere sampling-disc-radius campaign
+and its independently seeded confirmation with:
+
+```bash
+OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+/home/ajrosy/pMOT_MonteCarlo/.venv_pMOT_MC/bin/python \
+  -m pmot.mot_multilevel.sampling_disc_radius_study --workers 24
+```
+
+The phase-one radii are 5, 12, 15, 20, 25, and 30 mm. Each point uses 100
+random full-sphere direction discs and 100 independent uniform-area impact
+points per disc. The runner checkpoints every 100 completed capture-threshold
+searches and resumes by default. It writes per-radius cross-section plots,
+full-sphere geometry plots with the cooling beams, clustered loading-rate
+statistics, the six-point loading-rate plot, and the convergence analysis below
+`outputs/{statistics,figures}/mot_multilevel/` in the directory named
+`loading_vs_sampling_disc_radius_full_sphere_100_discs_100_points_cooling27mW`.
+The plotted 95% intervals treat each direction disc as one independent cluster;
+the curve fit also uses the covariance created by reusing the same phase-one
+directions across radii. If the saturating fit does not pass its goodness,
+monotonicity, plateau, and convergence-radius uncertainty gates, the independent
+confirmation uses the prescribed 12 mm fallback.
+
 Run and visualize a configurable full-MOT launch directly in
 `notebooks/mot_multilevel/full_mot_single_trajectory.ipynb`. It adapts the
 `Single Trajectory` controls and 3D beam/path view from the simplified-MOT disc

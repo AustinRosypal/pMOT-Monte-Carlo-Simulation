@@ -40,7 +40,11 @@ from .rate_equations import (
     simulate_rate_equation_trajectory,
 )
 from .simulation import build_multilevel_mot_beams
-from .temperature import BOLTZMANN_CONSTANT_J_PER_K, doppler_temperature_k
+from .temperature import (
+    BOLTZMANN_CONSTANT_J_PER_K,
+    doppler_temperature_k,
+    effective_saturation_parameter,
+)
 
 
 # Broad far-red sampling is sufficient where the response is smooth; the grid
@@ -91,6 +95,7 @@ DEFAULT_SEED = 20260822
 TRAPPED_CORE_RADIUS_M = 2.0e-3
 ESCAPE_RADIUS_M = 30.0e-3
 SCHEMA_VERSION = 5
+DOPPLER_REFERENCE_VERSION = 2
 
 PHYSICAL_MODEL_STATEMENT = (
     "At each cooling detuning, ten independently seeded realizations of a "
@@ -140,6 +145,8 @@ SUMMARY_CSV_FIELDNAMES = (
     "temperature_ci_high_k",
     "final_temperature_mean_k",
     "final_temperature_sem_k",
+    "cooling_beam_center_on_resonance_saturation_parameter",
+    "cooling_beam_center_effective_saturation_parameter",
     "doppler_temperature_k",
     "plateau_over_doppler",
     "stationarity_pass_count",
@@ -270,6 +277,71 @@ def build_temperature_sweep_configuration(
     )
     beams = build_multilevel_mot_beams(apparatus_config=apparatus, config=config)
     return config, apparatus, beams
+
+
+def cooling_doppler_reference(
+    detuning_n: float,
+    *,
+    linewidth_rad_per_s: float | None = None,
+) -> dict[str, float]:
+    """Return the per-beam saturation metrics and Doppler reference at ``n``.
+
+    The saturation is evaluated at the center of one cooling beam.  All six
+    cooling components share the same fixed power and radius in this sweep.
+    ``s_eff`` is detuning-reduced before it is inserted into the requested
+    multilevel Doppler-temperature expression.
+    """
+
+    config, _, beams = build_temperature_sweep_configuration(detuning_n)
+    cooling_beams = [beam for beam in beams if beam.family == "cooling"]
+    if len(cooling_beams) != 6:
+        raise RuntimeError("temperature sweep requires exactly six cooling beams")
+    reference_beam = cooling_beams[0]
+    if any(
+        not np.isclose(beam.power_w, reference_beam.power_w, rtol=0.0, atol=0.0)
+        or not np.isclose(
+            beam.beam_radius_m,
+            reference_beam.beam_radius_m,
+            rtol=0.0,
+            atol=0.0,
+        )
+        for beam in cooling_beams[1:]
+    ):
+        raise RuntimeError("cooling beams do not share one saturation reference")
+
+    peak_intensity = (
+        2.0
+        * reference_beam.power_w
+        / (np.pi * reference_beam.beam_radius_m**2)
+    )
+    on_resonance_saturation = (
+        peak_intensity / config.saturation_intensity_w_per_m2
+    )
+    gamma = (
+        config.natural_linewidth_rad_per_s
+        if linewidth_rad_per_s is None
+        else float(linewidth_rad_per_s)
+    )
+    detuning_rad_per_s = float(detuning_n) * gamma
+    effective_saturation = effective_saturation_parameter(
+        on_resonance_saturation,
+        detuning_rad_per_s,
+        gamma,
+    )
+    doppler = doppler_temperature_k(
+        gamma,
+        detuning_rad_per_s,
+        effective_saturation,
+    )
+    return {
+        "detuning_rad_per_s": detuning_rad_per_s,
+        "cooling_beam_center_peak_intensity_w_per_m2": peak_intensity,
+        "cooling_beam_center_on_resonance_saturation_parameter": (
+            on_resonance_saturation
+        ),
+        "cooling_beam_center_effective_saturation_parameter": effective_saturation,
+        "doppler_temperature_k": doppler,
+    }
 
 
 def _json_compatible(value: object) -> object:
@@ -839,6 +911,7 @@ def _summarize_temperature_point(
     """Average the ten independently sampled cloud temperatures."""
 
     gamma = default_multilevel_mot_config().natural_linewidth_rad_per_s
+    doppler_reference = cooling_doppler_reference(detuning_n)
     requested_atom_count = requested_ensemble_count * atoms_per_ensemble
     temperatures = [
         float(row["plateau_temperature_mean_k"])
@@ -912,7 +985,7 @@ def _summarize_temperature_point(
         for row in ensemble_rows
         if row.get("plateau_max_radius_max_m") not in (None, "")
     ]
-    doppler = doppler_temperature_k(gamma)
+    doppler = doppler_reference["doppler_temperature_k"]
     return {
         "point_index": point_index,
         "detuning_n": float(detuning_n),
@@ -954,6 +1027,16 @@ def _summarize_temperature_point(
         "temperature_ci_high_k": temperature_high,
         "final_temperature_mean_k": final_mean,
         "final_temperature_sem_k": final_sem,
+        "cooling_beam_center_on_resonance_saturation_parameter": (
+            doppler_reference[
+                "cooling_beam_center_on_resonance_saturation_parameter"
+            ]
+        ),
+        "cooling_beam_center_effective_saturation_parameter": (
+            doppler_reference[
+                "cooling_beam_center_effective_saturation_parameter"
+            ]
+        ),
         "doppler_temperature_k": doppler,
         "plateau_over_doppler": (
             temperature_mean / doppler if temperature_mean is not None else None
@@ -986,6 +1069,32 @@ def _bool_value(value: object) -> bool:
     if isinstance(value, bool):
         return value
     return str(value).strip().lower() in {"true", "1", "yes"}
+
+
+def _refresh_doppler_reference_fields(
+    row: Mapping[str, object],
+) -> dict[str, object]:
+    """Recompute analytical Doppler fields without rerunning trajectories."""
+
+    refreshed = dict(row)
+    reference = cooling_doppler_reference(float(refreshed["detuning_n"]))
+    doppler = reference["doppler_temperature_k"]
+    temperature = _float_or_none(refreshed.get("plateau_temperature_mean_k"))
+    refreshed.update(
+        {
+            "cooling_beam_center_on_resonance_saturation_parameter": reference[
+                "cooling_beam_center_on_resonance_saturation_parameter"
+            ],
+            "cooling_beam_center_effective_saturation_parameter": reference[
+                "cooling_beam_center_effective_saturation_parameter"
+            ],
+            "doppler_temperature_k": doppler,
+            "plateau_over_doppler": (
+                None if temperature is None else temperature / doppler
+            ),
+        }
+    )
+    return refreshed
 
 
 def _replace_with_retry(temporary: Path, destination: Path) -> None:
@@ -1061,6 +1170,7 @@ def _resume_signature(
     config = replace(default_multilevel_mot_config(), repumper_enabled=True)
     return {
         "schema_version": SCHEMA_VERSION,
+        "doppler_reference_version": DOPPLER_REFERENCE_VERSION,
         "solver": "24_state_repumper_adiabatic_population_rate_equation_langevin",
         "physical_model_statement": PHYSICAL_MODEL_STATEMENT,
         "detuning_n_values": list(DETUNING_N_VALUES),
@@ -1085,12 +1195,36 @@ def _resume_signature(
     }
 
 
+def _resume_signature_is_compatible(
+    prior_signature: Mapping[str, object],
+    current_signature: Mapping[str, object],
+) -> bool:
+    """Allow analytical Doppler post-processing upgrades without new trajectories."""
+
+    prior = dict(prior_signature)
+    current = dict(current_signature)
+    prior_reference_version = int(prior.pop("doppler_reference_version", 1))
+    current_reference_version = int(current.pop("doppler_reference_version"))
+    return (
+        prior == current
+        and 1 <= prior_reference_version <= current_reference_version
+    )
+
+
 def physical_model_markdown(signature: Mapping[str, object]) -> str:
     """Return the human-readable scientific definition saved with the data."""
 
     config = default_multilevel_mot_config()
     apparatus = default_simulation_config()
-    doppler = doppler_temperature_k(config.natural_linewidth_rad_per_s)
+    doppler_references = [
+        cooling_doppler_reference(value) for value in DETUNING_N_VALUES
+    ]
+    doppler_temperatures = [
+        reference["doppler_temperature_k"] for reference in doppler_references
+    ]
+    on_resonance_saturation = doppler_references[0][
+        "cooling_beam_center_on_resonance_saturation_parameter"
+    ]
     return f"""# Physical model: temperature versus cooling detuning
 
 ## What was modeled
@@ -1114,7 +1248,9 @@ temperature only when it passes the survivor and stationarity checks below.
 - Evolution: {1e3 * float(signature['duration_s']):.6g} ms with {1e6 * float(signature['time_step_s']):.6g} microsecond steps and Langevin recoil diffusion enabled.
 - Final plateau: last {1e3 * float(signature['plateau_window_s']):.6g} ms; a temperature survivor reaches the requested duration and stays within the 2 mm core throughout this final interval.
 - Detuning grid: 25 values from n=-10 to n=-0.1, with Delta=n Gamma and Gamma/(2 pi)={config.natural_linewidth_rad_per_s / (2*np.pi*1e6):.6g} MHz.
-- Doppler reference: T_D=hbar Gamma/(2 k_B)={1e6*doppler:.6g} microkelvin.
+- Detuning-dependent Doppler reference: T_D=-hbar Gamma^2/[8 k_B Delta] * [1+s_eff+(2 Delta/Gamma)^2], evaluated independently at every detuning using angular-frequency units and red Delta<0.
+- Saturation convention: s_eff=s_0/[1+(2 Delta/Gamma)^2], where s_0=I_0/I_sat and I_0=2P/(pi w^2) is the Gaussian peak intensity at the center of one cooling beam. The fixed 20 mW, 12.7 mm-diameter cooling beams give s_0={on_resonance_saturation:.8g}.
+- Across the saved detuning grid, this reference spans {1e6*min(doppler_temperatures):.6g} to {1e6*max(doppler_temperatures):.6g} microkelvin and is plotted as a curve, not a constant line.
 
 The ten random initial phase-space clouds are drawn once and reused at every
 detuning (common random initial conditions). Langevin recoil streams are
@@ -1159,7 +1295,7 @@ captured. This run uses 250 trajectories per detuning and reports an interval.
 - A survivor-only temperature is conditional on remaining in the final core and can exhibit survivor bias; survivor fraction is therefore shown separately.
 - The adiabatic rate equations omit optical coherences and sub-Doppler polarization-gradient cooling.
 - Atoms are noninteracting; density-dependent reabsorption and collisions are absent.
-- The Doppler line is a reference, not a claim that this full magnetic MOT must attain the ideal low-saturation optical-molasses limit.
+- The detuning-dependent Doppler curve is an analytical reference using the explicitly defined per-beam s_eff; it is not a claim that the full 24-state magnetic MOT must attain it.
 - The 25 ms evolution is finite; quality-flagged values diagnose where this duration or the final-core sample does not establish equilibrium.
 - Quantitative claims remain provisional until timestep and duration convergence are checked independently.
 """
@@ -1184,8 +1320,28 @@ def _metadata_payload(
 ) -> dict[str, object]:
     config = replace(default_multilevel_mot_config(), repumper_enabled=True)
     model = build_rate_equation_model(config.natural_linewidth_rad_per_s)
+    doppler_reference_points = []
+    for detuning_n in DETUNING_N_VALUES:
+        reference = cooling_doppler_reference(detuning_n)
+        doppler_reference_points.append(
+            {
+                "detuning_n": detuning_n,
+                "detuning_rad_per_s": reference["detuning_rad_per_s"],
+                "cooling_beam_center_effective_saturation_parameter": reference[
+                    "cooling_beam_center_effective_saturation_parameter"
+                ],
+                "doppler_temperature_k": reference["doppler_temperature_k"],
+            }
+        )
+    on_resonance_saturation = cooling_doppler_reference(DETUNING_N_VALUES[0])[
+        "cooling_beam_center_on_resonance_saturation_parameter"
+    ]
+    doppler_temperatures = [
+        point["doppler_temperature_k"] for point in doppler_reference_points
+    ]
     return {
         "schema_version": SCHEMA_VERSION,
+        "doppler_reference_version": DOPPLER_REFERENCE_VERSION,
         "status": status,
         "created_utc": created_utc,
         "updated_utc": datetime.now(timezone.utc).isoformat(),
@@ -1251,12 +1407,26 @@ def _metadata_payload(
             "one-linewidth spacing on the far-red wing, finer spacing through the likely "
             "cooling minimum, and the finest spacing near resonance"
         ),
-        "doppler_equation": "T_D=hbar Gamma/(2 k_B)",
-        "linewidth_convention": "Gamma is angular frequency in rad/s",
-        "linewidth_rad_per_s": config.natural_linewidth_rad_per_s,
-        "doppler_temperature_k": doppler_temperature_k(
-            config.natural_linewidth_rad_per_s
+        "doppler_equation": (
+            "T_D=-hbar Gamma^2/[8 k_B Delta] "
+            "* [1+s_eff+(2 Delta/Gamma)^2]"
         ),
+        "effective_saturation_equation": (
+            "s_eff=s_0/[1+(2 Delta/Gamma)^2]"
+        ),
+        "doppler_saturation_convention": (
+            "s_0=I_0/I_sat for one cooling beam at its Gaussian center, "
+            "with I_0=2P/(pi w^2); s_eff is recomputed at every detuning"
+        ),
+        "doppler_reference_is_detuning_dependent": True,
+        "frequency_convention": "Gamma and Delta are angular frequencies in rad/s",
+        "linewidth_rad_per_s": config.natural_linewidth_rad_per_s,
+        "cooling_beam_center_on_resonance_saturation_parameter": (
+            on_resonance_saturation
+        ),
+        "doppler_temperature_min_k": min(doppler_temperatures),
+        "doppler_temperature_max_k": max(doppler_temperatures),
+        "doppler_reference_points": doppler_reference_points,
         "diffusion_enabled": True,
         "repumper_enabled": True,
         "effective_repump_power_w_per_beam": config.repump_power_w_per_beam,
@@ -1273,7 +1443,7 @@ def _metadata_payload(
             "Temperature is conditioned on final-core survival and can have survivor bias.",
             "The population-rate approximation omits optical coherences and sub-Doppler cooling.",
             "The model omits density-dependent collisions and photon reabsorption.",
-            "The Doppler line is an ideal reference rather than a guaranteed full-MOT limit.",
+            "The detuning-dependent Doppler curve is an analytical reference using the recorded per-beam s_eff convention, not a guaranteed full-MOT limit.",
             "Quality-flagged values do not establish equilibrium within the 25 ms run.",
             "Timestep and duration convergence remain required for quantitative claims.",
         ],
@@ -1310,8 +1480,16 @@ def plot_temperature_vs_detuning(
         if linewidth_rad_per_s is not None
         else default_multilevel_mot_config().natural_linewidth_rad_per_s
     )
-    doppler = doppler_temperature_k(gamma)
     n_values = np.asarray([float(row["detuning_n"]) for row in rows])
+    doppler = np.asarray(
+        [
+            cooling_doppler_reference(
+                detuning_n,
+                linewidth_rad_per_s=gamma,
+            )["doppler_temperature_k"]
+            for detuning_n in n_values
+        ]
+    )
     temperatures = np.asarray(
         [
             np.nan
@@ -1427,19 +1605,22 @@ def plot_temperature_vs_detuning(
                 capsize=3,
                 label="insufficient-survivor estimate",
             )
-    temperature_axis.axhline(
+    temperature_axis.plot(
+        n_values,
         1.0e6 * doppler,
         color="#7c3aed",
         linestyle="--",
         linewidth=1.5,
-        label=f"Doppler reference = {1.0e6*doppler:.1f} µK",
+        label=r"detuning-dependent Doppler reference $T_D(\Delta)$",
     )
     temperature_axis.text(
         0.34,
         0.97,
         rf"$\Delta=n\Gamma$; red detuning $n<0$; "
         rf"$\Gamma/(2\pi)={gamma/(2*np.pi*1e6):.2f}$ MHz"
-        "\n10 independent preloaded clouds × 25 atoms; final 5 ms plateau",
+        "\n10 independent preloaded clouds × 25 atoms; final 5 ms plateau"
+        "\n"
+        r"Doppler curve uses per-beam, detuning-reduced $s_{\mathrm{eff}}$",
         transform=temperature_axis.transAxes,
         ha="left",
         va="top",
@@ -1579,10 +1760,17 @@ def run_temperature_detuning_sweep(
                 "resume requires summary CSV, ensemble CSV, and metadata JSON"
             )
         prior_metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
-        if prior_metadata.get("resume_signature") != signature:
+        prior_signature = prior_metadata.get("resume_signature")
+        if not isinstance(prior_signature, Mapping) or not _resume_signature_is_compatible(
+            prior_signature,
+            signature,
+        ):
             raise ValueError("existing temperature checkpoint has incompatible parameters")
         created_utc = str(prior_metadata.get("created_utc", created_utc))
-        rows = _read_csv_checkpoint(summary_csv_path)
+        rows = [
+            _refresh_doppler_reference_fields(row)
+            for row in _read_csv_checkpoint(summary_csv_path)
+        ]
         ensemble_rows = _read_csv_checkpoint(ensemble_csv_path)
 
     expected_index = {
@@ -1923,6 +2111,7 @@ if __name__ == "__main__":
 
 __all__ = [
     "DETUNING_N_VALUES",
+    "DOPPLER_REFERENCE_VERSION",
     "PHYSICAL_MODEL_STATEMENT",
     "REQUIRED_ATOMS_PER_ENSEMBLE",
     "REQUIRED_ENSEMBLE_REALIZATION_COUNT",
@@ -1931,6 +2120,7 @@ __all__ = [
     "TemperatureSweepWorkerResult",
     "build_argument_parser",
     "build_temperature_sweep_configuration",
+    "cooling_doppler_reference",
     "detuning_n_grid",
     "ensemble_temperature_metrics",
     "generate_common_initial_ensemble",

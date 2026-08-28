@@ -13,7 +13,7 @@ from time import perf_counter
 import matplotlib.pyplot as plt
 import numpy as np
 
-from ..configuration import HBAR_J_S, RB87_MASS_KG
+from ..configuration import HBAR_J_S, RB87_MASS_KG, default_simulation_config
 from ..mot.magnetic_fields import default_anti_helmholtz_config
 from .configuration import default_multilevel_mot_config, multilevel_mot_paths
 from .rate_equations import (
@@ -28,12 +28,71 @@ from .simulation import build_multilevel_mot_beams
 BOLTZMANN_CONSTANT_J_PER_K = 1.380649e-23
 
 
-def doppler_temperature_k(linewidth_rad_per_s: float) -> float:
-    """Return T_D = hbar Gamma/(2 k_B) for angular linewidth Gamma."""
+def effective_saturation_parameter(
+    on_resonance_saturation_parameter: float,
+    detuning_rad_per_s: float,
+    linewidth_rad_per_s: float,
+) -> float:
+    """Return the detuning-reduced saturation parameter ``s_eff``.
 
+    All frequency arguments use angular-frequency units.  The saturation
+    convention is the one used throughout the multilevel studies,
+
+    ``s_eff = s_0 / (1 + (2 Delta / Gamma)**2)``.
+    """
+
+    values = (
+        on_resonance_saturation_parameter,
+        detuning_rad_per_s,
+        linewidth_rad_per_s,
+    )
+    if not np.all(np.isfinite(values)):
+        raise ValueError("saturation, detuning, and linewidth must be finite")
+    if on_resonance_saturation_parameter < 0.0:
+        raise ValueError("on_resonance_saturation_parameter must be non-negative")
     if linewidth_rad_per_s <= 0.0:
         raise ValueError("linewidth_rad_per_s must be positive")
-    return HBAR_J_S * linewidth_rad_per_s / (2.0 * BOLTZMANN_CONSTANT_J_PER_K)
+    return on_resonance_saturation_parameter / (
+        1.0 + (2.0 * detuning_rad_per_s / linewidth_rad_per_s) ** 2
+    )
+
+
+def doppler_temperature_k(
+    linewidth_rad_per_s: float,
+    detuning_rad_per_s: float,
+    effective_saturation: float,
+) -> float:
+    r"""Return the multilevel Doppler reference temperature for red detuning.
+
+    The definition is
+
+    ``T_D = -hbar*Gamma**2/(8*k_B*Delta)``
+    ``      * (1 + s_eff + (2*Delta/Gamma)**2)``.
+
+    ``Gamma`` and ``Delta`` must both use angular-frequency units, with
+    ``Delta < 0`` for red detuning.  ``s_eff`` is the non-negative,
+    detuning-reduced saturation parameter for one cooling beam at its center.
+    """
+
+    values = (linewidth_rad_per_s, detuning_rad_per_s, effective_saturation)
+    if not np.all(np.isfinite(values)):
+        raise ValueError("linewidth, detuning, and effective saturation must be finite")
+    if linewidth_rad_per_s <= 0.0:
+        raise ValueError("linewidth_rad_per_s must be positive")
+    if detuning_rad_per_s >= 0.0:
+        raise ValueError("detuning_rad_per_s must be negative")
+    if effective_saturation < 0.0:
+        raise ValueError("effective_saturation must be non-negative")
+    return (
+        -HBAR_J_S
+        * linewidth_rad_per_s**2
+        / (8.0 * BOLTZMANN_CONSTANT_J_PER_K * detuning_rad_per_s)
+        * (
+            1.0
+            + effective_saturation
+            + (2.0 * detuning_rad_per_s / linewidth_rad_per_s) ** 2
+        )
+    )
 
 
 def temperature_components_k(velocities_m_per_s: np.ndarray) -> np.ndarray:
@@ -144,7 +203,26 @@ def run_trapped_temperature_study(
     stationarity_metric = float((np.max(window_means) - np.min(window_means)) / stationary_temperature)
     final_components = component_history[-1]
     final_temperature = float(np.mean(final_components))
-    doppler = doppler_temperature_k(default_multilevel_mot_config().natural_linewidth_rad_per_s)
+    config = replace(default_multilevel_mot_config(), repumper_enabled=True)
+    apparatus = default_simulation_config()
+    peak_intensity_w_per_m2 = (
+        2.0
+        * apparatus.cooling.power_w_per_beam
+        / (np.pi * apparatus.cooling.beam_radius_m**2)
+    )
+    on_resonance_saturation = (
+        peak_intensity_w_per_m2 / config.saturation_intensity_w_per_m2
+    )
+    effective_saturation = effective_saturation_parameter(
+        on_resonance_saturation,
+        config.cooling_detuning_rad_per_s,
+        config.natural_linewidth_rad_per_s,
+    )
+    doppler = doppler_temperature_k(
+        config.natural_linewidth_rad_per_s,
+        config.cooling_detuning_rad_per_s,
+        effective_saturation,
+    )
     initial_components = temperature_components_k(velocities)
     anisotropy = float(np.max(final_components) / np.min(final_components))
 
@@ -167,12 +245,26 @@ def run_trapped_temperature_study(
     figure.savefig(plot_path, dpi=190)
     plt.close(figure)
 
-    config = replace(default_multilevel_mot_config(), repumper_enabled=True)
     payload = {
         "definition": "T_i = m Var(v_i - <v_i>)/k_B; T=(Tx+Ty+Tz)/3",
-        "doppler_equation": "T_D = hbar Gamma/(2 k_B)",
+        "doppler_equation": (
+            "T_D = -hbar Gamma^2/[8 k_B Delta] "
+            "* [1 + s_eff + (2 Delta/Gamma)^2]"
+        ),
+        "effective_saturation_equation": (
+            "s_eff = s_0/[1 + (2 Delta/Gamma)^2]"
+        ),
+        "doppler_saturation_convention": (
+            "single-cooling-beam Gaussian peak intensity at beam center"
+        ),
         "linewidth_rad_per_s": config.natural_linewidth_rad_per_s,
         "linewidth_hz": config.natural_linewidth_rad_per_s / (2.0 * np.pi),
+        "cooling_detuning_rad_per_s": config.cooling_detuning_rad_per_s,
+        "cooling_beam_center_peak_intensity_w_per_m2": peak_intensity_w_per_m2,
+        "cooling_beam_center_on_resonance_saturation_parameter": (
+            on_resonance_saturation
+        ),
+        "cooling_beam_center_effective_saturation_parameter": effective_saturation,
         "doppler_temperature_k": doppler,
         "requested_atom_count": atom_count,
         "trapped_atom_count": len(aligned),

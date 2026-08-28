@@ -56,6 +56,7 @@ from ..mot_simple.sampling import (
     load_capture_velocity_samples,
     sample_disc_points,
     sample_incident_disc,
+    sample_incident_disc_full_sphere,
 )
 from .configuration import (
     MultilevelMOTConfig,
@@ -319,9 +320,9 @@ def effective_saturation_metrics(
             config.repump_detuning_rad_per_s,
         ),
         "interpretation": (
-            "The near-unity value applies to the 27 mW, -15 MHz cooling component. "
-            "The baseline 0.1 mW repumper is resonant, so its effective saturation "
-            "equals its on-resonance saturation."
+            f"The cooling value applies to the {1e3 * apparatus.cooling.power_w_per_beam:g} "
+            "mW, -15 MHz cooling component. The resonant repumper's effective "
+            "saturation equals its on-resonance saturation."
         ),
     }
 
@@ -333,15 +334,20 @@ def generate_study_geometry(
 
     if search.disc_count <= 0 or search.points_per_disc <= 0:
         raise ValueError("disc_count and points_per_disc must be positive")
-    if search.phase_space != "octant":
-        raise ValueError("production sampling requires the authoritative one-octant convention")
+    if search.phase_space not in {"octant", "full_sphere"}:
+        raise ValueError("phase_space must be 'octant' or 'full_sphere'")
     if search.include_center_point:
         raise ValueError("all production impact points must be random uniform-area draws")
     rng = np.random.default_rng(search.seed)
     discs: list[DiscSample] = []
     points: list[PointSample] = []
+    direction_sampler = (
+        sample_incident_disc
+        if search.phase_space == "octant"
+        else sample_incident_disc_full_sphere
+    )
     for disc_index in range(search.disc_count):
-        disc = sample_incident_disc(disc_index, search.radial_distance_m, rng)
+        disc = direction_sampler(disc_index, search.radial_distance_m, rng)
         discs.append(disc)
         points.extend(
             sample_disc_points(
@@ -492,9 +498,18 @@ def configuration_invariance_audit(
     search_changes = _flatten_differences(
         asdict(RateCaptureSearchConfig()), asdict(search)
     )
-    expected_search = {"points_per_disc", "seed"}
-    if RateCaptureSearchConfig().include_center_point:
-        expected_search.add("include_center_point")
+    sampling_and_execution_fields = {
+        "disc_radius_m",
+        "disc_count",
+        "points_per_disc",
+        "include_center_point",
+        "seed",
+        "worker_count",
+        "phase_space",
+    }
+    unexpected_search_changes = sorted(
+        set(search_changes) - sampling_and_execution_fields
+    )
     return {
         "apparatus_changed_fields": apparatus_changes,
         "apparatus_only_cooling_and_repump_power_changed": apparatus_changes
@@ -513,7 +528,11 @@ def configuration_invariance_audit(
         "coil_config_changed_fields": coil_changes,
         "coil_config_matches_default": not coil_changes,
         "capture_search_changed_fields": search_changes,
-        "capture_search_only_sampling_design_changed": set(search_changes) == expected_search,
+        "capture_search_allowed_sampling_and_execution_fields": sorted(
+            sampling_and_execution_fields
+        ),
+        "capture_search_non_sampling_changed_fields": unexpected_search_changes,
+        "capture_search_only_sampling_design_changed": not unexpected_search_changes,
     }
 
 
@@ -524,16 +543,21 @@ def study_signature_payload(
     search: RateCaptureSearchConfig,
     geometry_hash: str,
     *,
+    study_name: str = STUDY_NAME,
     source_hashes: dict[str, str] | None = None,
 ) -> dict[str, object]:
+    search_payload = asdict(search)
+    # The pool size is an execution choice, not part of the sampled geometry or
+    # physics.  Excluding it lets a checkpoint resume safely with fewer workers.
+    search_payload.pop("worker_count", None)
     return {
         "schema_version": METADATA_SCHEMA_VERSION,
-        "study_name": STUDY_NAME,
+        "study_name": study_name,
         "model": "24-state repumper-included multilevel population-rate MOT",
         "apparatus_config": asdict(apparatus),
         "multilevel_config": asdict(config),
         "coil_config": asdict(coil),
-        "capture_search_config": asdict(search),
+        "capture_search_config": search_payload,
         "geometry_sha256": geometry_hash,
         "physics_source_sha256": source_hashes or _physics_source_hashes(),
     }
@@ -668,18 +692,23 @@ def calculate_clustered_cross_section(
     )
     if velocity.ndim != 1 or len(velocity) < 2 or np.any(np.diff(velocity) <= 0.0):
         raise ValueError("velocity grid must be strictly increasing and one-dimensional")
-    grouped: dict[int, list[float]] = {}
+    grouped: dict[int, list[CaptureVelocitySample]] = {}
     for sample in samples:
-        grouped.setdefault(sample.disc_index, []).append(sample.capture_velocity_m_per_s)
+        grouped.setdefault(sample.disc_index, []).append(sample)
     disc_count = len(grouped)
     area = pi * search.disc_radius_m**2
     t_critical = _student_t_critical_95(disc_count)
-    all_thresholds = np.asarray([sample.capture_velocity_m_per_s for sample in samples])
+    def captured_at(sample: CaptureVelocitySample, speed: float) -> bool:
+        return bool(
+            sample.lower_classification in TRAPPED_TERMINATION_REASONS
+            and sample.capture_velocity_m_per_s >= speed - 1.0e-12
+        )
+
     rows: list[dict[str, int | float]] = []
     for speed in velocity:
         disc_sigma = area * np.asarray(
             [
-                np.mean(np.asarray(grouped[index], dtype=float) >= speed - 1.0e-12)
+                np.mean([captured_at(sample, float(speed)) for sample in grouped[index]])
                 for index in sorted(grouped)
             ]
         )
@@ -690,7 +719,9 @@ def calculate_clustered_cross_section(
         rows.append(
             {
                 "velocity_m_per_s": float(speed),
-                "captured_count": int(np.count_nonzero(all_thresholds >= speed - 1.0e-12)),
+                "captured_count": int(
+                    sum(captured_at(sample, float(speed)) for sample in samples)
+                ),
                 "launched_count": len(samples),
                 "capture_fraction": mean / area,
                 "capture_cross_section_m2": mean,
@@ -715,22 +746,31 @@ def calculate_disc_clustered_loading(
     velocity = np.asarray([row["velocity_m_per_s"] for row in spectrum_rows], dtype=float)
     if len(velocity) < 2:
         raise ValueError("capture spectrum must have at least two velocity points")
-    grouped: dict[int, list[float]] = {}
+    grouped: dict[int, list[CaptureVelocitySample]] = {}
     for sample in samples:
-        grouped.setdefault(sample.disc_index, []).append(sample.capture_velocity_m_per_s)
+        grouped.setdefault(sample.disc_index, []).append(sample)
     area = pi * search.disc_radius_m**2
     by_disc: list[dict[str, int | float]] = []
     for disc_index in sorted(grouped):
-        thresholds = np.asarray(grouped[disc_index], dtype=float)
+        disc_samples = grouped[disc_index]
         sigma = area * np.asarray(
-            [np.mean(thresholds >= speed - 1.0e-12) for speed in velocity],
+            [
+                np.mean(
+                    [
+                        sample.lower_classification in TRAPPED_TERMINATION_REASONS
+                        and sample.capture_velocity_m_per_s >= speed - 1.0e-12
+                        for sample in disc_samples
+                    ]
+                )
+                for speed in velocity
+            ],
             dtype=float,
         )
         result = calculate_loading_rate_from_spectrum(velocity, sigma)
         by_disc.append(
             {
                 "disc_index": disc_index,
-                "point_count": len(thresholds),
+                "point_count": len(disc_samples),
                 "loading_integral_m6_per_s4": result.integral_value_m5_per_s4,
                 "loading_rate_atoms_per_s": result.loading_rate_atoms_per_s,
             }
@@ -773,7 +813,12 @@ def calculate_disc_clustered_loading(
     }
 
 
-def plot_clustered_cross_section(rows: Sequence[Mapping[str, int | float]], path: Path) -> Path:
+def plot_clustered_cross_section(
+    rows: Sequence[Mapping[str, int | float]],
+    path: Path,
+    *,
+    title: str = "24-State MOT Capture Cross Section (27 mW cooling; 0.1 mW repump)",
+) -> Path:
     velocity = np.asarray([row["velocity_m_per_s"] for row in rows], dtype=float)
     mean = 1.0e6 * np.asarray([row["capture_cross_section_m2"] for row in rows], dtype=float)
     lower = 1.0e6 * np.asarray([row["capture_cross_section_t95_lower_m2"] for row in rows])
@@ -782,7 +827,7 @@ def plot_clustered_cross_section(rows: Sequence[Mapping[str, int | float]], path
     axis.fill_between(velocity, lower, upper, color="#99c8c2", alpha=0.5, linewidth=0.0, label="95% t interval across direction discs")
     axis.plot(velocity, mean, color="#0f766e", linewidth=2.2, label="Mean cross section")
     axis.set(
-        title="24-State MOT Capture Cross Section (27 mW cooling; 0.1 mW repump)",
+        title=title,
         xlabel="Launch speed [m/s]",
         ylabel=r"Capture cross section [mm$^2$]",
     )
@@ -795,7 +840,10 @@ def plot_clustered_cross_section(rows: Sequence[Mapping[str, int | float]], path
 
 
 def plot_capture_velocity_vs_impact_parameter(
-    samples: Sequence[CaptureVelocitySample], path: Path
+    samples: Sequence[CaptureVelocitySample],
+    path: Path,
+    *,
+    title: str = "24-State MOT Capture Velocity (27 mW cooling; 0.1 mW repump)",
 ) -> Path:
     s_mm = 1.0e3 * np.asarray([sample.s_m for sample in samples], dtype=float)
     capture = np.asarray([sample.capture_velocity_m_per_s for sample in samples], dtype=float)
@@ -819,7 +867,7 @@ def plot_capture_velocity_vs_impact_parameter(
         axis.errorbar(centers, means, yerr=sems, color="#9f4a13", marker="o", markersize=4, linewidth=1.7, capsize=2, label="Impact-parameter-bin mean ± SEM")
         axis.legend(frameon=False)
     axis.set(
-        title="24-State MOT Capture Velocity (27 mW cooling; 0.1 mW repump)",
+        title=title,
         xlabel="Impact parameter [mm]",
         ylabel="Capture velocity [m/s]",
     )
@@ -834,6 +882,8 @@ def plot_loading_rate_by_disc(
     by_disc: Sequence[Mapping[str, int | float]],
     summary: Mapping[str, int | float | str],
     path: Path,
+    *,
+    title: str = "24-State MOT Loading Rate by Direction (27 mW cooling; 0.1 mW repump)",
 ) -> Path:
     disc = 1 + np.asarray([row["disc_index"] for row in by_disc], dtype=int)
     rate = np.asarray([row["loading_rate_atoms_per_s"] for row in by_disc], dtype=float)
@@ -845,7 +895,7 @@ def plot_loading_rate_by_disc(
     axis.axhline(mean, color="#0f766e", linewidth=2.2, label="Mean loading rate")
     axis.scatter(disc, rate, color="#9f4a13", s=22, alpha=0.75, label="Direction-disc estimates")
     axis.set(
-        title="24-State MOT Loading Rate by Direction (27 mW cooling; 0.1 mW repump)",
+        title=title,
         xlabel="Random incident-direction disc",
         ylabel="Loading rate [atoms/s]",
     )
@@ -916,6 +966,9 @@ def build_run_metadata(
     completed_sample_count: int,
     started_utc: str,
     elapsed_wall_time_s: float,
+    study_name: str = STUDY_NAME,
+    checkpoint_every: int = CHECKPOINT_EVERY,
+    progress_every: int = PROGRESS_EVERY,
 ) -> dict[str, object]:
     model = build_rate_equation_model(config.natural_linewidth_rad_per_s)
     axial_gradient = anti_helmholtz_axial_gradient_t_per_m(
@@ -928,7 +981,7 @@ def build_run_metadata(
     expected = search.disc_count * search.points_per_disc
     return {
         "schema_version": METADATA_SCHEMA_VERSION,
-        "study_name": STUDY_NAME,
+        "study_name": study_name,
         "status": status,
         "started_utc": started_utc,
         "updated_utc": _utc_now(),
@@ -948,17 +1001,27 @@ def build_run_metadata(
         "cooling_beam_component_count": len(cooling),
         "repump_beam_component_count": len(repump),
         "total_beam_component_count": len(beams),
-        "cooling_power_w_per_beam": COOLING_POWER_W_PER_BEAM,
-        "repump_power_w_per_beam": REPUMP_POWER_W_PER_BEAM,
+        "cooling_power_w_per_beam": apparatus.cooling.power_w_per_beam,
+        "repump_power_w_per_beam": config.repump_power_w_per_beam,
         "built_cooling_beam_powers_w": [beam.power_w for beam in cooling],
         "built_repump_beam_powers_w": [beam.power_w for beam in repump],
         "all_built_beams_match_requested_family_powers": (
             all(
-                np.isclose(beam.power_w, COOLING_POWER_W_PER_BEAM, rtol=0.0, atol=1.0e-15)
+                np.isclose(
+                    beam.power_w,
+                    apparatus.cooling.power_w_per_beam,
+                    rtol=0.0,
+                    atol=1.0e-15,
+                )
                 for beam in cooling
             )
             and all(
-                np.isclose(beam.power_w, REPUMP_POWER_W_PER_BEAM, rtol=0.0, atol=1.0e-15)
+                np.isclose(
+                    beam.power_w,
+                    config.repump_power_w_per_beam,
+                    rtol=0.0,
+                    atol=1.0e-15,
+                )
                 for beam in repump
             )
         ),
@@ -976,13 +1039,18 @@ def build_run_metadata(
         "capture_search_config": asdict(search),
         "configuration_invariance_audit": configuration_invariance_audit(config, apparatus, coil, search),
         "geometry_sampler": (
-            "seed 0; directions uniform in solid angle in one symmetry octant; each "
-            "perpendicular disc contains independent uniform-area points with s=R*sqrt(U) "
+            f"seed {search.seed}; directions uniform in solid angle over "
+            + (
+                "one symmetry octant; each "
+                if search.phase_space == "octant"
+                else "the complete 4 pi sphere; each "
+            )
+            + "perpendicular disc contains independent uniform-area points with s=R*sqrt(U) "
             "and uniform azimuth; all velocities are parallel to the inward disc normal"
         ),
         "paired_geometry_note": (
-            "The seed and generation loop exactly match the completed 27 mW mot_simple "
-            "study, enabling paired model comparisons."
+            "The fixed seed and signed launch-geometry CSV make the random geometry "
+            "exactly reproducible."
         ),
         "trapped_criterion": (
             "continuous residence in the central 2 mm-radius core for at least 5 ms, "
@@ -997,15 +1065,19 @@ def build_run_metadata(
             "disc-cluster SEM, and Student-t 95% interval"
         ),
         "worker_count": worker_count,
-        "checkpoint_every_completed_samples": CHECKPOINT_EVERY,
-        "progress_every_completed_samples": PROGRESS_EVERY,
+        "checkpoint_every_completed_samples": checkpoint_every,
+        "progress_every_completed_samples": progress_every,
         "output_manifest": _output_manifest(paths),
         "git": _git_provenance(multilevel_mot_paths()["root"]),
         "limitations": [
             "The population-rate approximation omits optical coherences and sub-Doppler physics.",
             "Capture-speed binary search assumes a locally monotonic trapped/untrapped boundary.",
-            "The one-octant convention is used although gravity breaks exact z-reflection symmetry.",
-            "The 12 mm sampling-disc radius caps the projected capture cross section.",
+            (
+                "The one-octant convention is used although gravity breaks exact z-reflection symmetry."
+                if search.phase_space == "octant"
+                else "Full-sphere direction sampling avoids assuming octant reflection symmetry in the presence of gravity."
+            ),
+            f"The {1e3 * search.disc_radius_m:g} mm sampling-disc radius caps the projected capture cross section.",
             "Direction-cluster uncertainty does not include model-systematic or convergence uncertainty.",
             "Quantitative results remain provisional until timestep, timeout, and event-engine comparisons are documented.",
         ],
@@ -1019,6 +1091,7 @@ def analyze_completed_samples(
     *,
     signature: str,
     geometry_hash: str,
+    plot_context: str | None = None,
 ) -> dict[str, object]:
     expected = search.disc_count * search.points_per_disc
     if len(samples) != expected:
@@ -1043,9 +1116,23 @@ def analyze_completed_samples(
         "loading_rate_by_disc_csv": str(paths.loading_by_disc_csv.resolve()),
     }
     _atomic_write_json(paths.loading_json, loading_payload)
-    plot_clustered_cross_section(spectrum, paths.cross_section_png)
-    plot_capture_velocity_vs_impact_parameter(samples, paths.impact_parameter_png)
-    plot_loading_rate_by_disc(by_disc, loading, paths.loading_by_disc_png)
+    context = plot_context or "27 mW cooling; 0.1 mW repump"
+    plot_clustered_cross_section(
+        spectrum,
+        paths.cross_section_png,
+        title=f"24-State MOT Capture Cross Section ({context})",
+    )
+    plot_capture_velocity_vs_impact_parameter(
+        samples,
+        paths.impact_parameter_png,
+        title=f"24-State MOT Capture Velocity ({context})",
+    )
+    plot_loading_rate_by_disc(
+        by_disc,
+        loading,
+        paths.loading_by_disc_png,
+        title=f"24-State MOT Loading Rate by Direction ({context})",
+    )
 
     capture = np.asarray([sample.capture_velocity_m_per_s for sample in samples], dtype=float)
     resolution = np.asarray([sample.velocity_resolution_m_per_s for sample in samples], dtype=float)
@@ -1204,11 +1291,21 @@ def run_power_loading_study(
     figure_directory: Path | None = None,
     resume: bool = True,
     analyze_only: bool = False,
+    cooling_power_w_per_beam: float = COOLING_POWER_W_PER_BEAM,
+    repump_power_w_per_beam: float = REPUMP_POWER_W_PER_BEAM,
+    study_name: str = STUDY_NAME,
+    progress_every: int = PROGRESS_EVERY,
+    checkpoint_every: int = CHECKPOINT_EVERY,
+    plot_context: str | None = None,
 ) -> dict[str, object]:
-    """Run or resume the 27 mW cooling/0.1 mW repump loading study."""
+    """Run or resume a checkpointed 24-state capture/loading study."""
 
     if worker_count <= 0:
         raise ValueError("worker_count must be positive")
+    if progress_every <= 0 or checkpoint_every <= 0:
+        raise ValueError("progress_every and checkpoint_every must be positive")
+    if not study_name.strip():
+        raise ValueError("study_name must not be empty")
     if analyze_only and not resume:
         raise ValueError("--analyze-only requires resume mode")
     search = search_config or default_study_search_config()
@@ -1222,12 +1319,22 @@ def run_power_loading_study(
     paths.statistics.mkdir(parents=True, exist_ok=True)
     paths.figures.mkdir(parents=True, exist_ok=True)
 
-    config, apparatus, beams = build_27mw_multilevel_configuration()
+    config, apparatus, beams = build_27mw_multilevel_configuration(
+        cooling_power_w_per_beam=cooling_power_w_per_beam,
+        repump_power_w_per_beam=repump_power_w_per_beam,
+    )
     coil = default_anti_helmholtz_config()
     discs, points = generate_study_geometry(search)
     geometry_text = geometry_csv_text(geometry_rows(discs, points))
     geometry_hash = hashlib.sha256(geometry_text.encode("utf-8")).hexdigest()
-    signature_payload = study_signature_payload(config, apparatus, coil, search, geometry_hash)
+    signature_payload = study_signature_payload(
+        config,
+        apparatus,
+        coil,
+        search,
+        geometry_hash,
+        study_name=study_name,
+    )
     signature = study_signature(signature_payload)
     expected = search.disc_count * search.points_per_disc
 
@@ -1274,6 +1381,9 @@ def run_power_loading_study(
         completed_sample_count=len(results),
         started_utc=started_utc,
         elapsed_wall_time_s=prior_elapsed,
+        study_name=study_name,
+        checkpoint_every=checkpoint_every,
+        progress_every=progress_every,
     )
     _atomic_write_json(paths.metadata_json, metadata)
 
@@ -1283,7 +1393,12 @@ def run_power_loading_study(
         samples = _sorted_samples(results.values())
         save_samples_atomic(paths.final_samples_csv, samples)
         summary = analyze_completed_samples(
-            samples, search, paths, signature=signature, geometry_hash=geometry_hash
+            samples,
+            search,
+            paths,
+            signature=signature,
+            geometry_hash=geometry_hash,
+            plot_context=plot_context,
         )
         metadata.update(
             {
@@ -1301,8 +1416,14 @@ def run_power_loading_study(
 
     point_map = {(point.disc_index, point.point_index): point for point in points}
     missing = [point for key, point in point_map.items() if key not in results]
+    progress_label = (
+        f"24-state MOT {1e3 * cooling_power_w_per_beam:g} mW cooling, "
+        f"{1e3 * repump_power_w_per_beam:g} mW repump, "
+        f"{1e3 * search.disc_radius_m:g} mm disc, "
+        f"{search.phase_space.replace('_', ' ')}"
+    )
     print(
-        f"[24-state MOT 27 mW cooling, 0.1 mW repump] {len(results)}/{expected} complete; "
+        f"[{progress_label}] {len(results)}/{expected} complete; "
         f"running {len(missing)} with {worker_count} worker(s)",
         flush=True,
     )
@@ -1333,16 +1454,16 @@ def run_power_loading_study(
             rate = new_completed / segment_elapsed if segment_elapsed > 0.0 else 0.0
             remaining = expected - completed
             last_eta = remaining / rate if rate > 0.0 else None
-            if completed % PROGRESS_EVERY == 0 or completed == expected:
+            if completed % progress_every == 0 or completed == expected:
                 eta_text = "unknown" if last_eta is None else f"{last_eta / 3600.0:.2f} h"
                 print(
-                    f"[24-state MOT 27 mW cooling, 0.1 mW repump] {completed}/{expected}; "
+                    f"[{progress_label}] {completed}/{expected}; "
                     f"disc {sample.disc_index + 1}/{search.disc_count}, "
                     f"point {sample.point_index + 1}/{search.points_per_disc}; "
                     f"vc={sample.capture_velocity_m_per_s:.3f} m/s; ETA={eta_text}",
                     flush=True,
                 )
-            if completed % CHECKPOINT_EVERY == 0:
+            if completed % checkpoint_every == 0:
                 _save_running_checkpoint(
                     paths,
                     results,
@@ -1351,7 +1472,7 @@ def run_power_loading_study(
                     eta_s=last_eta,
                 )
                 print(
-                    f"[24-state MOT 27 mW cooling, 0.1 mW repump] checkpoint saved at {completed}/{expected}",
+                    f"[{progress_label}] checkpoint saved at {completed}/{expected}",
                     flush=True,
                 )
     except BaseException as exc:
@@ -1376,7 +1497,12 @@ def run_power_loading_study(
     save_samples_atomic(paths.partial_samples_csv, samples)
     save_samples_atomic(paths.final_samples_csv, samples)
     summary = analyze_completed_samples(
-        samples, search, paths, signature=signature, geometry_hash=geometry_hash
+        samples,
+        search,
+        paths,
+        signature=signature,
+        geometry_hash=geometry_hash,
+        plot_context=plot_context,
     )
     metadata.update(
         {

@@ -89,14 +89,25 @@ Label the detuning as
 
 where \(\Gamma\) is the linewidth and \(n\) is a real number. Let the x-axis be \(n\), but include the equation somewhere on the figure.
 
-Plot a constant horizontal dashed line on this figure to represent the Doppler temperature, which is a fixed value.
-
-It will be cool to see that as we approach
+Plot the detuning-dependent Doppler-temperature reference
 
 \[
-\Gamma/2,
+T_D(\Delta)=-\frac{\hbar\Gamma^2}{8k_B\Delta}
+\left[1+s_{\mathrm{eff}}(\Delta)
++\left(\frac{2\Delta}{\Gamma}\right)^2\right],
+\qquad \Delta<0,
 \]
 
-the final cooled ensemble temperature approaches the Doppler temperature.
+as a dashed curve. For the multilevel study, use the project convention
+
+\[
+s_{\mathrm{eff}}(\Delta)=
+\frac{s_0}{1+(2\Delta/\Gamma)^2},
+\qquad s_0=I_0/I_{\mathrm{sat}},
+\]
+
+where \(I_0\) is the Gaussian peak intensity at the center of one cooling
+beam. Recompute \(s_{\mathrm{eff}}\) at every detuning; do not use the constant
+\(\hbar\Gamma/(2k_B)\) overlay from the simplified two-level benchmark.
 
 Sample 25 appropriate points for \(n\), the detuning. Plot this relationship in its own macro, so that we can fit it with a function later on.

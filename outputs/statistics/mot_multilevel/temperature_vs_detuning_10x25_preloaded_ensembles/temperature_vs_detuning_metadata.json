@@ -1,8 +1,9 @@
 {
   "schema_version": 5,
+  "doppler_reference_version": 2,
   "status": "completed",
   "created_utc": "2026-08-23T09:50:25.662949+00:00",
-  "updated_utc": "2026-08-23T10:39:30.867169+00:00",
+  "updated_utc": "2026-08-27T04:20:38.550503+00:00",
   "resume_enabled": true,
   "resumed_point_count": 25,
   "completed_point_count": 25,
@@ -11,10 +12,11 @@
   "ensemble_realization_count_per_point": 10,
   "atoms_per_ensemble": 25,
   "trajectory_count_per_point": 250,
-  "wall_time_s_current_invocation": 0.23805890000221552,
+  "wall_time_s_current_invocation": 0.312438300003123,
   "worker_count_current_invocation": 20,
   "resume_signature": {
     "schema_version": 5,
+    "doppler_reference_version": 2,
     "solver": "24_state_repumper_adiabatic_population_rate_equation_langevin",
     "physical_model_statement": "At each cooling detuning, ten independently seeded realizations of a preloaded 25-atom Rb-87 cloud are evolved in the fixed default six-beam MOT using the repumper-enabled 24-state adiabatic population-rate equations and Langevin recoil diffusion.  Each realization's reported final temperature is the time average over the final 5 ms of the unbiased, instantaneous-center-of-mass-subtracted three-dimensional velocity variance; the plotted point is the arithmetic mean of the ten realization temperatures. Only the cooling detuning Delta=n Gamma changes between points.",
     "detuning_n_values": [
@@ -182,10 +184,167 @@
   "common_initial_condition_strategy": "ten independent initial phase-space clouds drawn once and reused exactly at every detuning",
   "recoil_seed_strategy": "SeedSequence([seed,1,point_index,ensemble_index,atom_index]); streams are independent across atoms, realizations, and detunings",
   "detuning_grid_rationale": "one-linewidth spacing on the far-red wing, finer spacing through the likely cooling minimum, and the finest spacing near resonance",
-  "doppler_equation": "T_D=hbar Gamma/(2 k_B)",
-  "linewidth_convention": "Gamma is angular frequency in rad/s",
+  "doppler_equation": "T_D=-hbar Gamma^2/[8 k_B Delta] * [1+s_eff+(2 Delta/Gamma)^2]",
+  "effective_saturation_equation": "s_eff=s_0/[1+(2 Delta/Gamma)^2]",
+  "doppler_saturation_convention": "s_0=I_0/I_sat for one cooling beam at its Gaussian center, with I_0=2P/(pi w^2); s_eff is recomputed at every detuning",
+  "doppler_reference_is_detuning_dependent": true,
+  "frequency_convention": "Gamma and Delta are angular frequencies in rad/s",
   "linewidth_rad_per_s": 38138934.81458009,
-  "doppler_temperature_k": 0.00014565702718741794,
+  "cooling_beam_center_on_resonance_saturation_parameter": 18.919355220035808,
+  "doppler_temperature_min_k": 0.000287223021494947,
+  "doppler_temperature_max_k": 0.00700307614966126,
+  "doppler_reference_points": [
+    {
+      "detuning_n": -10.0,
+      "detuning_rad_per_s": -381389348.1458009,
+      "cooling_beam_center_effective_saturation_parameter": 0.04718043695769528,
+      "doppler_temperature_k": 0.0014603835016085815
+    },
+    {
+      "detuning_n": -9.0,
+      "detuning_rad_per_s": -343250413.3312208,
+      "cooling_beam_center_effective_saturation_parameter": 0.058213400677033254,
+      "doppler_temperature_k": 0.0013151948062998869
+    },
+    {
+      "detuning_n": -8.0,
+      "detuning_rad_per_s": -305111478.5166407,
+      "cooling_beam_center_effective_saturation_parameter": 0.07361616817134556,
+      "doppler_temperature_k": 0.0011701430843554742
+    },
+    {
+      "detuning_n": -7.0,
+      "detuning_rad_per_s": -266972543.70206064,
+      "cooling_beam_center_effective_saturation_parameter": 0.09603733614231375,
+      "doppler_temperature_k": 0.001025300816742958
+    },
+    {
+      "detuning_n": -6.0,
+      "detuning_rad_per_s": -228833608.88748056,
+      "cooling_beam_center_effective_saturation_parameter": 0.13047831186231593,
+      "doppler_temperature_k": 0.0008808030843830791
+    },
+    {
+      "detuning_n": -5.0,
+      "detuning_rad_per_s": -190694674.07290044,
+      "cooling_beam_center_effective_saturation_parameter": 0.1873203487132258,
+      "doppler_temperature_k": 0.0007369322135527246
+    },
+    {
+      "detuning_n": -4.0,
+      "detuning_rad_per_s": -152555739.25832036,
+      "cooling_beam_center_effective_saturation_parameter": 0.2910670033851663,
+      "doppler_temperature_k": 0.000594381420100475
+    },
+    {
+      "detuning_n": -3.0,
+      "detuning_rad_per_s": -114416804.44374028,
+      "cooling_beam_center_effective_saturation_parameter": 0.5113339248658326,
+      "doppler_temperature_k": 0.0004553157821108746
+    },
+    {
+      "detuning_n": -2.5,
+      "detuning_rad_per_s": -95347337.03645022,
+      "cooling_beam_center_effective_saturation_parameter": 0.7276675084629157,
+      "doppler_temperature_k": 0.000389307259293645
+    },
+    {
+      "detuning_n": -2.25,
+      "detuning_rad_per_s": -85812603.3328052,
+      "cooling_beam_center_effective_saturation_parameter": 0.8903225985899204,
+      "doppler_temperature_k": 0.0003583215078534463
+    },
+    {
+      "detuning_n": -2.0,
+      "detuning_rad_per_s": -76277869.62916018,
+      "cooling_beam_center_effective_saturation_parameter": 1.1129032482374004,
+      "doppler_temperature_k": 0.00032978395510894825
+    },
+    {
+      "detuning_n": -1.75,
+      "detuning_rad_per_s": -66743135.92551516,
+      "cooling_beam_center_effective_saturation_parameter": 1.42787586566308,
+      "doppler_temperature_k": 0.00030541939485977614
+    },
+    {
+      "detuning_n": -1.5,
+      "detuning_rad_per_s": -57208402.22187014,
+      "cooling_beam_center_effective_saturation_parameter": 1.8919355220035807,
+      "doppler_temperature_k": 0.0002886906626065828
+    },
+    {
+      "detuning_n": -1.25,
+      "detuning_rad_per_s": -47673668.51822511,
+      "cooling_beam_center_effective_saturation_parameter": 2.609566237246318,
+      "doppler_temperature_k": 0.000287223021494947
+    },
+    {
+      "detuning_n": -1.0,
+      "detuning_rad_per_s": -38138934.81458009,
+      "cooling_beam_center_effective_saturation_parameter": 3.7838710440071615,
+      "doppler_temperature_k": 0.0003198581358669311
+    },
+    {
+      "detuning_n": -0.8,
+      "detuning_rad_per_s": -30511147.851664074,
+      "cooling_beam_center_effective_saturation_parameter": 5.314425623605564,
+      "doppler_temperature_k": 0.00040394451697819815
+    },
+    {
+      "detuning_n": -0.7,
+      "detuning_rad_per_s": -26697254.37020606,
+      "cooling_beam_center_effective_saturation_parameter": 6.391674060822908,
+      "doppler_temperature_k": 0.00048647751533041194
+    },
+    {
+      "detuning_n": -0.6,
+      "detuning_rad_per_s": -22883360.888748053,
+      "cooling_beam_center_effective_saturation_parameter": 7.753834106572053,
+      "doppler_temperature_k": 0.0006186681548354142
+    },
+    {
+      "detuning_n": -0.5,
+      "detuning_rad_per_s": -19069467.407290045,
+      "cooling_beam_center_effective_saturation_parameter": 9.459677610017904,
+      "doppler_temperature_k": 0.0008345912866007112
+    },
+    {
+      "detuning_n": -0.4,
+      "detuning_rad_per_s": -15255573.925832037,
+      "cooling_beam_center_effective_saturation_parameter": 11.536192207338907,
+      "doppler_temperature_k": 0.0011995031166068797
+    },
+    {
+      "detuning_n": -0.3,
+      "detuning_rad_per_s": -11441680.444374027,
+      "cooling_beam_center_effective_saturation_parameter": 13.911290602967506,
+      "doppler_temperature_k": 0.001853642325452832
+    },
+    {
+      "detuning_n": -0.25,
+      "detuning_rad_per_s": -9534733.703645023,
+      "cooling_beam_center_effective_saturation_parameter": 15.135484176028646,
+      "doppler_temperature_k": 0.002386660914106811
+    },
+    {
+      "detuning_n": -0.2,
+      "detuning_rad_per_s": -7627786.962916018,
+      "cooling_beam_center_effective_saturation_parameter": 16.309788982789488,
+      "doppler_temperature_k": 0.0031807469110307785
+    },
+    {
+      "detuning_n": -0.15,
+      "detuning_rad_per_s": -5720840.222187013,
+      "cooling_beam_center_effective_saturation_parameter": 17.35720662388606,
+      "doppler_temperature_k": 0.004478275461245481
+    },
+    {
+      "detuning_n": -0.1,
+      "detuning_rad_per_s": -3813893.481458009,
+      "cooling_beam_center_effective_saturation_parameter": 18.191687711572893,
+      "doppler_temperature_k": 0.00700307614966126
+    }
+  ],
   "diffusion_enabled": true,
   "repumper_enabled": true,
   "effective_repump_power_w_per_beam": 0.0001,
@@ -197,7 +356,7 @@
     "Temperature is conditioned on final-core survival and can have survivor bias.",
     "The population-rate approximation omits optical coherences and sub-Doppler cooling.",
     "The model omits density-dependent collisions and photon reabsorption.",
-    "The Doppler line is an ideal reference rather than a guaranteed full-MOT limit.",
+    "The detuning-dependent Doppler curve is an analytical reference using the recorded per-beam s_eff convention, not a guaranteed full-MOT limit.",
     "Quality-flagged values do not establish equilibrium within the 25 ms run.",
     "Timestep and duration convergence remain required for quantitative claims."
   ],

@@ -94,6 +94,35 @@ def test_geometry_exactly_matches_completed_simple_power_study() -> None:
     )
 
 
+def test_full_sphere_geometry_spans_all_axis_signs_and_is_uniform_in_area() -> None:
+    search = replace(
+        default_study_search_config(),
+        phase_space="full_sphere",
+        disc_count=256,
+        points_per_disc=64,
+        seed=20260827,
+    )
+    discs, points = generate_study_geometry(search)
+
+    centers = np.asarray([disc.center_position_m for disc in discs])
+    assert np.all(np.min(centers, axis=0) < 0.0)
+    assert np.all(np.max(centers, axis=0) > 0.0)
+
+    normalized_area = np.square(
+        np.asarray([point.s_m for point in points]) / search.disc_radius_m
+    )
+    assert np.all((0.0 < normalized_area) & (normalized_area < 1.0))
+    assert np.mean(normalized_area) == pytest.approx(0.5, abs=0.01)
+    assert np.quantile(normalized_area, [0.1, 0.5, 0.9]) == pytest.approx(
+        [0.1, 0.5, 0.9],
+        abs=0.02,
+    )
+
+    point_azimuths = np.asarray([point.theta_prime_rad for point in points])
+    assert abs(float(np.mean(np.cos(point_azimuths)))) < 0.03
+    assert abs(float(np.mean(np.sin(point_azimuths)))) < 0.03
+
+
 def test_cooling_is_27_mw_repump_is_baseline_0p1_mw_and_model_has_24_states() -> None:
     config, apparatus, beams = build_27mw_multilevel_configuration()
     model = build_rate_equation_model(config.natural_linewidth_rad_per_s)
@@ -165,6 +194,16 @@ def test_signature_binds_powers_search_geometry_and_source_hashes() -> None:
     assert payload["multilevel_config"]["repump_power_w_per_beam"] == 0.0001
     assert payload["apparatus_config"]["cooling"]["power_w_per_beam"] == 0.027
     assert payload["apparatus_config"]["repump"]["power_w_per_beam"] == 0.0001
+    changed_workers = study_signature_payload(
+        config,
+        apparatus,
+        default_anti_helmholtz_config(),
+        replace(search, worker_count=1),
+        "geometry",
+        source_hashes={"test.py": "abc"},
+    )
+    assert "worker_count" not in payload["capture_search_config"]
+    assert study_signature(payload) == study_signature(changed_workers)
 
 
 def test_run_metadata_is_json_serializable_and_audits_family_powers(tmp_path) -> None:
@@ -201,6 +240,71 @@ def test_run_metadata_is_json_serializable_and_audits_family_powers(tmp_path) ->
     assert metadata["all_built_beams_match_requested_family_powers"] is True
 
 
+def test_run_metadata_records_generalized_study_controls(tmp_path) -> None:
+    cooling_power_w = 20.0e-3
+    repump_power_w = 0.2e-3
+    study_name = "loading_rate_disc_radius_15mm_full_sphere_100x100"
+    checkpoint_every = 37
+    progress_every = 11
+    config, apparatus, beams = build_27mw_multilevel_configuration(
+        cooling_power_w_per_beam=cooling_power_w,
+        repump_power_w_per_beam=repump_power_w,
+    )
+    search = replace(
+        default_study_search_config(),
+        phase_space="full_sphere",
+        disc_radius_m=15.0e-3,
+        disc_count=100,
+        points_per_disc=100,
+        seed=20260827,
+    )
+    coil = default_anti_helmholtz_config()
+    signature_payload = study_signature_payload(
+        config,
+        apparatus,
+        coil,
+        search,
+        "full-sphere-geometry",
+        study_name=study_name,
+        source_hashes={"test.py": "abc"},
+    )
+    signature = study_signature(signature_payload)
+    metadata = build_run_metadata(
+        config,
+        apparatus,
+        beams,
+        coil,
+        search,
+        signature_payload,
+        signature,
+        StudyPaths(tmp_path / "statistics", tmp_path / "figures"),
+        worker_count=3,
+        status="running",
+        completed_sample_count=123,
+        started_utc="now",
+        elapsed_wall_time_s=4.5,
+        study_name=study_name,
+        checkpoint_every=checkpoint_every,
+        progress_every=progress_every,
+    )
+
+    json.dumps(metadata, allow_nan=False)
+    assert metadata["study_name"] == study_name
+    assert metadata["run_signature_payload"]["study_name"] == study_name
+    assert metadata["capture_search_config"]["phase_space"] == "full_sphere"
+    assert "complete 4 pi sphere" in metadata["geometry_sampler"]
+    assert metadata["cooling_power_w_per_beam"] == cooling_power_w
+    assert metadata["repump_power_w_per_beam"] == repump_power_w
+    assert metadata["built_cooling_beam_powers_w"] == [cooling_power_w] * 6
+    assert metadata["built_repump_beam_powers_w"] == [repump_power_w] * 6
+    assert metadata["checkpoint_every_completed_samples"] == checkpoint_every
+    assert metadata["progress_every_completed_samples"] == progress_every
+    assert metadata["expected_sample_count"] == 10_000
+    assert metadata["completed_sample_count"] == 123
+    assert any("Full-sphere direction sampling" in item for item in metadata["limitations"])
+    assert all("one-octant convention" not in item for item in metadata["limitations"])
+
+
 def test_clustered_cross_section_and_loading_use_direction_discs() -> None:
     search = replace(
         default_study_search_config(),
@@ -230,6 +334,28 @@ def test_clustered_cross_section_and_loading_use_direction_discs() -> None:
         loading["loading_rate_mean_atoms_per_s"],
         loading["loading_rate_from_mean_spectrum_atoms_per_s"],
     )
+
+
+def test_zero_capture_no_bracket_is_not_counted_at_zero_speed() -> None:
+    search = replace(
+        default_study_search_config(),
+        disc_count=1,
+        points_per_disc=2,
+        analysis_velocity_max_m_per_s=3.0,
+    )
+    _, points = generate_study_geometry(search)
+    samples = [_sample(points[0], 0.0), _sample(points[1], 2.0)]
+    spectrum = calculate_clustered_cross_section(
+        samples,
+        search,
+        np.asarray([0.0, 1.0, 3.0]),
+    )
+    area = pi * search.disc_radius_m**2
+
+    assert spectrum[0]["captured_count"] == 1
+    assert spectrum[0]["capture_cross_section_m2"] == pytest.approx(0.5 * area)
+    assert spectrum[1]["capture_cross_section_m2"] == pytest.approx(0.5 * area)
+    assert spectrum[2]["capture_cross_section_m2"] == 0.0
 
 
 def test_checkpoint_validation_rejects_geometry_or_endpoint_tampering() -> None:

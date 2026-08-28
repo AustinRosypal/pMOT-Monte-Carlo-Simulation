@@ -24,6 +24,7 @@ from pmot.mot_multilevel.temperature_sweep import (
     _summarize_temperature_realization,
     build_argument_parser,
     build_temperature_sweep_configuration,
+    cooling_doppler_reference,
     detuning_n_grid,
     ensemble_temperature_metrics,
     generate_common_initial_ensembles,
@@ -99,6 +100,26 @@ def test_detuning_configuration_is_24_state_repumper_model_and_audit_passes() ->
         "apparatus_config.cooling.detuning_hz",
         "cooling_beams[*].detuning_hz",
     ]
+
+
+def test_doppler_reference_recomputes_effective_saturation_at_each_detuning() -> None:
+    reference = cooling_doppler_reference(-2.5)
+
+    assert reference[
+        "cooling_beam_center_on_resonance_saturation_parameter"
+    ] == pytest.approx(18.919355220035806)
+    assert reference[
+        "cooling_beam_center_effective_saturation_parameter"
+    ] == pytest.approx(0.7276675084629156)
+    assert reference["doppler_temperature_k"] == pytest.approx(
+        389.307259293645e-6
+    )
+
+    curve = np.asarray(
+        [cooling_doppler_reference(value)["doppler_temperature_k"] for value in DETUNING_N_VALUES]
+    )
+    assert np.ptp(curve) > 6.0e-3
+    assert DETUNING_N_VALUES[int(np.argmin(curve))] == -1.25
 
 
 def test_common_clouds_and_recoil_streams_are_random_reproducible_and_independent() -> None:
@@ -300,6 +321,18 @@ def test_point_is_mean_and_sem_of_ten_ensemble_temperatures() -> None:
     assert row["temperature_ci_high_k"] > row["plateau_temperature_mean_k"]
     assert np.isclose(row["trapped_fraction"], 24 / 25)
     assert row["trapped_atom_count"] == 240
+    reference = cooling_doppler_reference(-2.5)
+    assert row[
+        "cooling_beam_center_effective_saturation_parameter"
+    ] == pytest.approx(
+        reference["cooling_beam_center_effective_saturation_parameter"]
+    )
+    assert row["doppler_temperature_k"] == pytest.approx(
+        reference["doppler_temperature_k"]
+    )
+    assert row["plateau_over_doppler"] == pytest.approx(
+        np.mean(temperatures) / reference["doppler_temperature_k"]
+    )
     assert row["valid"]
     assert row["quality_status"] == "valid_survivor_conditioned"
 
@@ -361,6 +394,7 @@ def test_signature_and_human_readable_model_record_the_complete_physics() -> Non
 
     assert json.loads(json.dumps(signature)) == signature
     assert signature["trajectory_count_per_point"] == 250
+    assert signature["doppler_reference_version"] == 2
     assert signature["multilevel_config"]["repumper_enabled"]
     assert PHYSICAL_MODEL_STATEMENT in markdown
     assert "preloaded cloud" in markdown
@@ -369,6 +403,35 @@ def test_signature_and_human_readable_model_record_the_complete_physics() -> Non
     assert "only" in markdown.lower() and "cooling detuning" in markdown
     assert "sub-Doppler" in markdown
     assert "trapped fraction could equal one" in markdown
+    assert "T_D=-hbar Gamma^2" in markdown
+    assert "s_eff=s_0" in markdown
+    assert "curve, not a constant line" in markdown
+
+    legacy_signature = dict(signature)
+    legacy_signature.pop("doppler_reference_version")
+    assert sweep._resume_signature_is_compatible(legacy_signature, signature)
+    incompatible_signature = dict(legacy_signature)
+    incompatible_signature["seed"] = 99
+    assert not sweep._resume_signature_is_compatible(
+        incompatible_signature,
+        signature,
+    )
+
+    refreshed = sweep._refresh_doppler_reference_fields(
+        {
+            "detuning_n": -2.5,
+            "plateau_temperature_mean_k": 1.0e-3,
+            "doppler_temperature_k": 145.7e-6,
+            "plateau_over_doppler": 6.86,
+        }
+    )
+    reference = cooling_doppler_reference(-2.5)
+    assert refreshed["doppler_temperature_k"] == pytest.approx(
+        reference["doppler_temperature_k"]
+    )
+    assert refreshed["plateau_over_doppler"] == pytest.approx(
+        1.0e-3 / reference["doppler_temperature_k"]
+    )
 
 
 class _ImmediateFuture:
@@ -438,6 +501,13 @@ def test_runner_writes_physical_model_and_both_statistical_levels(
     assert Path(result["outputs"]["temperature_summary_csv"]).exists()
     assert Path(result["outputs"]["temperature_ensemble_csv"]).exists()
     assert Path(result["outputs"]["temperature_plot"]).exists()
+    metadata = json.loads(
+        Path(result["outputs"]["metadata_json"]).read_text(encoding="utf-8")
+    )
+    assert metadata["doppler_reference_is_detuning_dependent"]
+    assert metadata["doppler_reference_version"] == 2
+    assert len(metadata["doppler_reference_points"]) == 1
+    assert "s_eff" in metadata["doppler_equation"]
 
 
 def test_cli_defaults_and_production_cardinality_are_exact() -> None:
