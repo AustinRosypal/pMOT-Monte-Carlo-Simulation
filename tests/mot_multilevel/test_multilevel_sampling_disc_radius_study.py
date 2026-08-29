@@ -73,7 +73,16 @@ def _assert_png(path: Path) -> None:
 
 
 def test_exact_production_design_defaults() -> None:
-    assert study.SAMPLING_DISC_RADII_MM == (5.0, 12.0, 15.0, 20.0, 25.0, 30.0)
+    assert study.SAMPLING_DISC_RADII_MM == (
+        3.0,
+        5.0,
+        8.0,
+        12.0,
+        15.0,
+        20.0,
+        25.0,
+        30.0,
+    )
     assert study.DISC_COUNT == 100
     assert study.POINTS_PER_DISC == 100
     assert study.COOLING_POWER_W_PER_BEAM == pytest.approx(27.0e-3)
@@ -227,6 +236,39 @@ def test_full_sphere_geometry_metrics_cover_all_signs_and_use_random_points() ->
     )
 
 
+def test_all_phase_radii_reuse_the_same_normalized_random_geometry() -> None:
+    reference_search = study.search_config_for_radius(
+        study.SAMPLING_DISC_RADII_MM[0],
+        disc_count=12,
+        points_per_disc=7,
+        worker_count=1,
+    )
+    reference_discs, reference_points = generate_study_geometry(reference_search)
+    for radius_mm in study.SAMPLING_DISC_RADII_MM[1:]:
+        search = study.search_config_for_radius(
+            radius_mm,
+            disc_count=12,
+            points_per_disc=7,
+            worker_count=1,
+        )
+        discs, points = generate_study_geometry(search)
+        assert [disc.theta_rad for disc in discs] == pytest.approx(
+            [disc.theta_rad for disc in reference_discs]
+        )
+        assert [disc.phi_rad for disc in discs] == pytest.approx(
+            [disc.phi_rad for disc in reference_discs]
+        )
+        assert [point.theta_prime_rad for point in points] == pytest.approx(
+            [point.theta_prime_rad for point in reference_points]
+        )
+        assert [point.s_m / search.disc_radius_m for point in points] == pytest.approx(
+            [
+                point.s_m / reference_search.disc_radius_m
+                for point in reference_points
+            ]
+        )
+
+
 def test_30_mm_disc_has_one_quarter_of_points_outside_escape_sphere() -> None:
     assert study.initial_point_fraction_outside_escape_sphere(
         30.0e-3,
@@ -314,7 +356,8 @@ def test_paired_disc_covariance_is_finite_and_positive_definite(tmp_path: Path) 
 
     assert result is not None
     covariance, disc_count, regularization = result
-    assert covariance.shape == (6, 6)
+    expected_radius_count = len(study.SAMPLING_DISC_RADII_MM)
+    assert covariance.shape == (expected_radius_count, expected_radius_count)
     assert disc_count == 8
     assert regularization >= 0.0
     assert np.all(np.isfinite(covariance))
@@ -415,16 +458,25 @@ def test_phase_one_fit_and_independent_confirmation_are_sequenced(
 
     result = study.run_sampling_disc_radius_study(paths=paths)
 
-    assert calls[:6] == [
+    radius_count = len(study.SAMPLING_DISC_RADII_MM)
+    assert calls[:radius_count] == [
         (radius, study.BASE_RANDOM_SEED, False)
         for radius in study.SAMPLING_DISC_RADII_MM
     ]
-    assert calls[6] == (20.0, study.CONFIRMATION_RANDOM_SEED, True)
+    assert calls[radius_count] == (20.0, study.CONFIRMATION_RANDOM_SEED, True)
     assert result["confirmation"]["random_seed"] == study.CONFIRMATION_RANDOM_SEED
     assert paths.aggregate_csv.is_file()
     assert paths.convergence_json.is_file()
     assert paths.confirmation_json.is_file()
     assert paths.metadata_json.is_file()
+
+
+def test_extension_cli_selects_only_requested_phase_radii() -> None:
+    args = study.build_argument_parser().parse_args(
+        ["--execute-radii-mm", "3", "8", "--skip-confirmation"]
+    )
+    assert args.execute_radii_mm == [3.0, 8.0]
+    assert args.skip_confirmation is True
 
 
 def test_plot_helpers_create_pngs_from_small_synthetic_inputs(tmp_path: Path) -> None:

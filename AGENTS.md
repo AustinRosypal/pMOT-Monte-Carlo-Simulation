@@ -138,10 +138,10 @@ radiation pressure explicitly and state when gravity is excluded.
   force with recoil diffusion enabled through the Langevin model.
 - The August 2026 sampling-disc-radius loading campaign uses 27 mW in each of
   the six cooling beams (the -15 MHz center-beam effective saturation is about
-  one) and 0.1 mW in each repump beam. Its phase-one radii are 5, 12, 15, 20,
-  25, and 30 mm; each radius uses 100 full-sphere incident-direction discs and
+  one) and 0.1 mW in each repump beam. Its phase-one radii are 3, 5, 8, 12, 15,
+  20, 25, and 30 mm; each radius uses 100 full-sphere incident-direction discs and
   100 independent uniform-area points per disc. Reuse one normalized seeded
-  geometry across the six radii so only the disc radius changes, then use an
+  geometry across the eight radii so only the disc radius changes, then use an
   independent seed for the 100-by-100 confirmation run. Cross sections are
   direction-averaged projected areas with no 4-pi or octant multiplicity
   factor. Treat direction discs as the independent clusters for Student-t

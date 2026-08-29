@@ -1,58 +1,58 @@
 {
   "adjacent_decrease_familywise_confidence": 0.95,
-  "chi_squared_critical_value": 7.814727903251179,
+  "chi_squared_critical_value": 11.070497693516351,
   "chi_squared_goodness_confidence": 0.95,
   "convergence_ascertainable": true,
   "convergence_fraction": 0.95,
-  "convergence_radius_mm": 12.362160955465274,
-  "convergence_radius_standard_error_mm": 0.31882954824640675,
-  "convergence_radius_upper_95_mm": 12.987066870028231,
+  "convergence_radius_mm": 12.276971982687192,
+  "convergence_radius_standard_error_mm": 0.17603242561875246,
+  "convergence_radius_upper_95_mm": 12.621995536899947,
   "convergence_radius_upper_z": 1.96,
   "covariance": [
     [
-      1255015367992.8318,
-      91962.58931301207,
-      -17110.407123436766
+      832846110230.178,
+      49630.9151229899,
+      1586.6353322926352
     ],
     [
-      91962.58931301207,
-      0.013564154913539114,
-      -0.002537508780785131
+      49630.91512298991,
+      0.009053129524899136,
+      -0.0002056355005693014
     ],
     [
-      -17110.407123436766,
-      -0.002537508780785131,
-      0.0022419801250739245
+      1586.6353322926352,
+      -0.00020563550056930133,
+      0.00010120249092912786
     ]
   ],
   "covariance_regularization_atoms2_per_s2": 0.0,
-  "degrees_of_freedom": 3,
+  "degrees_of_freedom": 5,
   "failed_convergence_criteria": [],
   "fallback_reason": null,
   "fallback_used": false,
   "goodness_of_fit_accepted": true,
-  "largest_radius_asymptote_fraction": 0.9999999999999999,
+  "largest_radius_asymptote_fraction": 0.9957217388707468,
   "largest_radius_supports_plateau": true,
   "largest_radius_t95_upper_atoms_per_s": 66602873.61880235,
   "maximum_adjacent_downward_z": 0.0,
-  "maximum_allowed_adjacent_downward_z": 2.3263478740408408,
+  "maximum_allowed_adjacent_downward_z": 2.44999766060273,
   "maximum_allowed_relative_asymptote_standard_error": 0.5,
   "minimum_largest_radius_asymptote_fraction": 0.9,
   "model": "R(r)=R_inf*[1-exp(-(r/r_scale)^p)]",
   "no_significant_downward_step": true,
   "paired_disc_count": 100,
   "parameter_standard_errors": {
-    "asymptote_atoms_per_s": 1120274.684170285,
-    "scale_mm": 0.11646525195756507,
-    "shape": 0.047349552532985194
+    "asymptote_atoms_per_s": 912604.0270731759,
+    "scale_mm": 0.09514793494815921,
+    "shape": 0.010059944877042213
   },
   "parameters": {
-    "asymptote_atoms_per_s": 63052258.0052958,
-    "scale_mm": 7.049891405487874,
-    "shape": 1.9535859801406021
+    "asymptote_atoms_per_s": 63323171.0666513,
+    "scale_mm": 7.06244181908379,
+    "shape": 1.9843015660816108
   },
-  "relative_asymptote_standard_error": 0.01776739992525236,
+  "relative_asymptote_standard_error": 0.014411849749479655,
   "selected_confirmation_radius_mm": 13.0,
-  "weighted_by": "full covariance of the six means estimated from paired direction-disc loading rates",
-  "weighted_chi_squared": 0.1703064230446795
+  "weighted_by": "full covariance of the 8 means estimated from paired direction-disc loading rates",
+  "weighted_chi_squared": 2.799421006188825
 }

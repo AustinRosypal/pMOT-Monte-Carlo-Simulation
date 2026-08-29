@@ -13,6 +13,7 @@ import argparse
 import csv
 import io
 import json
+import time
 from dataclasses import asdict, dataclass, replace
 from datetime import datetime, timezone
 from math import ceil, log, pi
@@ -23,6 +24,7 @@ import matplotlib
 import numpy as np
 from scipy.optimize import curve_fit
 from scipy.stats import chi2 as chi_squared_distribution
+from scipy.stats import norm as normal_distribution
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -43,7 +45,7 @@ from .screening import draw_multilevel_mot_beam_volumes
 
 
 STUDY_NAME = "loading_vs_sampling_disc_radius_full_sphere_100_discs_100_points_cooling27mW"
-SAMPLING_DISC_RADII_MM = (5.0, 12.0, 15.0, 20.0, 25.0, 30.0)
+SAMPLING_DISC_RADII_MM = (3.0, 5.0, 8.0, 12.0, 15.0, 20.0, 25.0, 30.0)
 COOLING_POWER_W_PER_BEAM = 27.0e-3
 DISC_COUNT = 100
 POINTS_PER_DISC = 100
@@ -55,8 +57,12 @@ CHECKPOINT_EVERY = 100
 CONVERGENCE_FRACTION = 0.95
 FIT_GOODNESS_CONFIDENCE = 0.95
 MAX_RELATIVE_ASYMPTOTE_SEM = 0.5
-# Five adjacent-radius comparisons share a familywise one-sided alpha of 0.05.
-MAX_ADJACENT_DOWNWARD_Z = 2.3263478740408408
+# All adjacent-radius comparisons share a familywise one-sided alpha of 0.05.
+MAX_ADJACENT_DOWNWARD_Z = float(
+    normal_distribution.ppf(
+        1.0 - (1.0 - FIT_GOODNESS_CONFIDENCE) / (len(SAMPLING_DISC_RADII_MM) - 1)
+    )
+)
 CONVERGENCE_RADIUS_UPPER_Z = 1.96
 MIN_LARGEST_RADIUS_ASYMPTOTE_FRACTION = 0.90
 AGGREGATE_FIELDNAMES = (
@@ -195,7 +201,18 @@ def _atomic_write_text(path: Path, contents: str) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_name(path.name + ".tmp")
     temporary.write_text(contents, encoding="utf-8", newline="")
-    temporary.replace(path)
+    # Synology Drive can briefly open a newly replaced file without Windows
+    # delete sharing, which makes the next atomic replacement fail with
+    # ``PermissionError: [WinError 5]``.  Preserve atomic publication while
+    # allowing that transient synchronization lock to clear.
+    for attempt in range(120):
+        try:
+            temporary.replace(path)
+            break
+        except PermissionError:
+            if attempt == 119:
+                raise
+            time.sleep(0.25)
     return path
 
 
@@ -506,6 +523,70 @@ def run_one_radius(
     )
 
 
+def load_completed_radius_row(
+    radius_mm: float,
+    paths: RadiusStudyPaths,
+    *,
+    workers: int = DEFAULT_WORKER_COUNT,
+    seed: int = BASE_RANDOM_SEED,
+    disc_count: int = DISC_COUNT,
+    points_per_disc: int = POINTS_PER_DISC,
+) -> dict[str, object]:
+    """Load one completed radius without rewriting its trajectory products."""
+
+    search = search_config_for_radius(
+        radius_mm,
+        seed=seed,
+        disc_count=disc_count,
+        points_per_disc=points_per_disc,
+        worker_count=workers,
+    )
+    run_paths = _radius_paths(paths, radius_mm)
+    geometry_plot = (
+        run_paths.figures / "full_sphere_launch_geometry_with_cooling_beams.png"
+    )
+    required = (
+        run_paths.metadata_json,
+        run_paths.capture_summary_json,
+        run_paths.final_samples_csv,
+        run_paths.spectrum_csv,
+        run_paths.loading_by_disc_csv,
+        geometry_plot,
+    )
+    missing = [str(path) for path in required if not path.is_file()]
+    if missing:
+        raise FileNotFoundError(
+            f"completed r={radius_mm:g} mm outputs are missing: {missing}"
+        )
+    metadata = json.loads(run_paths.metadata_json.read_text(encoding="utf-8"))
+    expected_sample_count = disc_count * points_per_disc
+    if metadata.get("status") != "completed":
+        raise ValueError(f"r={radius_mm:g} mm run is not marked completed")
+    if int(metadata.get("completed_sample_count", -1)) != expected_sample_count:
+        raise ValueError(f"r={radius_mm:g} mm run has an incomplete sample count")
+    if metadata.get("capture_search_config") != asdict(search):
+        raise ValueError(f"r={radius_mm:g} mm saved search configuration changed")
+    if not np.isclose(
+        float(metadata.get("cooling_power_w_per_beam", np.nan)),
+        COOLING_POWER_W_PER_BEAM,
+    ):
+        raise ValueError(f"r={radius_mm:g} mm cooling power is not 27 mW")
+    if not np.isclose(
+        float(metadata.get("repump_power_w_per_beam", np.nan)),
+        REPUMP_POWER_W_PER_BEAM,
+    ):
+        raise ValueError(f"r={radius_mm:g} mm repump power is not 0.1 mW")
+    summary = json.loads(run_paths.capture_summary_json.read_text(encoding="utf-8"))
+    return _summary_row(
+        radius_mm,
+        seed,
+        search,
+        summary,
+        run_paths,
+        geometry_plot,
+    )
+
+
 def _saturation_curve(
     radius_mm: np.ndarray | float,
     asymptote_atoms_per_s: float,
@@ -605,8 +686,8 @@ def fit_loading_rate_convergence(
     else:
         fit_sigma, paired_disc_count, covariance_regularization = paired_covariance
         weighting_description = (
-            "full covariance of the six means estimated from paired direction-disc "
-            "loading rates"
+            f"full covariance of the {len(ordered)} means estimated from paired "
+            "direction-disc loading rates"
         )
     maximum_rate = max(float(np.max(rate)), 1.0)
     initial = (1.10 * maximum_rate, max(float(np.median(radius)), 1.0), 2.0)
@@ -849,7 +930,7 @@ def plot_loading_rate_vs_radius(
     fit: Mapping[str, object],
     path: Path,
 ) -> Path:
-    """Plot six loading rates with direction-clustered 95% Student-t bars."""
+    """Plot all loading rates with direction-clustered 95% Student-t bars."""
 
     ordered = sorted(rows, key=lambda row: float(row["sampling_disc_radius_mm"]))
     radius = np.asarray(
@@ -912,7 +993,7 @@ def plot_loading_rate_vs_radius(
                 linestyle=":",
                 linewidth=1.4,
                 label=(
-                    f"confirmation = {selected_radius:g} mm "
+                    f"fit-selected radius = {selected_radius:g} mm "
                     f"(ceil of upper bound {convergence_upper:.2f} mm)"
                 ),
             )
@@ -923,7 +1004,7 @@ def plot_loading_rate_vs_radius(
             color="#6b7280",
             linestyle=":",
             linewidth=1.4,
-            label=f"conservative fallback confirmation = {fallback_radius:g} mm",
+            label=f"conservative fallback radius = {fallback_radius:g} mm",
         )
     axis.set(
         xlabel="Sampling-disc radius [mm]",
@@ -968,7 +1049,7 @@ def plot_combined_cross_sections(
     rows: Sequence[Mapping[str, object]],
     path: Path,
 ) -> Path:
-    """Overlay the six mean capture-cross-section spectra."""
+    """Overlay all mean capture-cross-section spectra."""
 
     figure, axis = plt.subplots(figsize=(9.0, 6.1), constrained_layout=True)
     colors = plt.get_cmap("viridis")(
@@ -1016,6 +1097,7 @@ def run_sampling_disc_radius_study(
     resume: bool = True,
     analyze_only: bool = False,
     run_confirmation: bool = True,
+    execute_radii_mm: Sequence[float] | None = None,
 ) -> dict[str, object]:
     """Run all radius points, fit convergence, then run an independent confirmation."""
 
@@ -1025,6 +1107,17 @@ def run_sampling_disc_radius_study(
     radii = tuple(float(value) for value in radii_mm)
     if len(radii) != len(set(radii)) or any(value <= 0.0 for value in radii):
         raise ValueError("radii_mm must contain distinct positive values")
+    execute_radii = (
+        set(radii)
+        if execute_radii_mm is None
+        else {float(value) for value in execute_radii_mm}
+    )
+    unknown_execute_radii = execute_radii - set(radii)
+    if unknown_execute_radii:
+        raise ValueError(
+            f"execute_radii_mm contains values outside radii_mm: "
+            f"{sorted(unknown_execute_radii)}"
+        )
     rows: list[dict[str, object]] = []
     print(
         f"[disc-radius study] phase 1: {len(radii)} paired radius configurations; "
@@ -1037,16 +1130,31 @@ def run_sampling_disc_radius_study(
             f"[disc-radius study] radius {index}/{len(radii)}: r={radius_mm:g} mm",
             flush=True,
         )
-        row = run_one_radius(
-            radius_mm,
-            output,
-            workers=workers,
-            seed=BASE_RANDOM_SEED,
-            disc_count=disc_count,
-            points_per_disc=points_per_disc,
-            resume=resume,
-            analyze_only=analyze_only,
-        )
+        if radius_mm in execute_radii:
+            row = run_one_radius(
+                radius_mm,
+                output,
+                workers=workers,
+                seed=BASE_RANDOM_SEED,
+                disc_count=disc_count,
+                points_per_disc=points_per_disc,
+                resume=resume,
+                analyze_only=analyze_only,
+            )
+        else:
+            row = load_completed_radius_row(
+                radius_mm,
+                output,
+                workers=workers,
+                seed=BASE_RANDOM_SEED,
+                disc_count=disc_count,
+                points_per_disc=points_per_disc,
+            )
+            print(
+                f"[disc-radius study] r={radius_mm:g} mm loaded read-only from "
+                "completed outputs",
+                flush=True,
+            )
         rows.append(row)
         _atomic_write_csv(output.aggregate_csv, rows, AGGREGATE_FIELDNAMES)
         print(
@@ -1102,14 +1210,23 @@ def run_sampling_disc_radius_study(
         points_per_disc=points_per_disc,
         worker_count=workers,
     )
+    confirmation_output_exists = output.confirmation_json.is_file()
     metadata = {
         "schema_version": 1,
-        "status": "completed" if run_confirmation else "phase_1_completed",
+        "status": (
+            "completed"
+            if run_confirmation or confirmation_output_exists
+            else "phase_1_completed"
+        ),
         "updated_utc": datetime.now(timezone.utc).isoformat(),
         "model": "24-state repumper-enabled adiabatic population-rate-equation MOT",
         "cooling_power_w_per_beam": COOLING_POWER_W_PER_BEAM,
         "repump_power_w_per_beam": REPUMP_POWER_W_PER_BEAM,
         "sampling_disc_radii_mm": list(radii),
+        "executed_radii_mm_this_invocation": sorted(execute_radii),
+        "loaded_existing_radii_mm_this_invocation": sorted(
+            set(radii) - execute_radii
+        ),
         "disc_count_per_radius": disc_count,
         "points_per_disc": points_per_disc,
         "capture_threshold_count_per_radius": disc_count * points_per_disc,
@@ -1117,8 +1234,17 @@ def run_sampling_disc_radius_study(
         "direction_sampling": "cos(theta) uniform on [-1,1], phi uniform on [0,2pi)",
         "disc_point_sampling": "s=R*sqrt(U), theta_prime uniform on [0,2pi)",
         "common_random_numbers": (
-            "The six phase-1 radii reuse one seeded normalized random geometry; "
+            "The eight phase-1 radii reuse one seeded normalized random geometry; "
             "disc offsets scale with radius. The confirmation run uses an independent seed."
+        ),
+        "confirmation_status": (
+            "completed_now"
+            if run_confirmation
+            else (
+                "preserved_existing_not_rerun"
+                if confirmation_output_exists
+                else "not_run"
+            )
         ),
         "cross_section_normalization": (
             "direction-averaged projected area; no 4pi or octant multiplicity factor"
@@ -1149,7 +1275,9 @@ def run_sampling_disc_radius_study(
             ),
             "convergence_fit_json": str(output.convergence_json.resolve()),
             "confirmation_result_json": (
-                str(output.confirmation_json.resolve()) if run_confirmation else None
+                str(output.confirmation_json.resolve())
+                if confirmation_output_exists
+                else None
             ),
         },
     }
@@ -1174,6 +1302,16 @@ def build_argument_parser() -> argparse.ArgumentParser:
     parser.add_argument("--no-resume", dest="resume", action="store_false")
     parser.add_argument("--analyze-only", action="store_true")
     parser.add_argument("--skip-confirmation", action="store_true")
+    parser.add_argument(
+        "--execute-radii-mm",
+        type=float,
+        nargs="+",
+        default=None,
+        help=(
+            "Run or resume only these phase-one radii and load all other configured "
+            "radii read-only from completed outputs"
+        ),
+    )
     parser.add_argument("--statistics-dir", type=Path, default=None)
     parser.add_argument("--figures-dir", type=Path, default=None)
     return parser
@@ -1200,6 +1338,7 @@ def main(argv: list[str] | None = None) -> int:
         resume=args.resume,
         analyze_only=args.analyze_only,
         run_confirmation=not args.skip_confirmation,
+        execute_radii_mm=args.execute_radii_mm,
     )
     return 0
 
@@ -1226,6 +1365,7 @@ __all__ = [
     "fit_loading_rate_convergence",
     "full_sphere_geometry_metrics",
     "initial_point_fraction_outside_escape_sphere",
+    "load_completed_radius_row",
     "plot_combined_cross_sections",
     "plot_full_sphere_geometry_with_cooling_beams",
     "plot_loading_rate_vs_radius",
