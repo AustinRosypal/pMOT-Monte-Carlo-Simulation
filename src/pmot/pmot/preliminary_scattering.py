@@ -1,4 +1,7 @@
-"""Velocity-dependent photon scattering and recoil utilities for Rb-87 MOT beams."""
+"""Preliminary two-level scattering/recoil tools retained for pMOT notebooks.
+
+This is not the authoritative ``mot_simple`` or ``mot_multilevel`` force engine.
+"""
 
 from __future__ import annotations
 
@@ -7,25 +10,18 @@ from math import pi
 
 import numpy as np
 
-from .atomic_data import RB87CoolingTransition
-from .atomic_data import RB87RepumpTransition
-from .configuration import HBAR_J_S
-from .configuration import GRAVITY_ACCELERATION_M_PER_S2
-from .configuration import RB87_MASS_KG
-from .fields import MOTBeam
-from .fields import beam_intensity_w_per_m2
-from .fields import total_intensity_w_per_m2
+from ..atomic_data import RB87CoolingTransition
+from ..atomic_data import RB87RepumpTransition
+from ..configuration import HBAR_J_S
+from ..configuration import GRAVITY_ACCELERATION_M_PER_S2
+from ..configuration import RB87_MASS_KG
+from ..fields import MOTBeam
+from ..fields import beam_intensity_w_per_m2
+from ..fields import total_intensity_w_per_m2
+from ..state import AtomState
 
 
 Vec3 = tuple[float, float, float]
-
-
-@dataclass(frozen=True, slots=True)
-class AtomState:
-    """One classical atom state in the Monte Carlo simulation."""
-
-    position_m: Vec3
-    velocity_m_per_s: Vec3
 
 
 @dataclass(frozen=True, slots=True)

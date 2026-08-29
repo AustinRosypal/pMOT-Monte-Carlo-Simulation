@@ -9,7 +9,9 @@ from math import pi
 import numpy as np
 import pytest
 
-from pmot.mot.magnetic_fields import default_anti_helmholtz_config
+from pmot.capture_statistics import CaptureVelocitySample
+from pmot.launch_geometry import PointSample
+from pmot.magnetic_fields import default_anti_helmholtz_config
 from pmot.mot_multilevel.power_loading_study import (
     COOLING_POWER_W_PER_BEAM,
     DISC_COUNT,
@@ -42,7 +44,6 @@ from pmot.mot_simple.power_loading_study import (
 )
 from pmot.mot_simple.power_loading_study import geometry_rows as simple_geometry_rows
 from pmot.mot_simple.power_loading_study import geometry_sha256 as simple_geometry_sha256
-from pmot.mot_simple.sampling import CaptureVelocitySample, PointSample
 
 
 def _sample(point: PointSample, capture_velocity: float) -> CaptureVelocitySample:

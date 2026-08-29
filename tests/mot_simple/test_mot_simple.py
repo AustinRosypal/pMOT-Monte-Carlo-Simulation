@@ -3,8 +3,8 @@ from __future__ import annotations
 import numpy as np
 from dataclasses import replace
 
-from pmot.forces import AtomState
-from pmot.mot import default_anti_helmholtz_config
+from pmot.state import AtomState
+from pmot.magnetic_fields import default_anti_helmholtz_config
 from pmot.mot_simple import build_simple_mot_beams
 from pmot.mot_simple import default_simple_mot_config
 from pmot.mot_simple import mean_force_n

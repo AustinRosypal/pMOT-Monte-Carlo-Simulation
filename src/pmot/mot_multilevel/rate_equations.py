@@ -15,7 +15,7 @@ import numpy as np
 
 from ..configuration import GRAVITY_ACCELERATION_M_PER_S2, HBAR_J_S, RB87_MASS_KG
 from ..fields import MOTBeam, beam_intensity_w_per_m2
-from ..mot.magnetic_fields import anti_helmholtz_field_t
+from ..magnetic_fields import anti_helmholtz_field_t
 from .atomic_structure import (
     AtomicStructure,
     BOHR_MAGNETON_OVER_HBAR_RAD_PER_S_PER_T,

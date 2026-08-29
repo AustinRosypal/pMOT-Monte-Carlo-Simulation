@@ -1,7 +1,134 @@
-"""Future pseudo-MOT model and its preliminary plotting/trajectory tools.
+"""Future pseudo-MOT branch and its explicitly preliminary optical tools.
 
-The physical pMOT trapping-light implementation has not started.  Existing
-helpers here belong to the preliminary optical-geometry notebooks and are kept
-separate from the validated two-level and physical multilevel MOT packages.
+The trapping-light Hamiltonian and Stark-shift force are not implemented yet.
+The scattering helpers retained here predate the authoritative MOT solvers and
+exist only to keep the exploratory pMOT notebooks reproducible.
 """
 
+from ..configuration import default_mot_apparatus_config
+from ..fields import (
+    build_mot_beams,
+    sample_axis_pair_intensity_along_line,
+    sample_family_intensity_along_line,
+    sample_filtered_intensity_along_line,
+    sample_intensity_along_line,
+    sample_intensity_cloud,
+    sample_intensity_cloud_by_polarization,
+    sample_intensity_slice,
+    sample_intensity_volume,
+)
+from ..state import AtomState
+from .configuration import (
+    describe_pmot_configuration,
+    pmot_notebook_order,
+    pmot_paths,
+)
+from .polarizability import (
+    DifferentialPolarizabilitySample,
+    DifferentialShiftCoefficients,
+    choose_polarizability_csv_path,
+    convert_differential_polarizability_to_mhz_per_intensity,
+    default_polarizability_csv_path,
+    differential_shift_coefficients_for_wavelength,
+    full_range_polarizability_csv_path,
+    interpolate_differential_polarizability,
+    load_differential_polarizability_csv,
+    polarizability_dataframe,
+    wavelength_is_in_sample_range,
+)
+from .preliminary_scattering import (
+    ScatteringSample,
+    TrajectoryRecord,
+    absorption_kick_velocity_m_per_s,
+    beam_scattering_samples,
+    doppler_shift_hz,
+    effective_detuning_hz,
+    emission_kick_velocity_m_per_s,
+    gravitational_velocity_increment,
+    recoil_velocity_m_per_s,
+    saturation_parameter,
+    scattering_rate_per_s,
+    simulate_scattering_trajectory,
+    total_scattering_rate_per_s,
+    transition_for_beam,
+    wavevector_magnitude_m_inv,
+)
+from .trajectories import (
+    AnimationSamples,
+    TrajectoryDiagnostics,
+    animation_samples,
+    inward_radial_atom_state,
+    trajectory_diagnostics,
+    unit_vector_from_angles,
+)
+from .plotting import (
+    plot_apparatus_geometry_3d,
+    plot_beam_crossing_zoom,
+    plot_intensity_cloud_3d,
+    plot_intensity_cloud_3d_by_polarization,
+    plot_intensity_lineout,
+    plot_polarizability_curves,
+    plot_recoil_direction_vectors,
+    plot_scalar_field_slice,
+    plot_scalar_field_surface,
+    plot_velocity_history,
+)
+
+__all__ = [
+    "AnimationSamples",
+    "AtomState",
+    "DifferentialPolarizabilitySample",
+    "DifferentialShiftCoefficients",
+    "ScatteringSample",
+    "TrajectoryDiagnostics",
+    "TrajectoryRecord",
+    "absorption_kick_velocity_m_per_s",
+    "animation_samples",
+    "beam_scattering_samples",
+    "build_mot_beams",
+    "choose_polarizability_csv_path",
+    "convert_differential_polarizability_to_mhz_per_intensity",
+    "default_mot_apparatus_config",
+    "default_polarizability_csv_path",
+    "describe_pmot_configuration",
+    "differential_shift_coefficients_for_wavelength",
+    "doppler_shift_hz",
+    "effective_detuning_hz",
+    "emission_kick_velocity_m_per_s",
+    "full_range_polarizability_csv_path",
+    "gravitational_velocity_increment",
+    "interpolate_differential_polarizability",
+    "inward_radial_atom_state",
+    "load_differential_polarizability_csv",
+    "plot_apparatus_geometry_3d",
+    "plot_beam_crossing_zoom",
+    "plot_intensity_cloud_3d",
+    "plot_intensity_cloud_3d_by_polarization",
+    "plot_intensity_lineout",
+    "plot_polarizability_curves",
+    "plot_recoil_direction_vectors",
+    "plot_scalar_field_slice",
+    "plot_scalar_field_surface",
+    "plot_velocity_history",
+    "pmot_notebook_order",
+    "pmot_paths",
+    "polarizability_dataframe",
+    "recoil_velocity_m_per_s",
+    "sample_axis_pair_intensity_along_line",
+    "sample_family_intensity_along_line",
+    "sample_filtered_intensity_along_line",
+    "sample_intensity_along_line",
+    "sample_intensity_cloud",
+    "sample_intensity_cloud_by_polarization",
+    "sample_intensity_slice",
+    "sample_intensity_volume",
+    "saturation_parameter",
+    "scattering_rate_per_s",
+    "simulate_scattering_trajectory",
+    "total_scattering_rate_per_s",
+    "trajectory_diagnostics",
+    "transition_for_beam",
+    "unit_vector_from_angles",
+    "wavelength_is_in_sample_range",
+    "wavevector_magnitude_m_inv",
+]

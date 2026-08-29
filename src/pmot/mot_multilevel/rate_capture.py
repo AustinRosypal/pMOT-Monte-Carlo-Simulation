@@ -20,24 +20,26 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from ..configuration import GRAVITY_ACCELERATION_M_PER_S2, RB87_MASS_KG
-from ..mot.magnetic_fields import default_anti_helmholtz_config
-from ..mot_simple.loading import (
-    calculate_loading_rate_from_spectrum,
-    load_capture_spectrum,
-    save_loading_rate_result,
-)
-from ..mot_simple.sampling import (
+from ..magnetic_fields import default_anti_helmholtz_config
+from ..capture_statistics import (
     CaptureVelocitySample,
-    DiscSample,
-    PointSample,
     TrajectoryClassification,
     load_capture_velocity_samples,
     plot_capture_velocity_vs_radius,
     run_capture_velocity_analysis,
+    save_capture_velocity_results,
+)
+from ..loading import (
+    calculate_loading_rate_from_spectrum,
+    load_capture_spectrum,
+    save_loading_rate_result,
+)
+from ..launch_geometry import (
+    DiscSample,
+    PointSample,
     sample_disc_points,
     sample_incident_disc,
     sample_incident_disc_full_sphere,
-    save_capture_velocity_results,
     scale,
 )
 from .configuration import MultilevelMOTConfig, default_multilevel_mot_config, multilevel_mot_paths

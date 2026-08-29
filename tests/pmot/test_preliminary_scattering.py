@@ -3,10 +3,11 @@ from __future__ import annotations
 import numpy as np
 
 from pmot.configuration import STANDARD_GRAVITY_M_PER_S2
-from pmot.fields import build_mot_beams
-from pmot.forces import AtomState
-from pmot.forces import gravitational_velocity_increment as simple_gravity_increment
-from pmot.forces import simulate_scattering_trajectory
+from pmot.state import AtomState
+from pmot.pmot.preliminary_scattering import (
+    gravitational_velocity_increment as simple_gravity_increment,
+)
+from pmot.pmot.preliminary_scattering import simulate_scattering_trajectory
 
 
 def test_simple_gravity_increment_points_down() -> None:

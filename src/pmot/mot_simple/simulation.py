@@ -12,8 +12,8 @@ from ..configuration import RB87_MASS_KG
 from ..fields import MOTBeam
 from ..fields import beam_intensity_w_per_m2
 from ..fields import build_mot_beams
-from ..forces import AtomState
-from ..mot.magnetic_fields import anti_helmholtz_field_t
+from ..state import AtomState
+from ..magnetic_fields import anti_helmholtz_field_t
 from .configuration import default_simple_mot_apparatus
 from .configuration import default_simple_mot_config
 from .configuration import SimpleMOTConfig

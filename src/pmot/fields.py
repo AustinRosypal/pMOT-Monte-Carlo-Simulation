@@ -16,8 +16,8 @@ from .beams import dot
 from .beams import normalize
 from .beams import scale
 from .configuration import MOTBeamConfig
-from .configuration import PMOTSimulationConfig
-from .configuration import default_simulation_config
+from .configuration import MOTApparatusConfig
+from .configuration import default_mot_apparatus_config
 
 
 @dataclass(frozen=True, slots=True)
@@ -118,11 +118,11 @@ def _build_beam_family(
 
 
 def build_mot_beams(
-    config: PMOTSimulationConfig | None = None,
+    config: MOTApparatusConfig | None = None,
 ) -> list[MOTBeam]:
     """Build the 12 MOT beams: 6 cooling and 6 repump beams."""
 
-    apparatus = config or default_simulation_config()
+    apparatus = config or default_mot_apparatus_config()
     return _build_beam_family(apparatus.cooling, "cooling", apparatus.axes) + _build_beam_family(
         apparatus.repump, "repump", apparatus.axes
     )
@@ -359,14 +359,22 @@ def sample_intensity_cloud_by_polarization(
 
     cloud_by_polarization: dict[str, list[tuple[float, float, float, float]]] = {}
     for circular_polarization in ("sigma+", "sigma-", "pi"):
-        selected = filter_beams(beams, circular_polarization=circular_polarization)
-        cloud_by_polarization[circular_polarization] = sample_intensity_cloud(
-            selected,
-            axial_extent_m=axial_extent_m,
-            axial_samples=axial_samples,
-            radial_rings=radial_rings,
-            angular_samples=angular_samples,
-            radial_waist_scale=radial_waist_scale,
+        selected = [
+            beam
+            for beam in beams
+            if beam.circular_polarization == circular_polarization
+        ]
+        cloud_by_polarization[circular_polarization] = (
+            sample_intensity_cloud(
+                selected,
+                axial_extent_m=axial_extent_m,
+                axial_samples=axial_samples,
+                radial_rings=radial_rings,
+                angular_samples=angular_samples,
+                radial_waist_scale=radial_waist_scale,
+            )
+            if selected
+            else []
         )
     return cloud_by_polarization
 

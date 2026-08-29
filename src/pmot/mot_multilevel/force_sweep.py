@@ -20,9 +20,9 @@ from typing import Callable, Iterable, Mapping, Sequence
 import matplotlib.pyplot as plt
 import numpy as np
 
-from ..configuration import PMOTSimulationConfig, default_simulation_config
+from ..configuration import MOTApparatusConfig, default_mot_apparatus_config
 from ..fields import MOTBeam
-from ..mot.magnetic_fields import default_anti_helmholtz_config
+from ..magnetic_fields import default_anti_helmholtz_config
 from .configuration import (
     MultilevelMOTConfig,
     default_multilevel_mot_config,
@@ -145,7 +145,7 @@ def _validate_detuning_values(values: Sequence[float]) -> tuple[float, ...]:
 
 def build_force_sweep_configuration(
     detuning_n: float,
-) -> tuple[MultilevelMOTConfig, PMOTSimulationConfig, list[MOTBeam]]:
+) -> tuple[MultilevelMOTConfig, MOTApparatusConfig, list[MOTBeam]]:
     """Build solver, apparatus, and beam metadata with one consistent detuning."""
 
     if not np.isfinite(detuning_n) or detuning_n >= 0.0:
@@ -157,7 +157,7 @@ def build_force_sweep_configuration(
         cooling_detuning_rad_per_s=detuning_rad_per_s,
         repumper_enabled=True,
     )
-    apparatus = default_simulation_config()
+    apparatus = default_mot_apparatus_config()
     apparatus = replace(
         apparatus,
         cooling=replace(
@@ -792,7 +792,7 @@ def _resume_signature(
     production_config = replace(
         default_multilevel_mot_config(), repumper_enabled=True
     )
-    apparatus = default_simulation_config()
+    apparatus = default_mot_apparatus_config()
     coil = default_anti_helmholtz_config()
     model = build_rate_equation_model(production_config.natural_linewidth_rad_per_s)
 

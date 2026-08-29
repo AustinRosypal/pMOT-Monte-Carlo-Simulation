@@ -30,8 +30,9 @@ because the repumper includes every relevant dipole-allowed transition from
 F=1. Long trajectories, capture/loading calculations, force sweeps, and
 temperature calculations must use this rate-equation model. The event-driven
 Gillespie implementation is retained only for short regression, diagnostic,
-and visualization comparisons. `src/pmot/mot` contains only the reusable
-anti-Helmholtz field implementation and its plots.
+and visualization comparisons. Shared anti-Helmholtz calculations and plots
+live in `src/pmot/magnetic_fields.py` and
+`src/pmot/magnetic_field_plotting.py`; there is no generic `mot` package.
 
 ## Authoritative two-level MOT assumptions
 
@@ -102,10 +103,16 @@ radiation pressure explicitly and state when gravity is excluded.
 - `src/pmot/mot_multilevel`: authoritative 24-state, repumper-enabled
   population-rate MOT; it also retains isolated Gillespie event/recoil layers
   for short regression and diagnostic comparisons.
-- `src/pmot/mot`: reusable anti-Helmholtz field implementation and field plots;
-  it no longer contains a multilevel state/scattering engine.
+- `src/pmot/pmot`: future pMOT branch. Its current polarizability,
+  visualization, and preliminary scattering utilities are not a production
+  pMOT force model; see `docs/pmot/GEOMETRY_AND_TRAPPING_BEAMS.md`.
 - `src/pmot/configuration.py`, `beams.py`, `fields.py`: shared apparatus and beam
   geometry.
+- `src/pmot/magnetic_fields.py`, `magnetic_field_plotting.py`,
+  `launch_geometry.py`, `capture_statistics.py`, `loading.py`, `state.py`, and
+  `beam_plotting.py`: model-neutral field, launch, capture-analysis, loading,
+  state, and visualization primitives. Model packages may depend on these
+  shared modules but must not depend on one another.
 - `data/raw/pmot`: differential-polarizability datasets for the later pMOT phase.
 - `notebooks/mot_simple`: current interactive validation and sampling notebooks.
 - `tests`: automated physics and numerical checks.

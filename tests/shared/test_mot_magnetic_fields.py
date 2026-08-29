@@ -1,10 +1,10 @@
 from math import isclose
 import numpy as np
 
-from pmot.mot import anti_helmholtz_axial_gradient_t_per_m
-from pmot.mot import anti_helmholtz_field_t
-from pmot.mot import current_for_target_axial_gradient_a
-from pmot.mot import default_anti_helmholtz_config
+from pmot.magnetic_fields import anti_helmholtz_axial_gradient_t_per_m
+from pmot.magnetic_fields import anti_helmholtz_field_t
+from pmot.magnetic_fields import current_for_target_axial_gradient_a
+from pmot.magnetic_fields import default_anti_helmholtz_config
 
 
 def test_default_config_hits_target_gradient():

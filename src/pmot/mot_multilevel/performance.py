@@ -15,7 +15,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 
-from ..mot.magnetic_fields import default_anti_helmholtz_config
+from ..magnetic_fields import default_anti_helmholtz_config
 from .atomic_structure import AtomicStructure, build_atomic_structure
 from .configuration import (
     DarkStateBehavior,

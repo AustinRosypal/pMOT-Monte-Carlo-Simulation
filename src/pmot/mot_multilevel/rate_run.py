@@ -8,7 +8,7 @@ from dataclasses import asdict, replace
 from pathlib import Path
 from time import perf_counter
 
-from ..mot.magnetic_fields import default_anti_helmholtz_config
+from ..magnetic_fields import default_anti_helmholtz_config
 from .configuration import default_multilevel_mot_config, multilevel_mot_paths
 from .rate_diagnostics import (
     plot_rate_equation_performance,

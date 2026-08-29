@@ -37,23 +37,22 @@ from scipy.stats import t as student_t
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-from ..configuration import PMOTSimulationConfig, default_simulation_config
+from ..configuration import MOTApparatusConfig, default_mot_apparatus_config
 from ..fields import MOTBeam
-from ..mot.configuration import AntiHelmholtzCoilConfig
-from ..mot.magnetic_fields import (
+from ..configuration import AntiHelmholtzCoilConfig
+from ..magnetic_fields import (
     anti_helmholtz_axial_gradient_t_per_m,
     default_anti_helmholtz_config,
 )
-from ..mot_simple.loading import (
+from ..loading import (
     LOADING_RATE_PREFACTOR,
     THERMAL_SCALE_M2_PER_S2,
     calculate_loading_rate_from_spectrum,
 )
-from ..mot_simple.sampling import (
-    CaptureVelocitySample,
+from ..capture_statistics import CaptureVelocitySample, load_capture_velocity_samples
+from ..launch_geometry import (
     DiscSample,
     PointSample,
-    load_capture_velocity_samples,
     sample_disc_points,
     sample_incident_disc,
     sample_incident_disc_full_sphere,
@@ -236,12 +235,12 @@ def build_27mw_multilevel_configuration(
     *,
     cooling_power_w_per_beam: float = COOLING_POWER_W_PER_BEAM,
     repump_power_w_per_beam: float = REPUMP_POWER_W_PER_BEAM,
-) -> tuple[MultilevelMOTConfig, PMOTSimulationConfig, list[MOTBeam]]:
+) -> tuple[MultilevelMOTConfig, MOTApparatusConfig, list[MOTBeam]]:
     """Build the 24-state MOT with 27 mW cooling and baseline repump power."""
 
     if cooling_power_w_per_beam <= 0.0 or repump_power_w_per_beam <= 0.0:
         raise ValueError("cooling and repump powers must both be positive")
-    baseline_apparatus = default_simulation_config()
+    baseline_apparatus = default_mot_apparatus_config()
     apparatus = replace(
         baseline_apparatus,
         cooling=replace(
@@ -287,7 +286,7 @@ def _validate_built_model_inputs(
 
 def effective_saturation_metrics(
     config: MultilevelMOTConfig | None = None,
-    apparatus: PMOTSimulationConfig | None = None,
+    apparatus: MOTApparatusConfig | None = None,
 ) -> dict[str, object]:
     """Return distinct cooling and resonant-repump saturation metrics."""
 
@@ -480,14 +479,14 @@ def _flatten_differences(baseline: object, candidate: object, prefix: str = "") 
 
 def configuration_invariance_audit(
     config: MultilevelMOTConfig,
-    apparatus: PMOTSimulationConfig,
+    apparatus: MOTApparatusConfig,
     coil: AntiHelmholtzCoilConfig,
     search: RateCaptureSearchConfig,
 ) -> dict[str, object]:
     """Record exactly which requested production fields differ from defaults."""
 
     apparatus_changes = _flatten_differences(
-        asdict(default_simulation_config()), asdict(apparatus)
+        asdict(default_mot_apparatus_config()), asdict(apparatus)
     )
     config_changes = _flatten_differences(
         asdict(default_multilevel_mot_config()), asdict(config)
@@ -538,7 +537,7 @@ def configuration_invariance_audit(
 
 def study_signature_payload(
     config: MultilevelMOTConfig,
-    apparatus: PMOTSimulationConfig,
+    apparatus: MOTApparatusConfig,
     coil: AntiHelmholtzCoilConfig,
     search: RateCaptureSearchConfig,
     geometry_hash: str,
@@ -953,7 +952,7 @@ def _output_manifest(paths: StudyPaths) -> dict[str, str]:
 
 def build_run_metadata(
     config: MultilevelMOTConfig,
-    apparatus: PMOTSimulationConfig,
+    apparatus: MOTApparatusConfig,
     beams: Sequence[MOTBeam],
     coil: AntiHelmholtzCoilConfig,
     search: RateCaptureSearchConfig,
@@ -1178,7 +1177,7 @@ _WORKER_SEARCH: RateCaptureSearchConfig | None = None
 
 def _initialize_capture_worker(
     config: MultilevelMOTConfig,
-    apparatus: PMOTSimulationConfig,
+    apparatus: MOTApparatusConfig,
     coil: AntiHelmholtzCoilConfig,
     search: RateCaptureSearchConfig,
 ) -> None:

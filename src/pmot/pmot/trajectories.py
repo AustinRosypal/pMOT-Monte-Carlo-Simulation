@@ -11,9 +11,9 @@ import numpy as np
 
 from ..fields import MOTBeam
 from ..fields import beams_for_axis
-from ..forces import AtomState
-from ..forces import TrajectoryRecord
-from ..forces import total_scattering_rate_per_s
+from ..state import AtomState
+from .preliminary_scattering import TrajectoryRecord
+from .preliminary_scattering import total_scattering_rate_per_s
 
 
 Vec3 = tuple[float, float, float]

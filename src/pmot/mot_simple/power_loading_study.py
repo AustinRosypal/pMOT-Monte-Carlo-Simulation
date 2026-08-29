@@ -32,10 +32,10 @@ from scipy.stats import t as student_t
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-from ..configuration import PMOTSimulationConfig
-from ..mot.configuration import AntiHelmholtzCoilConfig
-from ..mot.magnetic_fields import anti_helmholtz_axial_gradient_t_per_m
-from ..mot.magnetic_fields import default_anti_helmholtz_config
+from ..configuration import MOTApparatusConfig
+from ..configuration import AntiHelmholtzCoilConfig
+from ..magnetic_fields import anti_helmholtz_axial_gradient_t_per_m
+from ..magnetic_fields import default_anti_helmholtz_config
 from .configuration import default_simple_mot_apparatus
 from .configuration import default_simple_mot_config
 from .configuration import simple_mot_paths
@@ -194,7 +194,7 @@ def default_study_search_config() -> CaptureSearchConfig:
     )
 
 
-def build_27mw_apparatus() -> PMOTSimulationConfig:
+def build_27mw_apparatus() -> MOTApparatusConfig:
     """Return the default apparatus with only cooling power changed to 27 mW."""
 
     apparatus = default_simple_mot_apparatus()
@@ -208,7 +208,7 @@ def build_27mw_apparatus() -> PMOTSimulationConfig:
 
 
 def effective_saturation_metrics(
-    apparatus: PMOTSimulationConfig | None = None,
+    apparatus: MOTApparatusConfig | None = None,
     simple_config: SimpleMOTConfig | None = None,
 ) -> dict[str, float | str]:
     """Return the requested on-axis, single-beam effective saturation metric."""
@@ -376,7 +376,7 @@ def _flatten_differences(
 
 
 def configuration_invariance_audit(
-    apparatus: PMOTSimulationConfig,
+    apparatus: MOTApparatusConfig,
     simple: SimpleMOTConfig,
     coil: AntiHelmholtzCoilConfig,
     search: CaptureSearchConfig,
@@ -411,7 +411,7 @@ def configuration_invariance_audit(
 
 
 def study_signature_payload(
-    apparatus: PMOTSimulationConfig,
+    apparatus: MOTApparatusConfig,
     simple: SimpleMOTConfig,
     coil: AntiHelmholtzCoilConfig,
     search: CaptureSearchConfig,
@@ -855,7 +855,7 @@ def _output_manifest(paths: StudyPaths) -> dict[str, str]:
 
 
 def build_run_metadata(
-    apparatus: PMOTSimulationConfig,
+    apparatus: MOTApparatusConfig,
     simple: SimpleMOTConfig,
     coil: AntiHelmholtzCoilConfig,
     search: CaptureSearchConfig,
@@ -1040,7 +1040,7 @@ _WORKER_SEARCH: CaptureSearchConfig | None = None
 
 
 def _initialize_capture_worker(
-    apparatus: PMOTSimulationConfig,
+    apparatus: MOTApparatusConfig,
     simple: SimpleMOTConfig,
     coil: AntiHelmholtzCoilConfig,
     search: CaptureSearchConfig,

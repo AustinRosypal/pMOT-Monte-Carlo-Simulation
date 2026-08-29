@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from pmot.mot_simple.sampling import PointSample
+from pmot.launch_geometry import PointSample
 from pmot.mot_multilevel.rate_capture import (
     RateCaptureSearchConfig,
     classify_rate_trajectory,

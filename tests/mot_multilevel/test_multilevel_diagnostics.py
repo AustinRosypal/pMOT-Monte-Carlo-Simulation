@@ -6,7 +6,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from pmot.mot.magnetic_fields import default_anti_helmholtz_config
+from pmot.magnetic_fields import default_anti_helmholtz_config
 from pmot.mot_multilevel import MultilevelAtomState, build_atomic_structure
 from pmot.mot_multilevel import build_multilevel_cooling_beams
 from pmot.mot_multilevel import build_multilevel_mot_beams

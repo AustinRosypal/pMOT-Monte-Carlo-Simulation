@@ -13,8 +13,8 @@ from time import perf_counter
 import matplotlib.pyplot as plt
 import numpy as np
 
-from ..configuration import HBAR_J_S, RB87_MASS_KG, default_simulation_config
-from ..mot.magnetic_fields import default_anti_helmholtz_config
+from ..configuration import HBAR_J_S, RB87_MASS_KG, default_mot_apparatus_config
+from ..magnetic_fields import default_anti_helmholtz_config
 from .configuration import default_multilevel_mot_config, multilevel_mot_paths
 from .rate_equations import (
     RateEquationAtomState,
@@ -204,7 +204,7 @@ def run_trapped_temperature_study(
     final_components = component_history[-1]
     final_temperature = float(np.mean(final_components))
     config = replace(default_multilevel_mot_config(), repumper_enabled=True)
-    apparatus = default_simulation_config()
+    apparatus = default_mot_apparatus_config()
     peak_intensity_w_per_m2 = (
         2.0
         * apparatus.cooling.power_w_per_beam

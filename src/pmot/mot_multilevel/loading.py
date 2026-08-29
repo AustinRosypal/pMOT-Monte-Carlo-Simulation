@@ -11,7 +11,7 @@ from pathlib import Path
 
 import numpy as np
 
-from ..mot_simple.loading import (
+from ..loading import (
     LOADING_RATE_PREFATOR,
     LOADING_RATE_PREFACTOR,
     SPEED_DISTRIBUTION_PREFACTOR_S3_PER_M3,

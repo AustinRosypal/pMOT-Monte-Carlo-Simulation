@@ -11,7 +11,7 @@ import numpy as np
 import pytest
 
 import pmot.mot_multilevel.force_sweep as force_sweep
-from pmot.configuration import default_simulation_config
+from pmot.configuration import default_mot_apparatus_config
 from pmot.mot_multilevel.configuration import default_multilevel_mot_config
 from pmot.mot_multilevel.force_sweep import (
     EVALUATION_COUNT,
@@ -65,7 +65,7 @@ def test_force_configuration_syncs_angular_and_ordinary_detuning() -> None:
         cooling_detuning_rad_per_s=expected_rad_per_s,
         repumper_enabled=True,
     )
-    base_apparatus = default_simulation_config()
+    base_apparatus = default_mot_apparatus_config()
     assert apparatus == replace(
         base_apparatus,
         cooling=replace(base_apparatus.cooling, detuning_hz=expected_hz),

@@ -1,4 +1,4 @@
-"""Closed-form anti-Helmholtz magnetic fields for MOT validation."""
+"""Shared closed-form anti-Helmholtz magnetic fields for MOT validation."""
 
 from __future__ import annotations
 

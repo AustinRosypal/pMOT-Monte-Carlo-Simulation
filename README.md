@@ -18,8 +18,11 @@ Development is separated into three model branches:
 | Outputs | `outputs/<category>/mot_simple` | `outputs/<category>/mot_multilevel` | `outputs/<category>/pmot` |
 | Documentation | `docs/mot_simple` | `docs/mot_multilevel` | `docs/pmot` |
 
-Reusable apparatus, beam, atomic, and anti-Helmholtz-field code remains directly
-under `src/pmot`; model-specific algorithms must stay in their model branch.
+Reusable apparatus, beam, anti-Helmholtz-field, launch-disc, capture-analysis,
+loading-rate, and plotting primitives remain directly under `src/pmot`;
+model-specific algorithms must stay in their model branch. There is no generic
+`mot` package: production implementations are explicitly `mot_simple`,
+`mot_multilevel`, or the future `pmot` branch.
 Historical preliminary results are retained under `pmot/legacy_preliminary`
 directories rather than mixed with current MOT results.
 

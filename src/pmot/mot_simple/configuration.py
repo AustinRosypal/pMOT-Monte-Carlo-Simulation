@@ -7,8 +7,8 @@ from pathlib import Path
 
 from ..configuration import GRAVITY_ACCELERATION_M_PER_S2
 from ..configuration import STANDARD_GRAVITY_M_PER_S2
-from ..configuration import default_simulation_config
-from ..configuration import PMOTSimulationConfig
+from ..configuration import default_mot_apparatus_config
+from ..configuration import MOTApparatusConfig
 
 
 MU_B_OVER_H_HZ_PER_T = 1.3996245e10
@@ -52,10 +52,10 @@ def default_simple_mot_config() -> SimpleMOTConfig:
     )
 
 
-def default_simple_mot_apparatus() -> PMOTSimulationConfig:
+def default_simple_mot_apparatus() -> MOTApparatusConfig:
     """Return the shared optical apparatus config used by the simplified MOT."""
 
-    return default_simulation_config()
+    return default_mot_apparatus_config()
 
 
 def simple_mot_paths(root: Path | None = None) -> dict[str, Path]:

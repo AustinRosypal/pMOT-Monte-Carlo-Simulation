@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ..mot.magnetic_fields import default_anti_helmholtz_config
+from ..magnetic_fields import default_anti_helmholtz_config
 from .atomic_structure import build_atomic_structure
 from .configuration import MultilevelMOTConfig, default_multilevel_mot_config
 from .screening import animate_hyperfine_walk

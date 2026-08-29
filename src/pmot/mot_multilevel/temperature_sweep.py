@@ -24,9 +24,9 @@ from typing import Iterable, Mapping, Sequence
 import matplotlib.pyplot as plt
 import numpy as np
 
-from ..configuration import PMOTSimulationConfig, RB87_MASS_KG, default_simulation_config
+from ..configuration import MOTApparatusConfig, RB87_MASS_KG, default_mot_apparatus_config
 from ..fields import MOTBeam
-from ..mot.magnetic_fields import default_anti_helmholtz_config
+from ..magnetic_fields import default_anti_helmholtz_config
 from .configuration import (
     MultilevelMOTConfig,
     default_multilevel_mot_config,
@@ -255,7 +255,7 @@ def _detuning_key(value: object) -> str:
 
 def build_temperature_sweep_configuration(
     detuning_n: float,
-) -> tuple[MultilevelMOTConfig, PMOTSimulationConfig, list[MOTBeam]]:
+) -> tuple[MultilevelMOTConfig, MOTApparatusConfig, list[MOTBeam]]:
     """Build consistent solver, apparatus, and beams for one red detuning."""
 
     if not np.isfinite(detuning_n) or detuning_n >= 0.0:
@@ -267,7 +267,7 @@ def build_temperature_sweep_configuration(
         cooling_detuning_rad_per_s=detuning_rad_per_s,
         repumper_enabled=True,
     )
-    apparatus_base = default_simulation_config()
+    apparatus_base = default_mot_apparatus_config()
     apparatus = replace(
         apparatus_base,
         cooling=replace(
@@ -1190,7 +1190,7 @@ def _resume_signature(
         "escape_radius_m": ESCAPE_RADIUS_M,
         "configuration_invariance_audit": dict(configuration_audit),
         "multilevel_config": _json_compatible(asdict(config)),
-        "apparatus_config": _json_compatible(asdict(default_simulation_config())),
+        "apparatus_config": _json_compatible(asdict(default_mot_apparatus_config())),
         "coil_config": _json_compatible(asdict(default_anti_helmholtz_config())),
     }
 
@@ -1215,7 +1215,7 @@ def physical_model_markdown(signature: Mapping[str, object]) -> str:
     """Return the human-readable scientific definition saved with the data."""
 
     config = default_multilevel_mot_config()
-    apparatus = default_simulation_config()
+    apparatus = default_mot_apparatus_config()
     doppler_references = [
         cooling_doppler_reference(value) for value in DETUNING_N_VALUES
     ]

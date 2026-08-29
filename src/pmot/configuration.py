@@ -1,11 +1,8 @@
-"""Project configuration and default apparatus parameters for the pMOT study."""
+"""Shared physical constants and apparatus parameters for all MOT models."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from pathlib import Path
-
-
 PLANCK_CONSTANT_J_S = 6.62607015e-34
 HBAR_J_S = 1.054571817e-34
 SPEED_OF_LIGHT_M_PER_S = 299792458.0
@@ -14,6 +11,12 @@ ATOMIC_MASS_UNIT_KG = 1.66053906660e-27
 RB87_MASS_KG = 86.9091805310 * ATOMIC_MASS_UNIT_KG
 STANDARD_GRAVITY_M_PER_S2 = 9.80665
 GRAVITY_ACCELERATION_M_PER_S2 = (0.0, 0.0, -STANDARD_GRAVITY_M_PER_S2)
+VACUUM_PERMEABILITY_H_PER_M = 1.0 / (
+    VACUUM_PERMITTIVITY_F_PER_M * SPEED_OF_LIGHT_M_PER_S**2
+)
+GAUSS_PER_TESLA = 1.0e4
+TESLA_PER_GAUSS = 1.0e-4
+TESLA_PER_METER_PER_GAUSS_PER_CM = 1.0e-2
 
 COOLING_WAVELENGTH_M = 780e-9
 REPUMP_WAVELENGTH_M = 780e-9
@@ -67,7 +70,7 @@ class MOTBeamConfig:
 
 @dataclass(frozen=True, slots=True)
 class AxisDefinition:
-    """One physical beam axis in the pMOT apparatus."""
+    """One physical beam axis in the shared MOT apparatus."""
 
     name: str
     cell_angle_of_incidence_deg: float
@@ -75,7 +78,7 @@ class AxisDefinition:
 
 
 @dataclass(frozen=True, slots=True)
-class PMOTSimulationConfig:
+class MOTApparatusConfig:
     """Top-level parameter set for the present apparatus model."""
 
     lens: LensSpec
@@ -87,37 +90,26 @@ class PMOTSimulationConfig:
     volume_extent_m: float = 50e-3
 
 
-def project_paths(root: Path | None = None) -> dict[str, Path]:
-    """Return key project paths used by notebooks and scripts."""
+@dataclass(frozen=True, slots=True)
+class AntiHelmholtzCoilConfig:
+    """One anti-Helmholtz coil pair in SI units."""
 
-    project_root = root or Path(__file__).resolve().parents[2]
-    return {
-        "root": project_root,
-        "data_raw": project_root / "data" / "raw" / "pmot",
-        "data_processed": project_root / "data" / "processed" / "pmot",
-        "outputs_fields": project_root / "outputs" / "fields" / "pmot",
-        "outputs_trajectories": project_root / "outputs" / "trajectories" / "pmot",
-        "outputs_statistics": project_root / "outputs" / "statistics" / "pmot",
-        "outputs_figures": project_root / "outputs" / "figures" / "pmot",
-        "notebooks": project_root / "notebooks" / "pmot",
-    }
+    radius_m: float
+    turns_per_coil: int
+    current_a: float
+    center_separation_m: float
 
+    def __post_init__(self) -> None:
+        if self.radius_m <= 0.0:
+            raise ValueError("radius_m must be positive")
+        if self.turns_per_coil <= 0:
+            raise ValueError("turns_per_coil must be positive")
+        if self.center_separation_m <= 0.0:
+            raise ValueError("center_separation_m must be positive")
 
-def notebook_order() -> list[str]:
-    """Return the intended notebook execution order."""
-
-    return [
-        "project_setup.ipynb",
-        "atomic_and_laser_configuration.ipynb",
-        "atomic_data_and_polarizability.ipynb",
-        "beam_geometry_and_fields.ipynb",
-        "force_model.ipynb",
-        "trajectory_sampling.ipynb",
-        "multilevel_atom_model.ipynb",
-        "capture_statistics.ipynb",
-        "loading_rate.ipynb",
-        "validation_and_final_results.ipynb",
-    ]
+    @property
+    def half_separation_m(self) -> float:
+        return 0.5 * self.center_separation_m
 
 
 def ac508_080_c_lens() -> LensSpec:
@@ -135,10 +127,10 @@ def ac508_080_c_lens() -> LensSpec:
     )
 
 
-def default_simulation_config() -> PMOTSimulationConfig:
+def default_mot_apparatus_config() -> MOTApparatusConfig:
     """Return the current default apparatus configuration."""
 
-    return PMOTSimulationConfig(
+    return MOTApparatusConfig(
         lens=ac508_080_c_lens(),
         cell=CellGeometry(),
         cooling=MOTBeamConfig(
@@ -177,24 +169,3 @@ def default_simulation_config() -> PMOTSimulationConfig:
             ),
         ),
     )
-
-
-def describe_configuration(config: PMOTSimulationConfig | None = None) -> dict[str, object]:
-    """Return a notebook-friendly configuration summary."""
-
-    apparatus = config or default_simulation_config()
-    return {
-        "lens": apparatus.lens.name,
-        "cooling_beam_diameter_mm": 1e3 * apparatus.cooling.beam_diameter_m,
-        "cooling_power_w_per_beam": apparatus.cooling.power_w_per_beam,
-        "cooling_detuning_mhz": apparatus.cooling.detuning_hz / 1e6,
-        "cooling_resonance_thz": apparatus.cooling.resonance_frequency_hz / 1e12,
-        "repump_beam_diameter_mm": 1e3 * apparatus.repump.beam_diameter_m,
-        "repump_power_w_per_beam": apparatus.repump.power_w_per_beam,
-        "repump_detuning_mhz": apparatus.repump.detuning_hz / 1e6,
-        "repump_resonance_thz": apparatus.repump.resonance_frequency_hz / 1e12,
-        "axes": [axis.name for axis in apparatus.axes],
-        "axis_aoi_deg": {axis.name: axis.cell_angle_of_incidence_deg for axis in apparatus.axes},
-        "volume_extent_mm": 1e3 * apparatus.volume_extent_m,
-        "samples_per_axis": apparatus.samples_per_axis,
-    }

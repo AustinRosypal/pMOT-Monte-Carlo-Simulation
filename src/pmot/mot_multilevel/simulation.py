@@ -14,7 +14,7 @@ import numpy as np
 from ..configuration import GRAVITY_ACCELERATION_M_PER_S2, HBAR_J_S, RB87_MASS_KG
 from ..configuration import RB87_REPUMP_RESONANCE_HZ
 from ..fields import MOTBeam, build_mot_beams
-from ..mot.magnetic_fields import anti_helmholtz_field_t
+from ..magnetic_fields import anti_helmholtz_field_t
 from .atomic_structure import AtomicStructure, build_atomic_structure
 from .configuration import DarkStateBehavior, MultilevelMOTConfig, default_multilevel_mot_config
 from .coupling import ground_laser_channels, wavevector_rad_per_m

@@ -5,7 +5,7 @@ from dataclasses import replace
 import numpy as np
 import pytest
 
-from pmot.mot import default_anti_helmholtz_config
+from pmot.magnetic_fields import default_anti_helmholtz_config
 from pmot.mot_multilevel import build_multilevel_mot_beams, default_multilevel_mot_config
 from pmot.mot_multilevel.rate_equations import (
     RateEquationAtomState,

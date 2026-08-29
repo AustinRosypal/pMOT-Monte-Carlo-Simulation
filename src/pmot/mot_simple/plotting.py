@@ -5,53 +5,19 @@ from __future__ import annotations
 from pathlib import Path
 
 import matplotlib.pyplot as plt
-from matplotlib import colors
-from matplotlib import cm
 import numpy as np
 
-from ..mot.magnetic_fields import anti_helmholtz_field_t
+from ..beam_plotting import beam_surface_mesh_mm
+from ..magnetic_field_plotting import plot_magnetic_component_grid
 from .simulation import SimpleMOTBeam
 from .simulation import SimpleMOTTrajectoryRecord
-from ..forces import AtomState
+from ..state import AtomState
 from .simulation import mean_force_n
 
 
 def _prepare_output(path: Path | None) -> None:
     if path is not None:
         path.parent.mkdir(parents=True, exist_ok=True)
-
-
-def _orthonormal_basis(direction: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    trial = np.asarray([0.0, 0.0, 1.0], dtype=float)
-    if abs(float(np.dot(direction, trial))) > 0.95:
-        trial = np.asarray([0.0, 1.0, 0.0], dtype=float)
-    basis_1 = np.cross(direction, trial)
-    basis_1 = basis_1 / np.linalg.norm(basis_1)
-    basis_2 = np.cross(direction, basis_1)
-    basis_2 = basis_2 / np.linalg.norm(basis_2)
-    return basis_1, basis_2
-
-
-def _beam_surface_mesh_mm(
-    direction: tuple[float, float, float],
-    radius_m: float,
-    length_m: float,
-    axial_samples: int = 25,
-    angular_samples: int = 32,
-) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    direction_array = np.asarray(direction, dtype=float)
-    direction_array = direction_array / np.linalg.norm(direction_array)
-    basis_1, basis_2 = _orthonormal_basis(direction_array)
-    axial_values_m = np.linspace(-0.5 * length_m, 0.5 * length_m, axial_samples)
-    angular_values = np.linspace(0.0, 2.0 * np.pi, angular_samples)
-    axial_grid_m, angular_grid = np.meshgrid(axial_values_m, angular_values, indexing="ij")
-    radius_grid_m = (
-        np.cos(angular_grid)[..., None] * basis_1[None, None, :]
-        + np.sin(angular_grid)[..., None] * basis_2[None, None, :]
-    ) * radius_m
-    centerline_grid_m = axial_grid_m[..., None] * direction_array[None, None, :]
-    surface_grid_mm = 1e3 * (centerline_grid_m + radius_grid_m)
-    return surface_grid_mm[..., 0], surface_grid_mm[..., 1], surface_grid_mm[..., 2]
 
 
 def draw_simple_mot_beam_volumes(
@@ -69,7 +35,7 @@ def draw_simple_mot_beam_volumes(
         if beam.axis_name in drawn_axes:
             continue
         drawn_axes.add(beam.axis_name)
-        x_surface_mm, y_surface_mm, z_surface_mm = _beam_surface_mesh_mm(
+        x_surface_mm, y_surface_mm, z_surface_mm = beam_surface_mesh_mm(
             direction=beam.direction,
             radius_m=beam.intensity_beam.beam_radius_m,
             length_m=length_m,
@@ -84,99 +50,6 @@ def draw_simple_mot_beam_volumes(
             shade=False,
             alpha=0.22,
         )
-
-
-def plot_magnetic_component_grid(
-    coil_config,
-    extent_m: float,
-    samples_per_axis: int,
-    path: Path | None = None,
-):
-    """Plot a 3x3 grid of 3D magnetic-component surfaces over xy, xz, yz planes.
-
-    The plane coordinates span the two horizontal axes. The selected field
-    component is shown redundantly as the vertical coordinate and the color.
-    """
-
-    axis_values_m = np.linspace(-extent_m, extent_m, samples_per_axis)
-    plane_names = ("xy", "xz", "yz")
-    component_names = ("Bx", "By", "Bz")
-    figure = plt.figure(figsize=(15.5, 13.5), constrained_layout=True)
-    figure.patch.set_facecolor("#fbfaf6")
-
-    def field_components_for_plane(plane_name: str):
-        first_mesh, second_mesh = np.meshgrid(axis_values_m, axis_values_m)
-        if plane_name == "xy":
-            bx_t, by_t, bz_t = anti_helmholtz_field_t(first_mesh, second_mesh, 0.0, coil_config)
-            return first_mesh, second_mesh, bx_t, by_t, bz_t
-        if plane_name == "xz":
-            bx_t, by_t, bz_t = anti_helmholtz_field_t(first_mesh, 0.0, second_mesh, coil_config)
-            return first_mesh, second_mesh, bx_t, by_t, bz_t
-        bx_t, by_t, bz_t = anti_helmholtz_field_t(0.0, first_mesh, second_mesh, coil_config)
-        return first_mesh, second_mesh, bx_t, by_t, bz_t
-
-    for row_index, component_name in enumerate(component_names):
-        for column_index, plane_name in enumerate(plane_names):
-            axis = figure.add_subplot(3, 3, row_index * 3 + column_index + 1, projection="3d")
-            axis.set_facecolor("#fbfaf6")
-
-            first_mesh_m, second_mesh_m, bx_t, by_t, bz_t = field_components_for_plane(plane_name)
-            bx_g = 1.0e4 * np.asarray(bx_t, dtype=float)
-            by_g = 1.0e4 * np.asarray(by_t, dtype=float)
-            bz_g = 1.0e4 * np.asarray(bz_t, dtype=float)
-            component_values_g = {
-                "Bx": bx_g,
-                "By": by_g,
-                "Bz": bz_g,
-            }[component_name]
-
-            if plane_name == "xy":
-                horizontal_1 = 1e3 * np.asarray(first_mesh_m, dtype=float)
-                horizontal_2 = 1e3 * np.asarray(second_mesh_m, dtype=float)
-                label_1 = "x [mm]"
-                label_2 = "y [mm]"
-            elif plane_name == "xz":
-                horizontal_1 = 1e3 * np.asarray(first_mesh_m, dtype=float)
-                horizontal_2 = 1e3 * np.asarray(second_mesh_m, dtype=float)
-                label_1 = "x [mm]"
-                label_2 = "z [mm]"
-            else:
-                horizontal_1 = 1e3 * np.asarray(first_mesh_m, dtype=float)
-                horizontal_2 = 1e3 * np.asarray(second_mesh_m, dtype=float)
-                label_1 = "y [mm]"
-                label_2 = "z [mm]"
-
-            max_abs_g = max(1.0e-12, float(np.max(np.abs(component_values_g))))
-            normalizer = colors.TwoSlopeNorm(vmin=-max_abs_g, vcenter=0.0, vmax=max_abs_g)
-            facecolors = cm.coolwarm(normalizer(component_values_g))
-            axis.plot_surface(
-                horizontal_1,
-                horizontal_2,
-                component_values_g,
-                facecolors=facecolors,
-                linewidth=0.0,
-                antialiased=True,
-                shade=False,
-                alpha=0.96,
-            )
-            colorbar_mappable = cm.ScalarMappable(norm=normalizer, cmap="coolwarm")
-            colorbar_mappable.set_array(component_values_g)
-            figure.colorbar(colorbar_mappable, ax=axis, fraction=0.046, pad=0.04, label=f"{component_name} [G]")
-
-            axis.set_title(f"{component_name} over {plane_name.upper()} plane")
-            axis.set_xlabel(label_1)
-            axis.set_ylabel(label_2)
-            axis.set_zlabel(f"{component_name} [G]")
-            max_extent_mm = 1e3 * extent_m
-            axis.set_xlim(-max_extent_mm, max_extent_mm)
-            axis.set_ylim(-max_extent_mm, max_extent_mm)
-            axis.set_zlim(-1.05 * max_abs_g, 1.05 * max_abs_g)
-            axis.set_box_aspect((1.0, 1.0, 0.8))
-            axis.view_init(elev=24, azim=-58)
-    _prepare_output(path)
-    if path is not None:
-        figure.savefig(path, dpi=180)
-    return figure
 
 
 def plot_simple_mot_geometry(

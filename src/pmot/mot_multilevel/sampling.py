@@ -14,12 +14,12 @@ from pathlib import Path
 
 import numpy as np
 
-from ..mot.magnetic_fields import default_anti_helmholtz_config
-from ..mot_simple.sampling import DiscSample
-from ..mot_simple.sampling import PointSample
-from ..mot_simple.sampling import sample_disc_points
-from ..mot_simple.sampling import sample_incident_disc
-from ..mot_simple.sampling import scale
+from ..magnetic_fields import default_anti_helmholtz_config
+from ..launch_geometry import DiscSample
+from ..launch_geometry import PointSample
+from ..launch_geometry import sample_disc_points
+from ..launch_geometry import sample_incident_disc
+from ..launch_geometry import scale
 from .atomic_structure import AtomicStructure, build_atomic_structure
 from .configuration import DarkStateBehavior, MultilevelMOTConfig
 from .configuration import default_multilevel_mot_config, multilevel_mot_paths

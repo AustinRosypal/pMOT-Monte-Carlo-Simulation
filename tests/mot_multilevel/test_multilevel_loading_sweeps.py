@@ -12,16 +12,13 @@ import pytest
 
 matplotlib.use("Agg", force=True)
 
-from pmot.mot import default_anti_helmholtz_config
+from pmot.magnetic_fields import default_anti_helmholtz_config
+from pmot.capture_statistics import CaptureVelocitySample, TrajectoryClassification
+from pmot.launch_geometry import PointSample
 from pmot.mot_multilevel import loading_sweeps as sweeps
 from pmot.mot_multilevel.configuration import default_multilevel_mot_config
 from pmot.mot_multilevel.rate_capture import RateCaptureSearchConfig
 from pmot.mot_multilevel.rate_equations import build_rate_equation_model
-from pmot.mot_simple.sampling import (
-    CaptureVelocitySample,
-    PointSample,
-    TrajectoryClassification,
-)
 
 
 def test_requested_multilevel_parameter_grids() -> None:

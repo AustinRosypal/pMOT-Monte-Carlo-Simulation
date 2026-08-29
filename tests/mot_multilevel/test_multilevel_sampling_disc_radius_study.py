@@ -19,7 +19,7 @@ from pmot.mot_multilevel.power_loading_study import (
     default_study_search_config,
     generate_study_geometry,
 )
-from pmot.mot.magnetic_fields import default_anti_helmholtz_config
+from pmot.magnetic_fields import default_anti_helmholtz_config
 
 
 def _fit_rows(rate_function, *, sem_atoms_per_s: float) -> list[dict[str, float]]:

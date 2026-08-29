@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 
 from pmot.mot_simple import power_loading_study as study
-from pmot.mot.magnetic_fields import default_anti_helmholtz_config
+from pmot.magnetic_fields import default_anti_helmholtz_config
 from pmot.mot_simple.configuration import default_simple_mot_apparatus
 from pmot.mot_simple.configuration import default_simple_mot_config
 from pmot.mot_simple.power_loading_study import COOLING_POWER_W_PER_BEAM

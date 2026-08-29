@@ -30,19 +30,21 @@ import numpy as np
 
 from ..configuration import (
     GRAVITY_ACCELERATION_M_PER_S2,
-    PMOTSimulationConfig,
+    MOTApparatusConfig,
     RB87_MASS_KG,
-    default_simulation_config,
+    default_mot_apparatus_config,
 )
 from ..fields import MOTBeam
-from ..mot.magnetic_fields import default_anti_helmholtz_config
-from ..mot_simple.sampling import (
+from ..magnetic_fields import default_anti_helmholtz_config
+from ..capture_statistics import (
     CaptureVelocitySample,
-    DiscSample,
-    PointSample,
     TrajectoryClassification,
     VelocitySpectrumSample,
     load_capture_velocity_samples,
+)
+from ..launch_geometry import (
+    DiscSample,
+    PointSample,
     sample_incident_disc,
 )
 from .configuration import (
@@ -245,7 +247,7 @@ def beam_size_power_w_per_beam(
 def build_multilevel_loading_configuration(
     sweep_kind: str,
     parameter_value: float,
-) -> tuple[MultilevelMOTConfig, PMOTSimulationConfig, list[MOTBeam]]:
+) -> tuple[MultilevelMOTConfig, MOTApparatusConfig, list[MOTBeam]]:
     """Build a mutually consistent multilevel config, apparatus, and beam set.
 
     For the saturation study only cooling power changes.  For the diameter
@@ -261,7 +263,7 @@ def build_multilevel_loading_configuration(
         repumper_enabled=True,
         saturation_intensity_w_per_m2=USER_SATURATION_INTENSITY_W_PER_M2,
     )
-    apparatus = default_simulation_config()
+    apparatus = default_mot_apparatus_config()
     if sweep_kind == "saturation":
         power_w = saturation_power_w_per_beam(
             parameter_value,
@@ -290,7 +292,7 @@ def build_multilevel_loading_configuration(
         # are rebuilt from an untouched default apparatus and the baseline
         # repump configuration, preserving both their power and diameter.
         beams = build_multilevel_cooling_beams(apparatus) + build_multilevel_repump_beams(
-            default_simulation_config(),
+            default_mot_apparatus_config(),
             config,
         )
     else:
@@ -993,7 +995,7 @@ def _effective_signature_payload(
         repumper_enabled=True,
         saturation_intensity_w_per_m2=USER_SATURATION_INTENSITY_W_PER_M2,
     )
-    base_apparatus = default_simulation_config()
+    base_apparatus = default_mot_apparatus_config()
     coil = default_anti_helmholtz_config()
     model = build_rate_equation_model(base_config.natural_linewidth_rad_per_s)
     payload: dict[str, object] = {

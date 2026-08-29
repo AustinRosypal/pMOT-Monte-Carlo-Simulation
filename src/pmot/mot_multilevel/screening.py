@@ -9,7 +9,8 @@ from pathlib import Path
 
 import numpy as np
 
-from ..mot.magnetic_fields import default_anti_helmholtz_config
+from ..beam_plotting import beam_surface_mesh_mm
+from ..magnetic_fields import default_anti_helmholtz_config
 from .atomic_structure import AtomicStructure, build_atomic_structure
 from .configuration import DarkStateBehavior, default_multilevel_mot_config, multilevel_mot_paths
 from .simulation import MultilevelTrajectoryRecord, build_multilevel_cooling_beams, simulate_multilevel_trajectory
@@ -70,8 +71,6 @@ def lifetime_file_tag(record: MultilevelTrajectoryRecord) -> str:
 def draw_multilevel_mot_beam_volumes(axis, beams, length_m: float = 120.0e-3) -> None:
     """Draw multilevel MOT cooling-beam volumes with the simple-MOT notebook style."""
 
-    from ..mot_simple.plotting import _beam_surface_mesh_mm
-
     axis_color = {
         "horizontal_x": "#f9a8d4",
         "horizontal_y": "#93c5fd",
@@ -82,7 +81,7 @@ def draw_multilevel_mot_beam_volumes(axis, beams, length_m: float = 120.0e-3) ->
         if beam.axis_name in drawn_axes:
             continue
         drawn_axes.add(beam.axis_name)
-        x_surface_mm, y_surface_mm, z_surface_mm = _beam_surface_mesh_mm(
+        x_surface_mm, y_surface_mm, z_surface_mm = beam_surface_mesh_mm(
             direction=beam.direction,
             radius_m=beam.beam_radius_m,
             length_m=length_m,

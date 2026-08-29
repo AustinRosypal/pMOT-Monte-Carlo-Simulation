@@ -5,7 +5,7 @@ from dataclasses import replace
 import numpy as np
 import pytest
 
-from pmot.forces import AtomState
+from pmot.state import AtomState
 from pmot.mot_simple.configuration import default_simple_mot_config
 from pmot.mot_simple.sampling import build_argument_parser
 from pmot.mot_simple.sampling import CaptureSearchConfig
