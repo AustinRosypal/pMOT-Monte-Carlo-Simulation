@@ -292,6 +292,16 @@ radiation pressure explicitly and state when gravity is excluded.
   coherent standing-wave structure, measured polarization transformations,
   and nonadiabatic dynamics at the optical-spin zero. They must not be used for
   capture, loading, temperature, or quantitative trapping claims.
+- `notebooks/pmot/trajectory_sampling.ipynb` is the current interactive
+  vector-only diagnostic trajectory entry point. Its standard shot is the
+  clean axial launch `r0=(15,0,0) mm`, `v0=(-17,0,0) m/s`, with gravity on,
+  recoil diffusion off, 25 ms duration, and 5 microsecond step. It exposes all
+  18 cooling, repump, and trapping traveling-component propagation-frame
+  polarizations independently, initialized to the validated matched `++-`
+  tuple for incident and retro paths. Its 3D view must draw the shared 12.7-mm
+  cooling/repump volumes and the six 1529-nm Gaussian 1/e^2 envelopes at true
+  in-trap scale; the 35-mm trapping diameter is a pre-lens input and must not
+  be drawn through the trap.
 - The inherited rate kernel currently combines saturated per-transition rates,
   explicit reverse stimulated-population links, and a force based on the
   ground-population-weighted available absorption rate. Preserve and label

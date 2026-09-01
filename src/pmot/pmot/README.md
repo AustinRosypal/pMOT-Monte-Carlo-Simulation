@@ -60,6 +60,23 @@ also absent.
   For the present waist order it finds matched `++-` incident and retro
   trapping tuples uniquely position restoring while the fixed 780-nm light
   remains damping; matched `--+` is position anti-restoring.
+- `vector_only.py` is the plotting-backend-free core of that corrected
+  ideal-magic observable. Interactive notebooks should import this module or
+  `vector_only_trajectories.py`, not the batch helicity-study driver.
+- `vector_only_trajectories.py` provides the configurable diagnostic
+  trajectory runner. All cooling, repump, and trapping traveling-component
+  propagation-frame polarizations are independent; the defaults are the
+  known-working matched `++-` tuple. Its standard shot starts at
+  `(15, 0, 0)` mm with velocity `(-17, 0, 0)` m/s. The default dynamics are
+  deterministic, include gravity, and apply the two-entry-or-five-ms core
+  flag, but that flag remains a provisional diagnostic rather than validated
+  pMOT capture evidence.
+- `trajectory_plotting.py` draws the shared 12.7-mm cooling/repump paths and
+  all six focused 1529-nm Gaussian envelopes at physical scale together with
+  the trajectory and time histories. The interactive entry point is
+  `notebooks/pmot/trajectory_sampling.ipynb`; it exposes every traveling
+  component's propagation-frame polarization and writes optional CSV, JSON,
+  and PNG outputs below the pMOT output tree.
 - `preliminary_scattering.py` is an old scalar two-level exploration retained
   only for notebook reproducibility. It is not an alternative production
   solver.

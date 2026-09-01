@@ -19,6 +19,14 @@ dependencies = [
   "sympy>=1.12",
 ]
 
+[project.optional-dependencies]
+notebook = [
+  "ipykernel>=7.3",
+  "ipympl>=0.9",
+  "ipywidgets>=8.1",
+  "jupyterlab>=4.2",
+]
+
 [tool.setuptools]
 package-dir = { "" = "src" }
 

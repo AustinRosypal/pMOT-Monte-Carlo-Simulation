@@ -1,0 +1,124 @@
+{
+  "model": {
+    "model": "ideal_magic_scalar_tensor_cancelled_vector_transition_proxy",
+    "external_magnetic_field_t": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "scalar_transition_shift_included": false,
+    "tensor_transition_shift_included": false,
+    "vector_transition_shift_included": true,
+    "direct_1529nm_mechanical_force_included": false,
+    "conservative_stark_gradient_force_included": false,
+    "trap_light_scattering_heating_loss_included": false,
+    "force_source": "inherited 780-nm ground-population-weighted absorption proxy"
+  },
+  "helicities_propagation_frame": {
+    "cooling_incident_xyz": [
+      "sigma+",
+      "sigma+",
+      "sigma-"
+    ],
+    "cooling_retro_xyz": [
+      "sigma+",
+      "sigma+",
+      "sigma-"
+    ],
+    "repump_incident_xyz": [
+      "sigma+",
+      "sigma+",
+      "sigma-"
+    ],
+    "repump_retro_xyz": [
+      "sigma+",
+      "sigma+",
+      "sigma-"
+    ],
+    "trapping_incident_xyz": [
+      "sigma+",
+      "sigma+",
+      "sigma-"
+    ],
+    "trapping_retro_xyz": [
+      "sigma+",
+      "sigma+",
+      "sigma-"
+    ]
+  },
+  "launch": {
+    "position_m": [
+      0.015,
+      0.0,
+      9.184850993605148e-19
+    ],
+    "velocity_m_per_s": [
+      -17.0,
+      -0.0,
+      -1.0409497792752501e-15
+    ],
+    "radial_distance_mm": 15.0,
+    "speed_m_per_s": 17.0,
+    "polar_angle_deg": 90.0,
+    "azimuth_angle_deg": 0.0,
+    "impact_parameter_mm": 0.0,
+    "impact_azimuth_deg": 0.0
+  },
+  "integration": {
+    "duration_ms": 25.0,
+    "time_step_us": 5.0,
+    "include_diffusion": false,
+    "include_gravity": true,
+    "seed": 20260901,
+    "escape_radius_mm": 30.0
+  },
+  "optics": {
+    "cooling_power_mw_per_beam": 27.0,
+    "repump_power_mw_per_beam": 0.1,
+    "cooling_detuning_mhz": -15.0,
+    "repump_detuning_mhz": 0.0,
+    "beam_diameter_mm": 12.7,
+    "trapping_wavelength_nm": 1529.268881,
+    "focus_offset_mm": 10.0,
+    "input_beam_diameter_mm": 35.0,
+    "focal_length_mm": 80.3,
+    "retro_power_fraction": 1.0,
+    "trapping_power_w_per_path": 0.03829448617292197,
+    "trapping_power_source": "derived provisional stretched-reference vector-gradient proxy",
+    "target_gradient_g_per_cm": 20.0
+  },
+  "capture": {
+    "trapped": true,
+    "classification": "bounded_core_residence",
+    "entered_core": true,
+    "core_entry_count": 1,
+    "maximum_continuous_core_residence_s": 0.024195,
+    "required_continuous_core_residence_s": 0.005,
+    "required_core_entries": 2,
+    "core_radius_m": 0.002,
+    "minimum_radius_m": 1.0696969113487603e-06,
+    "final_radius_m": 1.0792819265343732e-06
+  },
+  "summary": {
+    "termination": "duration",
+    "capture classification": "bounded_core_residence",
+    "trapped by current criterion": true,
+    "core entries": 1,
+    "maximum continuous core residence [ms]": 24.195,
+    "minimum radius [um]": 1.0696969113487604,
+    "final radius [um]": 1.0792819265343732,
+    "final speed [m/s]": 2.8208167205497214e-16,
+    "peak optical force [zN]": 6.04311813642381,
+    "peak effective-field proxy [G]": 3644173.869017808,
+    "peak 780 absorption rate [1/s]": 25501676.355327044,
+    "external magnetic field identically zero": true,
+    "trapping power per incident path [mW]": 38.29448617292197,
+    "saved trajectory samples": 5001,
+    "wall time [s]": 7.934509199985769
+  },
+  "outputs": {
+    "trajectory_csv": "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\trajectories\\pmot\\vector_only_single_atom\\standard_17mps\\trajectory.csv",
+    "metadata_json": "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\trajectories\\pmot\\vector_only_single_atom\\standard_17mps\\run_metadata.json",
+    "figure_png": "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\figures\\pmot\\vector_only_single_atom\\standard_17mps\\trajectory_and_beams.png"
+  }
+}

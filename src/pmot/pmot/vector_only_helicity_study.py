@@ -17,7 +17,6 @@ from __future__ import annotations
 
 import argparse
 import json
-from dataclasses import dataclass
 from pathlib import Path
 from time import perf_counter
 from typing import Any
@@ -31,14 +30,9 @@ from matplotlib.patches import Rectangle
 import numpy as np
 import pandas as pd
 
-from ..configuration import HBAR_J_S
 from ..configuration import PLANCK_CONSTANT_J_S
-from ..mot_multilevel.rate_equations import rate_equation_observable_from_local_environment
 from .ac_stark import EFFECTIVE_DETUNING_EQUATION
 from .ac_stark import PROVISIONAL_MODEL_NAME
-from .ac_stark import ProvisionalStarkConfig
-from .ac_stark import build_physics_trapping_beams
-from .ac_stark import provisional_transition_stark_shifts
 from .configuration import pmot_paths
 from .helicity_sweep import CURRENT_COMBINED_CODE
 from .helicity_sweep import CURRENT_PATH_CODE
@@ -51,6 +45,11 @@ from .helicity_sweep import classify_position_jacobian
 from .helicity_sweep import classify_velocity_jacobian
 from .helicity_sweep import decode_helicity_code
 from .helicity_sweep import path_helicity_codes
+from .vector_only import BARE_AXIS
+from .vector_only import VectorOnlyObservable
+from .vector_only import bare_780_observable
+from .vector_only import prepare_vector_only_trapping_environment
+from .vector_only import vector_only_pmot_observable
 
 
 VECTOR_ONLY_MODEL_NAME = "ideal_magic_scalar_tensor_cancelled_vector_transition_proxy"
@@ -62,18 +61,8 @@ FORCE_MECHANISM = (
     "F_proxy = sum_b hbar*k_780,b*R_abs,b evaluated after the 1529-nm vector "
     "transition-resonance shift; no direct 1529-nm force is applied"
 )
-BARE_AXIS = (0.0, 0.0, 1.0)
 REVERSED_PATH_CODE = "--+"
 REVERSED_COMBINED_CODE = REVERSED_PATH_CODE + REVERSED_PATH_CODE
-
-
-@dataclass(frozen=True, slots=True)
-class VectorOnlyObservable:
-    """One vector-only local environment and its inherited 780-nm response."""
-
-    rate_equation: Any
-    stark_diagnostic: Any
-    applied_transition_shift_rad_per_s: np.ndarray
 
 
 def _cycling_transition_index(model) -> int:
@@ -86,85 +75,6 @@ def _cycling_transition_index(model) -> int:
         ) == (2, 2, 3, 3):
             return index
     raise RuntimeError("the rate model is missing the stretched cycling transition")
-
-
-def _stark_configuration_and_beams(
-    context: HelicitySweepContext,
-    code: str,
-) -> tuple[ProvisionalStarkConfig, list[Any]]:
-    incident, retro = decode_helicity_code(code)
-    stark_config = ProvisionalStarkConfig.uniform_power(
-        context.power_w_per_path,
-        incident_helicities_by_axis=incident,
-        retro_helicities_by_axis=retro,
-    )
-    beams = build_physics_trapping_beams(
-        context.apparatus.trapping_laser,
-        stark_config,
-    )
-    return stark_config, beams
-
-
-def vector_only_pmot_observable(
-    context: HelicitySweepContext,
-    code: str,
-    position_m,
-    velocity_m_per_s,
-    *,
-    previous_axis=BARE_AXIS,
-    prepared: tuple[ProvisionalStarkConfig, list[Any]] | None = None,
-) -> VectorOnlyObservable:
-    """Apply only the vector Stark transition shift to fixed 780-nm beams."""
-
-    stark_config, trapping_beams = (
-        prepared
-        if prepared is not None
-        else _stark_configuration_and_beams(context, code)
-    )
-    stark = provisional_transition_stark_shifts(
-        context.model,
-        trapping_beams,
-        position_m,
-        velocity_m_per_s,
-        context.apparatus.trapping_laser,
-        stark_config,
-        previous_axis,
-        polarizability_table=context.polarizability_table,
-    )
-    applied_shift = np.asarray(stark.vector_transition_energy_j, dtype=float) / HBAR_J_S
-    rate = rate_equation_observable_from_local_environment(
-        context.model,
-        list(context.cooling_repump_beams),
-        tuple(float(value) for value in position_m),
-        tuple(float(value) for value in velocity_m_per_s),
-        (0.0, 0.0, 0.0),
-        stark.quantization_axis,
-        context.multilevel_config,
-        transition_resonance_shift_rad_per_s=applied_shift,
-    )
-    return VectorOnlyObservable(rate, stark, applied_shift)
-
-
-def bare_780_observable(
-    context: HelicitySweepContext,
-    position_m,
-    velocity_m_per_s,
-):
-    """Evaluate fixed cooling/repump light with no external or Stark shift."""
-
-    return rate_equation_observable_from_local_environment(
-        context.model,
-        list(context.cooling_repump_beams),
-        tuple(float(value) for value in position_m),
-        tuple(float(value) for value in velocity_m_per_s),
-        (0.0, 0.0, 0.0),
-        BARE_AXIS,
-        context.multilevel_config,
-        transition_resonance_shift_rad_per_s=np.zeros(
-            len(context.model.transition_ground),
-            dtype=float,
-        ),
-    )
 
 
 def _centered_jacobian(
@@ -222,7 +132,7 @@ def evaluate_vector_only_configuration(
 ) -> dict[str, Any]:
     """Record every code, but linearize only a centered origin equilibrium."""
 
-    prepared = _stark_configuration_and_beams(context, code)
+    prepared = prepare_vector_only_trapping_environment(context, code)
 
     def evaluate(position, velocity):
         return vector_only_pmot_observable(
@@ -381,7 +291,7 @@ def sample_vector_only_comparison(
         ("reversed_matched", REVERSED_COMBINED_CODE),
     )
     for role, code in roles:
-        prepared = _stark_configuration_and_beams(context, code)
+        prepared = prepare_vector_only_trapping_environment(context, code)
         for component, axis in enumerate("xyz"):
             for coordinate in np.linspace(-position_extent_m, position_extent_m, sample_count):
                 position = np.zeros(3)
