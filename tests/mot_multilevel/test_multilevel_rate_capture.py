@@ -20,7 +20,7 @@ def test_rate_capture_launch_geometry_is_reproducible_and_area_bounded() -> None
     assert len(first_points) == 15
     assert all(0.0 <= point.s_m <= search.disc_radius_m for point in first_points)
     assert all(np.isclose(np.linalg.norm(point.incident_unit_vector), 1.0) for point in first_points)
-    assert all(np.all(np.asarray(disc.outward_unit_vector) >= 0.0) for disc in first_discs)
+    assert search.phase_space == "full_sphere"
 
 
 def test_full_sphere_launch_geometry_covers_both_coordinate_signs() -> None:

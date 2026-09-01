@@ -1,11 +1,12 @@
-"""Resumable 27 mW cooling/0.1 mW repump study for the 24-state MOT.
+"""Resumable cooling-power/detuning loading study for the 24-state MOT.
 
-This module is intentionally a single, fixed production study.  It uses the
-repumper-included, adiabatically eliminated population-rate force and the same
-seeded 50-disc by 50-point launch geometry as the companion ``mot_simple``
-27 mW cooling study.  Capture trajectories are deterministic (recoil diffusion is
-disabled) so that the local monotonicity assumption used by the capture-speed
-binary search remains meaningful.
+The default remains the original 27 mW cooling, -15 MHz detuning, and 0.1 mW
+repump production study.  The public runner also accepts an explicit red
+cooling detuning so parameter campaigns can reuse the same signed, checkpointed
+50-disc by 50-point workflow.  It uses the repumper-included, adiabatically
+eliminated population-rate force.  Capture trajectories are deterministic
+(recoil diffusion is disabled) so that the local monotonicity assumption used
+by the capture-speed binary search remains meaningful.
 
 Six cooling components are each assigned 27 mW, while the six co-propagating
 repump components retain the authoritative 0.1 mW baseline.  At the default
@@ -70,6 +71,7 @@ from .simulation import build_multilevel_mot_beams
 
 STUDY_NAME = "loading_rate_cooling27mW_repump0p1mW_50_discs_50_points"
 COOLING_POWER_W_PER_BEAM = 27.0e-3
+COOLING_DETUNING_HZ = -15.0e6
 REPUMP_POWER_W_PER_BEAM = 0.1e-3
 DISC_COUNT = 50
 POINTS_PER_DISC = 50
@@ -235,17 +237,27 @@ def build_27mw_multilevel_configuration(
     *,
     cooling_power_w_per_beam: float = COOLING_POWER_W_PER_BEAM,
     repump_power_w_per_beam: float = REPUMP_POWER_W_PER_BEAM,
+    cooling_detuning_hz: float = COOLING_DETUNING_HZ,
 ) -> tuple[MultilevelMOTConfig, MOTApparatusConfig, list[MOTBeam]]:
-    """Build the 24-state MOT with 27 mW cooling and baseline repump power."""
+    """Build the 24-state MOT, retaining the historical defaults.
+
+    ``cooling_detuning_hz`` uses ordinary frequency units at this public
+    apparatus boundary.  The multilevel solver receives the exactly matching
+    angular detuning in rad/s.
+    """
 
     if cooling_power_w_per_beam <= 0.0 or repump_power_w_per_beam <= 0.0:
         raise ValueError("cooling and repump powers must both be positive")
+    if not np.isfinite(cooling_detuning_hz) or cooling_detuning_hz >= 0.0:
+        raise ValueError("cooling_detuning_hz must be finite and negative")
+    cooling_detuning_hz = float(cooling_detuning_hz)
     baseline_apparatus = default_mot_apparatus_config()
     apparatus = replace(
         baseline_apparatus,
         cooling=replace(
             baseline_apparatus.cooling,
             power_w_per_beam=float(cooling_power_w_per_beam),
+            detuning_hz=cooling_detuning_hz,
         ),
         repump=replace(
             baseline_apparatus.repump,
@@ -254,11 +266,18 @@ def build_27mw_multilevel_configuration(
     )
     config = replace(
         default_multilevel_mot_config(),
+        cooling_detuning_rad_per_s=2.0 * pi * cooling_detuning_hz,
         repumper_enabled=True,
         repump_power_w_per_beam=float(repump_power_w_per_beam),
     )
     beams = build_multilevel_mot_beams(apparatus_config=apparatus, config=config)
-    _validate_built_model_inputs(config, beams, cooling_power_w_per_beam, repump_power_w_per_beam)
+    _validate_built_model_inputs(
+        config,
+        beams,
+        cooling_power_w_per_beam,
+        repump_power_w_per_beam,
+        cooling_detuning_hz,
+    )
     return config, apparatus, beams
 
 
@@ -267,6 +286,7 @@ def _validate_built_model_inputs(
     beams: Sequence[MOTBeam],
     cooling_power_w_per_beam: float,
     repump_power_w_per_beam: float,
+    cooling_detuning_hz: float,
 ) -> None:
     cooling = [beam for beam in beams if beam.family == "cooling"]
     repump = [beam for beam in beams if beam.family == "repump"]
@@ -282,6 +302,18 @@ def _validate_built_model_inputs(
         for beam in repump
     ):
         raise RuntimeError("one or more repump beams does not have the requested power")
+    if any(
+        not np.isclose(beam.detuning_hz, cooling_detuning_hz, rtol=0.0, atol=1.0e-9)
+        for beam in cooling
+    ):
+        raise RuntimeError("one or more cooling beams does not have the requested detuning")
+    if not np.isclose(
+        config.cooling_detuning_rad_per_s,
+        2.0 * pi * cooling_detuning_hz,
+        rtol=0.0,
+        atol=1.0e-6,
+    ):
+        raise RuntimeError("solver and apparatus cooling detunings are inconsistent")
 
 
 def effective_saturation_metrics(
@@ -320,7 +352,8 @@ def effective_saturation_metrics(
         ),
         "interpretation": (
             f"The cooling value applies to the {1e3 * apparatus.cooling.power_w_per_beam:g} "
-            "mW, -15 MHz cooling component. The resonant repumper's effective "
+            f"mW, {apparatus.cooling.detuning_hz / 1e6:g} MHz cooling component. "
+            "The resonant repumper's effective "
             "saturation equals its on-resonance saturation."
         ),
     }
@@ -513,9 +546,29 @@ def configuration_invariance_audit(
         "apparatus_changed_fields": apparatus_changes,
         "apparatus_only_cooling_and_repump_power_changed": apparatus_changes
         == ["cooling.power_w_per_beam", "repump.power_w_per_beam"],
+        "apparatus_changes_within_requested_power_and_cooling_detuning_fields": (
+            not (
+                set(apparatus_changes)
+                - {
+                    "cooling.detuning_hz",
+                    "cooling.power_w_per_beam",
+                    "repump.power_w_per_beam",
+                }
+            )
+        ),
         "multilevel_config_changed_fields": config_changes,
         "multilevel_only_repumper_enable_changed": config_changes
         == ["repumper_enabled"],
+        "multilevel_changes_within_requested_repumper_and_cooling_detuning_fields": (
+            not (
+                set(config_changes)
+                - {
+                    "cooling_detuning_rad_per_s",
+                    "repump_power_w_per_beam",
+                    "repumper_enabled",
+                }
+            )
+        ),
         "repump_power_matches_authoritative_multilevel_default": bool(
             np.isclose(
                 config.repump_power_w_per_beam,
@@ -1192,6 +1245,7 @@ def _initialize_capture_worker(
         _WORKER_BEAMS,
         apparatus.cooling.power_w_per_beam,
         config.repump_power_w_per_beam,
+        apparatus.cooling.detuning_hz,
     )
     if _WORKER_MODEL.state_count != 24 or _WORKER_MODEL.ground_count != 8 or _WORKER_MODEL.excited_count != 16:
         raise RuntimeError("worker did not initialize the authoritative 24-state model")
@@ -1292,6 +1346,7 @@ def run_power_loading_study(
     analyze_only: bool = False,
     cooling_power_w_per_beam: float = COOLING_POWER_W_PER_BEAM,
     repump_power_w_per_beam: float = REPUMP_POWER_W_PER_BEAM,
+    cooling_detuning_hz: float = COOLING_DETUNING_HZ,
     study_name: str = STUDY_NAME,
     progress_every: int = PROGRESS_EVERY,
     checkpoint_every: int = CHECKPOINT_EVERY,
@@ -1321,6 +1376,7 @@ def run_power_loading_study(
     config, apparatus, beams = build_27mw_multilevel_configuration(
         cooling_power_w_per_beam=cooling_power_w_per_beam,
         repump_power_w_per_beam=repump_power_w_per_beam,
+        cooling_detuning_hz=cooling_detuning_hz,
     )
     coil = default_anti_helmholtz_config()
     discs, points = generate_study_geometry(search)
@@ -1386,6 +1442,12 @@ def run_power_loading_study(
     )
     _atomic_write_json(paths.metadata_json, metadata)
 
+    resolved_plot_context = plot_context or (
+        f"{1e3 * cooling_power_w_per_beam:g} mW cooling; "
+        f"{1e3 * repump_power_w_per_beam:g} mW repump; "
+        f"cooling detuning {cooling_detuning_hz / 1e6:g} MHz"
+    )
+
     if analyze_only:
         if len(results) != expected:
             raise ValueError(f"--analyze-only requires {expected} samples; found {len(results)}")
@@ -1397,7 +1459,7 @@ def run_power_loading_study(
             paths,
             signature=signature,
             geometry_hash=geometry_hash,
-            plot_context=plot_context,
+            plot_context=resolved_plot_context,
         )
         metadata.update(
             {
@@ -1418,6 +1480,7 @@ def run_power_loading_study(
     progress_label = (
         f"24-state MOT {1e3 * cooling_power_w_per_beam:g} mW cooling, "
         f"{1e3 * repump_power_w_per_beam:g} mW repump, "
+        f"{cooling_detuning_hz / 1e6:g} MHz cooling detuning, "
         f"{1e3 * search.disc_radius_m:g} mm disc, "
         f"{search.phase_space.replace('_', ' ')}"
     )
@@ -1501,7 +1564,7 @@ def run_power_loading_study(
         paths,
         signature=signature,
         geometry_hash=geometry_hash,
-        plot_context=plot_context,
+        plot_context=resolved_plot_context,
     )
     metadata.update(
         {
@@ -1522,8 +1585,8 @@ def run_power_loading_study(
 def build_argument_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
-            "Run the fixed 27 mW cooling + 0.1 mW repump, 50-disc x 50-point "
-            "24-state MOT capture-cross-section and loading-rate study"
+            "Run the default 27 mW cooling + 0.1 mW repump, 50-disc x 50-point "
+            "24-state MOT capture/loading study at a selectable red cooling detuning"
         )
     )
     parser.add_argument("--workers", type=int, default=DEFAULT_WORKER_COUNT)
@@ -1532,6 +1595,12 @@ def build_argument_parser() -> argparse.ArgumentParser:
     parser.add_argument("--resume", dest="resume", action="store_true", default=True)
     parser.add_argument("--no-resume", dest="resume", action="store_false")
     parser.add_argument("--analyze-only", action="store_true")
+    parser.add_argument(
+        "--cooling-detuning-mhz",
+        type=float,
+        default=COOLING_DETUNING_HZ / 1.0e6,
+        help="ordinary-frequency cooling detuning in MHz; must be negative",
+    )
     return parser
 
 
@@ -1543,6 +1612,7 @@ def main(argv: list[str] | None = None) -> int:
         figure_directory=args.figures_dir,
         resume=args.resume,
         analyze_only=args.analyze_only,
+        cooling_detuning_hz=1.0e6 * args.cooling_detuning_mhz,
     )
     return 0
 
@@ -1553,6 +1623,7 @@ if __name__ == "__main__":
 
 __all__ = [
     "CHECKPOINT_EVERY",
+    "COOLING_DETUNING_HZ",
     "COOLING_POWER_W_PER_BEAM",
     "DEFAULT_WORKER_COUNT",
     "DISC_COUNT",

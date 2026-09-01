@@ -133,7 +133,6 @@ def test_radius_search_invariance_audit_allows_only_sampling_and_execution() -> 
         "disc_count",
         "disc_radius_m",
         "include_center_point",
-        "phase_space",
         "points_per_disc",
         "seed",
         "worker_count",

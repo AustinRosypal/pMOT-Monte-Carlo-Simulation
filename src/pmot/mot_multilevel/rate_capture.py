@@ -74,7 +74,7 @@ class RateCaptureSearchConfig:
     seed: int = 20260821
     save_every: int = 10
     worker_count: int = 8
-    phase_space: str = "octant"
+    phase_space: str = "full_sphere"
 
 
 def _validate_search(search: RateCaptureSearchConfig) -> None:
@@ -549,8 +549,8 @@ def build_argument_parser() -> argparse.ArgumentParser:
     parser.add_argument("--save-every", type=int, default=defaults.save_every)
     parser.add_argument("--workers", type=int, default=defaults.worker_count)
     parser.add_argument(
-        "--phase-space", choices=("octant", "full-sphere"), default="octant",
-        help="sample incident directions in one symmetry octant or over all 4 pi",
+        "--phase-space", choices=("octant", "full-sphere"), default="full-sphere",
+        help="sample incident directions over all 4 pi (default) or in one symmetry octant",
     )
     parser.add_argument("--output-dir", type=Path, default=None)
     parser.add_argument("--figures-dir", type=Path, default=None)

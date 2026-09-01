@@ -1,4 +1,4 @@
-"""Checks for the fixed 27 mW cooling/0.1 mW repump loading runner."""
+"""Checks for the configurable multilevel power/loading runner."""
 
 from __future__ import annotations
 
@@ -9,10 +9,12 @@ from math import pi
 import numpy as np
 import pytest
 
+import pmot.mot_multilevel.power_loading_study as power_study
 from pmot.capture_statistics import CaptureVelocitySample
 from pmot.launch_geometry import PointSample
 from pmot.magnetic_fields import default_anti_helmholtz_config
 from pmot.mot_multilevel.power_loading_study import (
+    COOLING_DETUNING_HZ,
     COOLING_POWER_W_PER_BEAM,
     DISC_COUNT,
     POINTS_PER_DISC,
@@ -21,6 +23,7 @@ from pmot.mot_multilevel.power_loading_study import (
     StudyPaths,
     analyze_completed_samples,
     build_27mw_multilevel_configuration,
+    build_argument_parser,
     calculate_clustered_cross_section,
     calculate_disc_clustered_loading,
     configuration_invariance_audit,
@@ -85,7 +88,7 @@ def test_default_study_is_50_by_50_random_points() -> None:
 
 def test_geometry_exactly_matches_completed_simple_power_study() -> None:
     multilevel_discs, multilevel_points = generate_study_geometry(
-        default_study_search_config()
+        replace(default_study_search_config(), phase_space="octant")
     )
     simple_discs, simple_points = generate_simple_power_geometry(
         default_simple_power_search()
@@ -143,6 +146,61 @@ def test_cooling_is_27_mw_repump_is_baseline_0p1_mw_and_model_has_24_states() ->
     assert all(np.isclose(2.0 * beam.beam_radius_m, 12.7e-3) for beam in beams)
 
 
+def test_custom_red_cooling_detuning_updates_solver_apparatus_and_beams() -> None:
+    cooling_detuning_hz = -30.0e6
+    config, apparatus, beams = build_27mw_multilevel_configuration(
+        cooling_detuning_hz=cooling_detuning_hz,
+    )
+    cooling = [beam for beam in beams if beam.family == "cooling"]
+
+    assert apparatus.cooling.detuning_hz == cooling_detuning_hz
+    assert config.cooling_detuning_rad_per_s == pytest.approx(
+        2.0 * pi * cooling_detuning_hz
+    )
+    assert all(beam.detuning_hz == cooling_detuning_hz for beam in cooling)
+    metrics = effective_saturation_metrics(config, apparatus)
+    expected_denominator = 1.0 + (
+        2.0
+        * config.cooling_detuning_rad_per_s
+        / config.natural_linewidth_rad_per_s
+    ) ** 2
+    assert metrics["cooling"]["detuning_reduction_denominator"] == pytest.approx(
+        expected_denominator
+    )
+    assert "-30 MHz cooling component" in metrics["interpretation"]
+
+
+def test_capture_worker_initialization_preserves_custom_cooling_detuning() -> None:
+    config, apparatus, _ = build_27mw_multilevel_configuration(
+        cooling_detuning_hz=-30.0e6,
+    )
+    power_study._initialize_capture_worker(
+        config,
+        apparatus,
+        default_anti_helmholtz_config(),
+        default_study_search_config(),
+    )
+
+    assert power_study._WORKER_CONFIG == config
+    assert power_study._WORKER_BEAMS is not None
+    assert all(
+        beam.detuning_hz == -30.0e6
+        for beam in power_study._WORKER_BEAMS
+        if beam.family == "cooling"
+    )
+
+
+@pytest.mark.parametrize(
+    "cooling_detuning_hz",
+    [0.0, 1.0, np.nan, np.inf, -np.inf],
+)
+def test_cooling_detuning_must_be_finite_and_red(cooling_detuning_hz: float) -> None:
+    with pytest.raises(ValueError, match="finite and negative"):
+        build_27mw_multilevel_configuration(
+            cooling_detuning_hz=cooling_detuning_hz,
+        )
+
+
 def test_effective_saturation_distinguishes_cooling_from_resonant_repump() -> None:
     config, apparatus, _ = build_27mw_multilevel_configuration()
     metrics = effective_saturation_metrics(config, apparatus)
@@ -165,7 +223,13 @@ def test_only_requested_power_and_sampling_fields_change() -> None:
         default_study_search_config(),
     )
     assert audit["apparatus_only_cooling_and_repump_power_changed"]
+    assert audit[
+        "apparatus_changes_within_requested_power_and_cooling_detuning_fields"
+    ]
     assert audit["multilevel_only_repumper_enable_changed"]
+    assert audit[
+        "multilevel_changes_within_requested_repumper_and_cooling_detuning_fields"
+    ]
     assert audit["repump_power_matches_authoritative_multilevel_default"] is True
     assert audit["coil_config_matches_default"]
     assert audit["capture_search_only_sampling_design_changed"]
@@ -206,6 +270,19 @@ def test_signature_binds_powers_search_geometry_and_source_hashes() -> None:
     assert "worker_count" not in payload["capture_search_config"]
     assert study_signature(payload) == study_signature(changed_workers)
 
+    detuned_config, detuned_apparatus, _ = build_27mw_multilevel_configuration(
+        cooling_detuning_hz=-30.0e6,
+    )
+    detuned_payload = study_signature_payload(
+        detuned_config,
+        detuned_apparatus,
+        default_anti_helmholtz_config(),
+        search,
+        "geometry",
+        source_hashes={"test.py": "abc"},
+    )
+    assert study_signature(payload) != study_signature(detuned_payload)
+
 
 def test_run_metadata_is_json_serializable_and_audits_family_powers(tmp_path) -> None:
     config, apparatus, beams = build_27mw_multilevel_configuration()
@@ -244,12 +321,14 @@ def test_run_metadata_is_json_serializable_and_audits_family_powers(tmp_path) ->
 def test_run_metadata_records_generalized_study_controls(tmp_path) -> None:
     cooling_power_w = 20.0e-3
     repump_power_w = 0.2e-3
+    cooling_detuning_hz = -30.0e6
     study_name = "loading_rate_disc_radius_15mm_full_sphere_100x100"
     checkpoint_every = 37
     progress_every = 11
     config, apparatus, beams = build_27mw_multilevel_configuration(
         cooling_power_w_per_beam=cooling_power_w,
         repump_power_w_per_beam=repump_power_w,
+        cooling_detuning_hz=cooling_detuning_hz,
     )
     search = replace(
         default_study_search_config(),
@@ -296,6 +375,22 @@ def test_run_metadata_records_generalized_study_controls(tmp_path) -> None:
     assert "complete 4 pi sphere" in metadata["geometry_sampler"]
     assert metadata["cooling_power_w_per_beam"] == cooling_power_w
     assert metadata["repump_power_w_per_beam"] == repump_power_w
+    assert metadata["cooling_detuning_hz"] == cooling_detuning_hz
+    assert metadata["cooling_detuning_rad_per_s"] == pytest.approx(
+        2.0 * pi * cooling_detuning_hz
+    )
+    assert metadata["apparatus_config"]["cooling"]["detuning_hz"] == (
+        cooling_detuning_hz
+    )
+    assert metadata["multilevel_config"]["cooling_detuning_rad_per_s"] == (
+        pytest.approx(2.0 * pi * cooling_detuning_hz)
+    )
+    assert metadata["configuration_invariance_audit"][
+        "apparatus_changes_within_requested_power_and_cooling_detuning_fields"
+    ]
+    assert metadata["configuration_invariance_audit"][
+        "multilevel_changes_within_requested_repumper_and_cooling_detuning_fields"
+    ]
     assert metadata["built_cooling_beam_powers_w"] == [cooling_power_w] * 6
     assert metadata["built_repump_beam_powers_w"] == [repump_power_w] * 6
     assert metadata["checkpoint_every_completed_samples"] == checkpoint_every
@@ -304,6 +399,15 @@ def test_run_metadata_records_generalized_study_controls(tmp_path) -> None:
     assert metadata["completed_sample_count"] == 123
     assert any("Full-sphere direction sampling" in item for item in metadata["limitations"])
     assert all("one-octant convention" not in item for item in metadata["limitations"])
+
+
+def test_cli_defaults_to_minus_15_mhz_and_accepts_custom_red_detuning() -> None:
+    parser = build_argument_parser()
+    defaults = parser.parse_args([])
+    custom = parser.parse_args(["--cooling-detuning-mhz", "-30"])
+
+    assert defaults.cooling_detuning_mhz == COOLING_DETUNING_HZ / 1.0e6
+    assert custom.cooling_detuning_mhz == -30.0
 
 
 def test_clustered_cross_section_and_loading_use_direction_discs() -> None:

@@ -1,0 +1,76 @@
+# Physical model: temperature versus cooling detuning
+
+## What was modeled
+
+At each cooling detuning, 15 independently seeded realizations of a preloaded 15-atom Rb-87 cloud are evolved in the fixed six-beam MOT using the repumper-enabled 24-state adiabatic population-rate equations and Langevin recoil diffusion. Each realization's reported final temperature is the time average over the final 5 ms of the unbiased, instantaneous-center-of-mass-subtracted three-dimensional velocity variance; the plotted point is the arithmetic mean of the 15 realization temperatures. Only the cooling detuning Delta=n Gamma changes between points.
+
+This is a trapped-cloud equilibration/temperature study, not a capture/loading
+study. No incident launch disk is used: a disk would require choosing an
+incident launch speed and would therefore add another physical variable.
+Consequently, full-sphere versus octant launch-direction sampling does not apply.
+Instead, each of the 15 independent realizations is a randomly
+sampled 15-atom preloaded cloud. A plotted estimate is
+interpreted as an equilibrium temperature only when it passes the survivor and
+stationarity checks below.
+
+## Fixed physical and numerical parameters
+
+- Atomic/optical model: repumper-enabled 24-state Rb-87 D2 adiabatic population-rate equations (8 ground states and 16 excited states).
+- Cooling beams: six default Gaussian beams, 27 mW per beam and 12.7 mm diameter.
+- Repumper: enabled at 0.1 mW per beam with the fixed baseline diameter and detuning; all dipole-allowed F=1 channels including F'=0 are retained.
+- Magnetic field, gravity, beam geometry, polarizations, linewidth, and every configuration value other than cooling detuning: fixed at the production baseline recorded in the metadata. The repumper is explicitly enabled for this baseline even though the generic configuration factory defaults to disabled.
+- Initial cloud: independent normal position draws with sigma=0.25 mm per coordinate and Maxwell-Gaussian velocity draws at 2 mK.
+- Evolution: 25 ms with 5 microsecond steps and Langevin recoil diffusion enabled.
+- Final plateau: last 5 ms; a temperature survivor reaches the requested duration and stays within the 2 mm core throughout this final interval.
+- Detuning grid: 14 specified values spanning n=-15 to n=-0.1, with Delta=n Gamma and Gamma/(2 pi)=6.07 MHz.
+- Detuning-dependent Doppler reference: T_D=-hbar Gamma^2/[8 k_B Delta] * [1+s_eff+(2 Delta/Gamma)^2], evaluated independently at every detuning using angular-frequency units and red Delta<0.
+- Saturation convention: s_eff=s_0/[1+(2 Delta/Gamma)^2], where s_0=I_0/I_sat and I_0=2P/(pi w^2) is the Gaussian peak intensity at the center of one cooling beam. The fixed 27 mW, 12.7 mm-diameter cooling beams give s_0=25.54113.
+- Across the saved detuning grid, this reference spans 336.876 to 9321.6 microkelvin and is plotted as a curve, not a constant line.
+
+The 15 random initial phase-space clouds are drawn once and reused at every
+detuning (common random initial conditions). Langevin recoil streams are
+independent between atoms, realizations, and detunings. A configuration audit
+verifies that only the solver, apparatus, and cooling-beam detuning fields vary.
+
+## Temperature and uncertainty estimator
+
+For each realization and recorded time, the instantaneous center-of-mass
+velocity is removed and the unbiased sample variance is calculated separately
+for x, y, and z: T_i=m Var(v_i)/k_B. The scalar temperature is
+(T_x+T_y+T_z)/3 and is averaged over the final plateau. The plotted point is
+the arithmetic mean of the 15 realization temperatures. Explicit
+asymmetric error bars and the shaded band show the two-sided 95% Student-t
+interval across the 15 independent cloud realizations; one SEM is
+also saved in the CSV.
+
+For a cloud estimate to pass, at least
+3 atoms must survive in
+the final core and both its four-subwindow spread and fitted relative drift over
+the plateau must be below 0.15. A plot
+point is marked valid only if all 15 cloud estimates pass. Hollow red circles
+are nonstationary diagnostics and the hollow orange triangle marks an
+insufficient-survivor diagnostic; neither is claimed as an equilibrium
+temperature.
+
+The survivor fraction is reported independently from temperature. Its primary
+uncertainty interval is a 95% Student-t interval across the 15 realization
+fractions, which preserves the ensemble clustering. A pooled 95% Wilson
+interval across all 225 trajectories is also saved as a secondary diagnostic.
+
+## Why an earlier trapped fraction could equal one
+
+These atoms start as a compact preloaded cloud (position sigma 0.25 mm, well
+inside the 2 mm core), rather than arriving from a capture disk. With only ten
+previous trajectories, all ten could readily survive for the short simulated
+duration, producing a displayed fraction of 1. That value described survival
+of that small preloaded sample; it did not mean every incident atom would be
+captured. This run uses 225 trajectories per detuning and reports an interval.
+
+## Limitations
+
+- A survivor-only temperature is conditional on remaining in the final core and can exhibit survivor bias; survivor fraction is therefore shown separately.
+- The adiabatic rate equations omit optical coherences and sub-Doppler polarization-gradient cooling.
+- Atoms are noninteracting; density-dependent reabsorption and collisions are absent.
+- The detuning-dependent Doppler curve is an analytical reference using the explicitly defined per-beam s_eff; it is not a claim that the full 24-state magnetic MOT must attain it.
+- The 25 ms evolution is finite; quality-flagged values diagnose where this duration or the final-core sample does not establish equilibrium.
+- Quantitative claims remain provisional until timestep and duration convergence are checked independently.

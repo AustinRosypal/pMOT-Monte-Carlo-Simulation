@@ -64,7 +64,11 @@ operation required in the current multilevel model.
 
 ## Capture-velocity convention
 
-- Sample incident directions uniformly in solid angle in one symmetry octant.
+- Sample incident directions uniformly in solid angle over the full sphere by
+  default. Restricting launch directions to a symmetry octant requires an
+  explicit user instruction. Full-sphere cross sections and loading rates use
+  the direction-disc average directly, with no octant or `4*pi` multiplicity
+  factor.
 - A sampling disc is perpendicular to its incident direction.
 - All launch velocities on a disc are parallel to the disc normal; offset
   points do not individually aim at the origin.
@@ -143,6 +147,15 @@ radiation pressure explicitly and state when gravity is excluded.
   still verify that assumption in representative regimes.
 - Production temperature trajectories use the same multilevel rate-equation
   force with recoil diffusion enabled through the Langevin model.
+- For the August 2026 relationship campaign, the completed raw-saturation and
+  effective-saturation loading sweeps retain their 30 full-sphere direction
+  discs by 30 uniform-area launch points per disc. The restarted detuning
+  loading sweep uses 15 full-sphere direction discs by 15 launch points per
+  disc, and the corresponding temperature sweep uses 15 independent preloaded
+  clouds by 15 atoms per cloud. Treat the 15 direction discs or clouds as the
+  independent clusters for Student-t intervals (14 degrees of freedom). Keep
+  the 30x30 and 15x15 products in separately named output roots so their sample
+  sizes and provenance cannot be confused.
 - The August 2026 sampling-disc-radius loading campaign uses 27 mW in each of
   the six cooling beams (the -15 MHz center-beam effective saturation is about
   one) and 0.1 mW in each repump beam. Its phase-one radii are 3, 5, 8, 12, 15,

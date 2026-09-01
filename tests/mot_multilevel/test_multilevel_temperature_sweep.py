@@ -1,4 +1,4 @@
-"""Focused checks for the 10x25 multilevel temperature-versus-detuning study."""
+"""Focused checks for multilevel temperature-versus-detuning studies."""
 
 from __future__ import annotations
 
@@ -12,6 +12,8 @@ import pmot.mot_multilevel.temperature_sweep as sweep
 from pmot.configuration import RB87_MASS_KG
 from pmot.mot_multilevel.temperature import BOLTZMANN_CONSTANT_J_PER_K
 from pmot.mot_multilevel.temperature_sweep import (
+    DEFAULT_COOLING_POWER_W_PER_BEAM,
+    DEFAULT_MINIMUM_SURVIVOR_FRACTION,
     DETUNING_N_VALUES,
     PHYSICAL_MODEL_STATEMENT,
     REQUIRED_ATOMS_PER_ENSEMBLE,
@@ -86,6 +88,13 @@ def test_detuning_configuration_is_24_state_repumper_model_and_audit_passes() ->
     repump_beams = [beam for beam in beams if beam.family == "repump"]
     assert len(cooling_beams) == 6
     assert len(repump_beams) == 6
+    assert apparatus.repump.power_w_per_beam == pytest.approx(
+        config.repump_power_w_per_beam
+    )
+    assert all(
+        beam.power_w == pytest.approx(config.repump_power_w_per_beam)
+        for beam in repump_beams
+    )
     assert all(
         beam.detuning_hz == expected_rad_per_s / (2.0 * np.pi)
         for beam in cooling_beams
@@ -100,6 +109,23 @@ def test_detuning_configuration_is_24_state_repumper_model_and_audit_passes() ->
         "apparatus_config.cooling.detuning_hz",
         "cooling_beams[*].detuning_hz",
     ]
+
+    _, custom_apparatus, custom_beams = build_temperature_sweep_configuration(
+        -0.5,
+        cooling_power_w_per_beam=27.0e-3,
+    )
+    assert custom_apparatus.cooling.power_w_per_beam == pytest.approx(27.0e-3)
+    assert custom_apparatus.repump.power_w_per_beam == pytest.approx(0.1e-3)
+    assert all(
+        beam.power_w == pytest.approx(27.0e-3)
+        for beam in custom_beams
+        if beam.family == "cooling"
+    )
+    custom_audit = verify_only_cooling_detuning_changes(
+        (-10.0, -0.5),
+        cooling_power_w_per_beam=27.0e-3,
+    )
+    assert custom_audit["cooling_power_w_per_beam"] == pytest.approx(27.0e-3)
 
 
 def test_doppler_reference_recomputes_effective_saturation_at_each_detuning() -> None:
@@ -120,6 +146,29 @@ def test_doppler_reference_recomputes_effective_saturation_at_each_detuning() ->
     )
     assert np.ptp(curve) > 6.0e-3
     assert DETUNING_N_VALUES[int(np.argmin(curve))] == -1.25
+
+    higher_power = cooling_doppler_reference(
+        -2.5,
+        cooling_power_w_per_beam=27.0e-3,
+    )
+    assert higher_power[
+        "cooling_beam_center_on_resonance_saturation_parameter"
+    ] == pytest.approx(
+        27.0 / 20.0
+        * reference["cooling_beam_center_on_resonance_saturation_parameter"]
+    )
+    assert higher_power[
+        "cooling_beam_center_effective_saturation_parameter"
+    ] > reference["cooling_beam_center_effective_saturation_parameter"]
+
+
+def test_custom_detuning_grid_preserves_order_and_rejects_invalid_points() -> None:
+    custom = (-0.5, -10.0, -2.25)
+    assert np.array_equal(detuning_n_grid(custom), custom)
+    with pytest.raises(ValueError, match="negative"):
+        detuning_n_grid((-1.0, 0.0))
+    with pytest.raises(ValueError, match="duplicate"):
+        detuning_n_grid((-1.0, -1.0))
 
 
 def test_common_clouds_and_recoil_streams_are_random_reproducible_and_independent() -> None:
@@ -347,6 +396,24 @@ def test_student_t_interval_uses_t9_for_ten_clouds() -> None:
     assert np.isclose(mean - low, 2.262157163 * sem)
 
 
+def test_student_t_interval_uses_exact_t49_for_fifty_clouds() -> None:
+    values = np.arange(50, dtype=float)
+    count, mean, sem, low, high = _mean_sem_t_interval(values)
+
+    assert count == 50
+    assert np.isclose(high - mean, 2.0095752371292397 * sem)
+    assert np.isclose(mean - low, 2.0095752371292397 * sem)
+
+
+def test_student_t_interval_uses_exact_t29_for_thirty_cloud_campaign() -> None:
+    values = np.arange(30, dtype=float)
+    count, mean, sem, low, high = _mean_sem_t_interval(values)
+
+    assert count == 30
+    assert np.isclose(high - mean, 2.045229642132703 * sem)
+    assert np.isclose(mean - low, 2.045229642132703 * sem)
+
+
 def test_plotting_macro_shows_temperature_errors_survival_and_doppler_reference(
     tmp_path: Path,
 ) -> None:
@@ -368,10 +435,18 @@ def test_plotting_macro_shows_temperature_errors_survival_and_doppler_reference(
             }
         )
     destination = tmp_path / "temperature_vs_detuning.png"
+    temperature_only = tmp_path / "temperature_only_vs_detuning.png"
 
     assert plot_temperature_vs_detuning(rows, destination) == destination
+    assert plot_temperature_vs_detuning(
+        rows,
+        temperature_only,
+        include_survivor_panel=False,
+    ) == temperature_only
     assert destination.exists()
     assert destination.stat().st_size > 0
+    assert temperature_only.exists()
+    assert temperature_only.stat().st_size > 0
 
 
 def test_signature_and_human_readable_model_record_the_complete_physics() -> None:
@@ -410,6 +485,21 @@ def test_signature_and_human_readable_model_record_the_complete_physics() -> Non
     legacy_signature = dict(signature)
     legacy_signature.pop("doppler_reference_version")
     assert sweep._resume_signature_is_compatible(legacy_signature, signature)
+    pre_generalization_signature = json.loads(json.dumps(legacy_signature))
+    pre_generalization_signature.pop("cooling_power_w_per_beam")
+    pre_generalization_signature["configuration_invariance_audit"].pop(
+        "cooling_power_w_per_beam"
+    )
+    pre_generalization_signature["apparatus_config"]["repump"][
+        "power_w_per_beam"
+    ] = 0.5e-3
+    pre_generalization_signature["configuration_invariance_audit"][
+        "fixed_configuration_sha256"
+    ] = "legacy-generic-apparatus-repump-metadata"
+    assert sweep._resume_signature_is_compatible(
+        pre_generalization_signature,
+        signature,
+    )
     incompatible_signature = dict(legacy_signature)
     incompatible_signature["seed"] = 99
     assert not sweep._resume_signature_is_compatible(
@@ -432,6 +522,41 @@ def test_signature_and_human_readable_model_record_the_complete_physics() -> Non
     assert refreshed["plateau_over_doppler"] == pytest.approx(
         1.0e-3 / reference["doppler_temperature_k"]
     )
+
+    custom_audit = verify_only_cooling_detuning_changes(
+        (-10.0, -2.5, -0.5),
+        cooling_power_w_per_beam=27.0e-3,
+    )
+    custom_signature = _resume_signature(
+        ensemble_realization_count=30,
+        atoms_per_ensemble=30,
+        duration_s=25e-3,
+        time_step_s=5e-6,
+        initial_temperature_k=2e-3,
+        initial_position_sigma_m=0.25e-3,
+        seed=20260822,
+        plateau_window_s=5e-3,
+        record_interval_s=0.1e-3,
+        minimum_survivor_count=6,
+        stationarity_limit=0.15,
+        configuration_audit=custom_audit,
+        detuning_n_values=(-10.0, -2.5, -0.5),
+        cooling_power_w_per_beam=27.0e-3,
+    )
+    custom_markdown = physical_model_markdown(custom_signature)
+    assert custom_signature["trajectory_count_per_point"] == 900
+    assert custom_signature["detuning_n_values"] == [-10.0, -2.5, -0.5]
+    assert custom_signature["cooling_power_w_per_beam"] == pytest.approx(27.0e-3)
+    assert custom_signature["apparatus_config"]["cooling"][
+        "power_w_per_beam"
+    ] == pytest.approx(27.0e-3)
+    assert custom_signature["apparatus_config"]["repump"][
+        "power_w_per_beam"
+    ] == pytest.approx(0.1e-3)
+    assert "30 independent realizations" in custom_markdown
+    assert "30-atom preloaded cloud" in custom_markdown
+    assert "27 mW" in custom_markdown
+    assert "full-sphere versus octant" in custom_markdown
 
 
 class _ImmediateFuture:
@@ -478,39 +603,53 @@ def test_runner_writes_physical_model_and_both_statistical_levels(
             velocities_m_per_s=np.repeat(velocity[None, :], len(times), axis=0),
         )
 
-    monkeypatch.setattr(sweep, "DETUNING_N_VALUES", (-0.5,))
     monkeypatch.setattr(sweep, "ProcessPoolExecutor", _InlineExecutor)
     monkeypatch.setattr(sweep, "as_completed", lambda futures: list(futures))
     monkeypatch.setattr(sweep, "_temperature_sweep_worker", fake_worker)
-    output_directory = tmp_path / "statistics"
-    figure_directory = tmp_path / "figures"
+    output_directory = tmp_path / "campaign" / "03_detuning" / "statistics"
+    figure_directory = tmp_path / "campaign" / "03_detuning" / "figures"
 
     result = run_temperature_detuning_sweep(
+        ensemble_realization_count=3,
+        atoms_per_ensemble=5,
+        detuning_n_values=(-10.0, -0.5),
+        cooling_power_w_per_beam=27.0e-3,
         output_directory=output_directory,
         figure_directory=figure_directory,
         resume=False,
     )
 
     assert result["status"] == "completed"
-    assert len(result["rows"]) == 1
-    assert len(result["ensemble_rows"]) == 10
-    assert result["rows"][0]["requested_atom_count"] == 250
+    assert len(result["rows"]) == 2
+    assert len(result["ensemble_rows"]) == 6
+    assert result["rows"][0]["requested_atom_count"] == 15
+    assert result["rows"][0]["cooling_power_w_per_beam"] == pytest.approx(27e-3)
     physical_model_path = Path(result["outputs"]["physical_model_markdown"])
     assert physical_model_path.exists()
-    assert PHYSICAL_MODEL_STATEMENT in physical_model_path.read_text(encoding="utf-8")
+    physical_model_text = physical_model_path.read_text(encoding="utf-8")
+    assert "3 independent realizations" in physical_model_text
+    assert "5-atom preloaded cloud" in physical_model_text
     assert Path(result["outputs"]["temperature_summary_csv"]).exists()
     assert Path(result["outputs"]["temperature_ensemble_csv"]).exists()
     assert Path(result["outputs"]["temperature_plot"]).exists()
+    assert Path(result["outputs"]["temperature_only_plot"]).exists()
     metadata = json.loads(
         Path(result["outputs"]["metadata_json"]).read_text(encoding="utf-8")
     )
     assert metadata["doppler_reference_is_detuning_dependent"]
     assert metadata["doppler_reference_version"] == 2
-    assert len(metadata["doppler_reference_points"]) == 1
+    assert len(metadata["doppler_reference_points"]) == 2
+    assert metadata["ensemble_realization_count_per_point"] == 3
+    assert metadata["atoms_per_ensemble"] == 5
+    assert metadata["trajectory_count_per_point"] == 15
+    assert metadata["resume_signature"][
+        "minimum_survivor_count_per_ensemble"
+    ] == 2
+    assert metadata["cooling_power_w_per_beam"] == pytest.approx(27.0e-3)
     assert "s_eff" in metadata["doppler_equation"]
 
 
-def test_cli_defaults_and_production_cardinality_are_exact() -> None:
+def test_cli_defaults_remain_legacy_and_custom_campaign_options_are_available() -> None:
     args = build_argument_parser().parse_args([])
     assert args.ensemble_realizations == REQUIRED_ENSEMBLE_REALIZATION_COUNT == 10
     assert args.atoms_per_ensemble == REQUIRED_ATOMS_PER_ENSEMBLE == 25
@@ -519,8 +658,36 @@ def test_cli_defaults_and_production_cardinality_are_exact() -> None:
     assert args.dt_us == 5.0
     assert args.workers == 8
     assert args.resume
+    assert args.detuning_n is None
+    assert args.cooling_power_mw == pytest.approx(
+        1.0e3 * DEFAULT_COOLING_POWER_W_PER_BEAM
+    )
+    assert args.minimum_survivors is None
+    assert DEFAULT_MINIMUM_SURVIVOR_FRACTION == pytest.approx(0.2)
 
-    with pytest.raises(ValueError, match="exactly 10"):
-        run_temperature_detuning_sweep(ensemble_realization_count=9)
-    with pytest.raises(ValueError, match="exactly 25"):
-        run_temperature_detuning_sweep(atoms_per_ensemble=24)
+    custom = build_argument_parser().parse_args(
+        [
+            "--ensemble-realizations",
+            "30",
+            "--atoms-per-ensemble",
+            "30",
+            "--detuning-n",
+            "-10",
+            "-2.5",
+            "-0.5",
+            "--cooling-power-mw",
+            "27",
+        ]
+    )
+    assert custom.ensemble_realizations == 30
+    assert custom.atoms_per_ensemble == 30
+    assert custom.detuning_n == [-10.0, -2.5, -0.5]
+    assert custom.cooling_power_mw == 27.0
+
+    fourteen_points = tuple(-0.5 * index for index in range(1, 15))
+    assert sweep._temperature_sweep_name(
+        ensemble_realization_count=30,
+        atoms_per_ensemble=30,
+        cooling_power_w_per_beam=27.0e-3,
+        detuning_n_values=fourteen_points,
+    ) == "temperature_vs_detuning_30x30_27mW_14points_preloaded_ensembles"

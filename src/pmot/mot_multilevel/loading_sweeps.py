@@ -46,6 +46,7 @@ from ..launch_geometry import (
     DiscSample,
     PointSample,
     sample_incident_disc,
+    sample_incident_disc_full_sphere,
 )
 from .configuration import (
     MultilevelMOTConfig,
@@ -326,8 +327,8 @@ def _validate_search(search: RateCaptureSearchConfig) -> None:
         raise ValueError("analysis velocity minimum must be non-negative")
     if search.analysis_velocity_max_m_per_s <= search.analysis_velocity_min_m_per_s:
         raise ValueError("analysis velocity maximum must exceed its minimum")
-    if search.phase_space != "octant":
-        raise ValueError("August 22 loading sweeps require one-octant solid-angle sampling")
+    if search.phase_space not in {"octant", "full_sphere"}:
+        raise ValueError("phase_space must be 'octant' or 'full_sphere'")
     if not np.isclose(
         search.disc_radius_m,
         DEFAULT_CAPTURE_DISC_RADIUS_M,
@@ -397,13 +398,18 @@ def _sample_independent_uniform_area_points(
 
 
 def generate_common_capture_points(search: RateCaptureSearchConfig) -> list[PointSample]:
-    """Return reproducible octant discs with independent uniform-area points."""
+    """Return reproducible direction discs with independent uniform-area points."""
 
     _validate_search(search)
     rng = np.random.default_rng(search.seed)
     points: list[PointSample] = []
+    sampler = (
+        sample_incident_disc
+        if search.phase_space == "octant"
+        else sample_incident_disc_full_sphere
+    )
     for disc_index in range(search.disc_count):
-        disc = sample_incident_disc(disc_index, search.radial_distance_m, rng)
+        disc = sampler(disc_index, search.radial_distance_m, rng)
         points.extend(
             _sample_independent_uniform_area_points(
                 disc,
@@ -1039,7 +1045,9 @@ def _effective_signature_payload(
             "reasons are fatal"
         ),
         "geometry_sampler": (
-            "10 directions uniform in solid angle in one symmetry octant; per direction, "
+            "10 directions uniform in solid angle over "
+            + ("one symmetry octant" if search.phase_space == "octant" else "the full sphere")
+            + "; per direction, "
             "25 independent uniform-area disc points with independent uniform azimuth; "
             "no forced center or boundary points; all launch velocities on a disc are "
             "parallel to its inward normal"
@@ -1564,7 +1572,13 @@ def _run_parameter_worker(spec: _ParameterWorkerSpec) -> dict[str, object]:
             "coil_config": asdict(coil),
             "search_config": asdict(spec.search),
             "geometry_sampler": (
-                "10 directions uniform in solid angle in one symmetry octant; 25 "
+                "10 directions uniform in solid angle over "
+                + (
+                    "one symmetry octant"
+                    if spec.search.phase_space == "octant"
+                    else "the full sphere"
+                )
+                + "; 25 "
                 "independent uniform-area random points per disc with uniform azimuth; "
                 "no forced center or boundary points; all velocities are parallel to "
                 "the disc's inward normal rather than aimed point-by-point at the origin"
