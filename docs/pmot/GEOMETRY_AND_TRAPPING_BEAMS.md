@@ -2,261 +2,346 @@
 
 ## Status and authority
 
-The physical pseudo-magneto-optical-trap (pMOT) model has not been
-implemented. The current `src/pmot/pmot` package preserves pMOT-owned paths,
-differential-polarizability utilities, notebook plotting and trajectory
-diagnostics, and an explicitly preliminary two-level scattering helper. It
-does **not** yet contain a 1529 nm trapping-beam builder, a scalar/vector/tensor
-AC Stark Hamiltonian, a fictitious-field calculation, a trapping-light force,
-or an integration of those effects with the production 24-state multilevel
-MOT solver.
+This document defines the optical geometry starting point for the
+pseudo-magneto-optical trap (pMOT). A provisional differential-transition
+Stark detuning layer is now implemented, but the production pMOT force model is
+not. Its atomic basis and dissipative-light starting point are the
+24-state, repumper-enabled population-rate equations in
+`src/pmot/mot_multilevel`; the exploratory two-level helper in
+`src/pmot/pmot/preliminary_scattering.py` is not a production pMOT engine.
+The provisional mapping, its equations, first short trajectories, and the data
+missing for a state-resolved Hamiltonian are recorded in
+`docs/pmot/PROVISIONAL_AC_STARK_MODEL.md`.
 
-The authoritative starting point for future pMOT dynamics is the validated
-rate-equation implementation in `src/pmot/mot_multilevel`. The preliminary
-scattering code in `src/pmot/pmot/preliminary_scattering.py` exists only to
-keep the exploratory notebooks reproducible and must not be promoted into the
-production pMOT engine.
+The current pMOT design has one configurable trapping-light frequency. Its
+default wavelength is
 
-This document separates three different things:
+\[
+\lambda_{\mathrm{trap}}=1529.268881\ \mathrm{nm}.
+\]
 
-1. the current, implemented 780 nm MOT-light geometry;
-2. a historical 1529 nm proposal recovered from Git history; and
-3. physical inferences and open design questions.
+This wavelength replaces the former two-tone proposal. It is selected as the
+single-frequency point at which the scalar and tensor shifts cancel while a
+vector shift remains. The wavelength must be a named configuration parameter,
+not a constant embedded in field or plotting code.
 
-Only the first item is current implementation. The recovered proposal and the
-inferences are design evidence, not authoritative pMOT requirements.
+Interpolating the repository's Arora CCSD differential-polarizability table at
+this wavelength gives scalar, vector, and tensor coefficients of approximately
+-53.054435, +136.334045, and +53.053782 MHz per
+`mW/(100 um)^2`, respectively. The scalar-plus-tensor residual is about
+-0.000653 in the same units, or (4.8\times10^{-6}) of the vector magnitude.
+This checks the stored differential-coefficient cancellation; the production
+physics stage must still apply the correct hyperfine-state angular factors.
 
-## Current 780 nm MOT-light geometry
+The pMOT has no anti-Helmholtz coils and no applied external magnetic field:
 
-The shared apparatus model uses three mutually orthogonal Cartesian paths:
+\[
+\mathbf B_{\mathrm{external}}(\mathbf r)=\mathbf 0.
+\]
 
-| Path | Propagation axis | Cell-incidence metadata |
+Coil objects, coil exclusion volumes, quadrupole-field evaluations, and
+Zeeman shifts from an external field do not belong in the pMOT configuration.
+The state-dependent vector AC Stark shift from the trapping light is the
+candidate fictitious field. Geometry verification does not yet establish that
+this field produces a stable trap.
+
+## Authoritative light-field inventory
+
+### Cooling and repump light
+
+Retain the three mutually orthogonal Cartesian paths used by the multilevel
+MOT:
+
+| Path | In-trap propagation axis | Cell-incidence metadata |
 |---|---:|---:|
 | `horizontal_x` | x | 45 degrees |
 | `horizontal_y` | y | 45 degrees |
 | `vertical_z` | z | 0 degrees; enters from above |
 
-Each path has incident and counterpropagating components. Cooling and repump
-light share the same six propagation directions, for a total of six cooling
-and six repump components. Their reference positions are at the origin. The
-shared field layer represents each component with an ideal Gaussian profile
-whose nominal radius is 6.35 mm; at 780 nm its Rayleigh range is much longer
-than the modeled cell, so this is effectively the current 12.7 mm-diameter
-collimated-beam approximation.
+Each path has an incident and a counterpropagating component. Cooling and
+repump light share these directions, giving six cooling and six repump
+components. The initial pMOT geometry does not change their beam diameter,
+detuning, power, or polarization; every calculation must record the chosen
+multilevel-MOT baseline explicitly rather than silently selecting among old
+study defaults.
 
-The shared apparatus defaults are 20 mW per cooling component, -15 MHz cooling
-detuning, 0.5 mW per repump component, zero repump detuning, and 12.7 mm
-diameter for both families. Individual studies can and do replace these
-defaults. In particular, the August 2026 multilevel loading studies used
-27 mW per cooling component and 0.1 mW per repump component. A pMOT
-configuration must record its selected baseline rather than silently inheriting
-either set of numbers.
+The in-trap x, y, and z axes are mutually orthogonal. A 45-degree angle of
+incidence describes the orientation of a glass surface relative to a
+horizontal beam; it does not tilt the in-trap Cartesian axis into z.
 
-Polarization labels follow the propagation-frame convention: `sigma+` and
-`sigma-` are defined while looking along each beam's own wavevector. The
-generic shared beam builder labels incident and retro components `sigma+` and
-`sigma-`, respectively. The production multilevel MOT intentionally replaces
-those generic labels with its quadrupole-compatible choices: `sigma+` on the x
-and y paths and `sigma-` on the z path, applied in the propagation frame to
-both directions on a path. Future pMOT code must specify trapping-light
-polarization independently and must not infer it from either convenience
+### Single-frequency trapping light
+
+"One trapping beam" means one laser frequency/configuration, routed into three
+Cartesian round-trip paths. It does not mean deleting the retroreflected
+component or illuminating only one spatial axis. The inventory is therefore:
+
+- one configurable trapping wavelength, defaulting to 1529.268881 nm;
+- three Cartesian paths, x, y, and z; and
+- an incident and retroreflected traveling component on every path, for six
+  trapping-light components in total.
+
+For a path coordinate \(u\), positive from the incident side toward the
+retroreflection mirror, the incident waist is centered at
+\(u=-10\ \mathrm{mm}\) and the retroreflected waist is centered at
+\(u=+10\ \mathrm{mm}\). The focal positions, not the focal lengths of the two
+lenses, are offset by 20 mm. The origin lies midway between the two waist
+centers.
+
+Trapping-light helicity is independent of the cooling/repump choices. Specify
+each traveling component as propagation-frame `sigma+`, `sigma-`, or `pi`.
+Incident and retro helicities must be independently configurable because the
+mirror, wave plates, and windows can transform polarization. Do not infer the
+return helicity from the incident label, and do not use ambiguous RCP/LCP
+labels.
+
+## External optical layouts and the in-trap model
+
+The stored optical-layout studies describe two different laboratory paths.
+They are mechanical evidence, not a requirement that the simulation reproduce
+every external optic.
+
+### Horizontal paths
+
+`pMOT-Geometry-Codex/FinalHorizontalSolution_with_780.png` is the current
+horizontal reference. It uses a 45-degree cell angle of incidence and an
+`AC508-080-C` achromat on each side. The nominal lens focal/effective focal
+length is 80.3 mm, the input trapping-beam diameter is 35 mm, the glass-cell
+outer diameter is 30 mm, and the wall thickness is 5 mm. The round-trip layout
+targets the trapping waists at -10 mm and +10 mm. Its mirror is 40 mm beyond
+the second-lens principal plane in the simplified model.
+
+The paraxial layout applies fused-silica refraction through an effective ABCD
+propagation length. It does not establish measured in-cell astigmatism,
+aberration, clipping, polarization transformations, or lateral walkoff.
+
+### Vertical path
+
+The working laboratory sketch for the normal-incidence vertical path uses two
+`AC254-045-C` achromats with 45 mm focal lengths and the same target waist
+centers at -10 mm and +10 mm. Its former coil-clearance restriction is
+obsolete because the pMOT has no anti-Helmholtz coils. Removing that mechanical
+restriction may permit a later re-optimization of the vertical optics.
+
+`pMOT-Geometry-Codex/pmot_exp_visualization.png` is a qualitative 45-mm-lens
+dichroic/cat-eye sketch. It illustrates distinct incident and return focal
+positions; it must not be read as showing two trapping frequencies or unequal
+lens focal lengths.
+
+### Symmetric in-trap assumption
+
+The first geometry-verification implementation deliberately uses the same
+ideal Gaussian field geometry on x, y, and z: Cartesian axes, waist centers at
+-10 mm and +10 mm, and equal ideal waist parameters. This is a symmetric
+in-trap approximation. It does not claim that the horizontal 80.3-mm optics
+and vertical 45-mm optics are mechanically identical.
+
+Until measured beam parameters are available, use the diffraction-limited
+horizontal reference to set the nominal symmetric waist. For
+\(\lambda=1529.268881\ \mathrm{nm}\), input radius 17.5 mm, and focal length
+80.3 mm,
+
+\[
+w_0=\frac{\lambda f}{\pi w_{\mathrm{in}}}\simeq2.234\ \mu\mathrm{m},
+\qquad
+z_R=\frac{\pi w_0^2}{\lambda}\simeq10.25\ \mu\mathrm{m}.
+\]
+
+At the origin, 10 mm from either waist, this ideal model has a beam radius of
+approximately 2.179 mm. These are geometry-QA defaults, not measured beam
+parameters. Wavelength, waist radius, Rayleigh range or input-optics
+parameters, focal offsets, and helicities must remain configurable.
+
+Here (w) is the (1/e^2)-intensity radius. The corresponding nominal
+diameters are therefore 4.467 micrometres at either waist and 4.359 mm for
+either traveling component at the trap origin. At the plane containing the
+opposite component's waist, the defocused component has an approximately
+8.717-mm diameter. The configured 35-mm value is the collimated beam diameter
+before the focusing lens, not the trapping-beam diameter inside the cell.
+
+The ideal paraxial Gaussian half-divergence parameter is
+
+\[
+\theta=\frac{\lambda}{\pi w_0}=0.21793\ \mathrm{rad}
+\simeq12.49\ \mathrm{degrees},
+\]
+
+or approximately 24.97 degrees full angle. The geometric angle obtained from
+the plotted far-field envelope slope is
+\(\arctan(0.21793)\simeq12.29\) degrees. This fairly large angle makes the
+paraxial diffraction-limited construction a geometry-QA approximation; the
+physical waist, divergence, aberration, and astigmatism still require
+measurement.
+
+## Geometry-QA intensity model
+
+The physical trapping power has not been specified. Geometry plots must therefore be
+normalized per launched watt on each Cartesian path. Let \(P_a\) be the
+incident power launched on path \(a\). Report \(I/P_a\) in units of
+\(\mathrm{m}^{-2}\), equivalently the intensity in \(\mathrm{W/m^2}\) for
+\(P_a=1\ \mathrm{W}\). For geometry QA, use unit retroreflection efficiency;
+retain the efficiency as a configurable parameter for later physical work.
+
+For a component with waist center \(u_0\),
+
+\[
+w(u)=w_0\sqrt{1+\left(\frac{u-u_0}{z_R}\right)^2},
+\]
+
+and its ideal Gaussian intensity per component power is
+
+\[
+\frac{I(u,\rho)}{P}
+=\frac{2}{\pi w(u)^2}
+\exp\!\left[-\frac{2\rho^2}{w(u)^2}\right],
+\]
+
+where \(\rho\) is distance perpendicular to the selected Cartesian path. Apply
+this expression with \(u_0=-10\ \mathrm{mm}\) to the incident component and
+\(u_0=+10\ \mathrm{mm}\) to the retro component.
+
+The initial geometry plots use a standing-wave-averaged, incoherent-envelope
+model:
+
+\[
+I_{\mathrm{total}}=I_{\mathrm{incident}}+I_{\mathrm{retro}}.
+\]
+
+No optical cross term is included. This is a geometry-visualization convention
+only, not a conclusion that coherence or standing-wave structure is
+negligible for the eventual atomic dynamics.
+
+### Unsigned and vector-weighted quantities
+
+The unsigned total intensity and the vector-shift-driving quantity must not be
+confused. For equal offset-waist components, the unsigned sum is even about
+the origin and its first axial derivative vanishes there.
+
+For geometry QA, also report the optical-spin intensity factor
+
+\[
+\mathbf I_{\mathrm{spin}}
+=\sum_j s_j I_j\hat{\mathbf k}_j,
+\]
+
+which is the intensity-normalized form of
+\(i\mathbf E^*\!\times\mathbf E\). In the project's propagation-frame Jones
+convention, \(s=-1\) for `sigma+`, \(s=+1\) for `sigma-`, and \(s=0\) for
+`pi`. With equal `sigma+` labels on the incident and retro components, their
+opposite wavevectors produce the signed retro-minus-incident profile: it is
+odd, crosses zero at the origin, and is locally linear there. Reversing both
+helicities reverses this vector. The optical-spin factor verifies geometry and
+sign conventions; the production solver must still apply the leading minus
+sign, vector polarizability, and state-dependent \(F g_F\mu_B\) factors when
+constructing \(\mathbf B_{\mathrm{eff}}\).
+
+In each axial verification figure, the upper panel contains only the selected
+axis's incident/retro pair, not all six components. Its black curve is the
+unsigned sum for that pair. The lower panel is a zoom of the signed axial
+component near the trap center; the word "central" describes the plotted
+region. Its value is exactly zero at the origin while its slope is nonzero.
+The two-dimensional plane plots, in contrast, sum all six components.
+
+Every geometry verification should show, at minimum:
+
+1. incident, retro, unsigned-total, and signed-vector-proxy intensity along
+   each of x, y, and z;
+2. normalized two-dimensional intensity planes through the origin, with both
+   offset foci explicitly marked; and
+3. a three-dimensional or orthogonal-plane view demonstrating that all three
+   Cartesian path pairs are present.
+
+## Boundary between geometry, provisional dynamics, and production physics
+
+The production pMOT solver must distinguish at least three trapping-light effects:
+
+1. state-dependent transition shifts that modify cooling and repump
+   scattering rates;
+2. conservative forces from gradients of dressed-state energies; and
+3. stochastic heating or loss from trapping-light scattering.
+
+Treating the vector shift as a fictitious magnetic field is a useful
+representation only after its equivalence to the state-resolved AC Stark
+Hamiltonian has been established. Production work must map the shifts onto all
+8 ground and 16 excited hyperfine-Zeeman states, define the quantization basis
+near the fictitious-field zero, recompute local fields and populations at every
+required trajectory evaluation, and document interpolation around sharp
+polarizability features.
+
+Before quantitative dynamics, also establish the physical trapping power,
+transmission and retroreflection efficiency, measured or intended beam
+quality, waist and astigmatism, window/mirror polarization transformations,
+and whether standing-wave interference must be retained.
+
+Validation must include even unsigned-intensity symmetry, odd vector-proxy
+symmetry, the intended three-axis restoring signs, and reversal under
+helicity or focus-order reversal. Numerical validation must cover field-grid,
+trajectory-timestep, duration, and state-basis convergence and include
+representative comparisons with the event-driven multilevel engine.
+
+The current provisional diagnostic implements only item 1 by feeding a
+transition-resonance shift into the unchanged 24-state cooling/repump
+rate-equation kernel. It deliberately excludes the conservative force and
+trapping-light scattering/heating because a differential-polarizability table
+cannot determine either one. Its optional 20-G/cm calibration is a
+stretched-reference power scale, not a specified apparatus power or production
 default.
 
-The current beam geometry describes ordinary MOT cooling and repumping. It is
-not a model of the focused pMOT trapping light.
+The retained light is built by the authoritative multilevel beam constructor,
+including the 780.232684-nm repump wavelength. The inherited kernel's plotted
+rate is its ground-population-weighted available absorption rate, and its force
+uses the corresponding absorption momentum even though the population matrix
+also contains reverse stimulated links. That solver-wide closure has not yet
+been validated against a consistent two-level limit or the event engine, so
+the pMOT output labels it as an absorption-force proxy rather than a validated
+net scattering force.
 
-## Historical 1529 nm proposal
+## Appendix: superseded historical two-tone proposal
 
-The initial repository commit, `914a7fc`, contained an exploratory design in
-`src/pmot/configuration.py` and `src/pmot/beams.py`. Commit `60c88b3` removed
-that design metadata when development pivoted to cooling and repump MOT
-trajectories. The following values are recovered verbatim or directly derived
-from the initial commit; they are retained here so the design intent is not
-lost.
+The initial repository commit, `914a7fc`, contained a two-frequency concept
+that was removed in commit `60c88b3`. It is retained here only as provenance
+and is not a current requirement or default.
 
-### Recovered values
-
-| Quantity | Historical value |
+| Quantity | Superseded historical value |
 |---|---:|
 | Trap tone 1 wavelength | 1529.376949 nm |
 | Trap tone 2 wavelength | 1529.358429 nm |
 | Tone 1 relative intensity | 0.492762 |
 | Tone 2 relative intensity | 0.507238 |
 | Input beam diameter | 35 mm |
-| Incident focus offset | -10 mm along its path |
-| Retro focus offset | +10 mm along its path |
+| Incident focus position | -10 mm along its path |
+| Retro focus position | +10 mm along its path |
 | Focus separation | 20 mm |
 | Mirror-gap metadata | 40 mm |
-| Total power per beam pair | 0.5 W |
-| Lens identifier | AC508-080-C |
+| Historical total power per beam pair | 0.5 W |
+| Horizontal lens identifier | AC508-080-C |
 | Lens focal/effective focal length | 80.3 mm |
 | Lens back focal length | 66.9 mm |
 | Glass-cell outer diameter | 30 mm |
 | Glass-cell wall thickness | 5 mm |
 
-The two tones are separated by approximately 2.37377 GHz. The historical
-three path labels and code-level unit vectors were
-
-\[
-\begin{aligned}
-\hat{e}_{\mathrm{oblique\_x}} &= (1,0,1)/\sqrt{2},\\
-\hat{e}_{\mathrm{oblique\_y}} &= (0,1,1)/\sqrt{2},\\
-\hat{e}_{\mathrm{normal\_z}} &= (0,0,1).
-\end{aligned}
-\]
-
-Those vectors are not mutually orthogonal:
-\(\hat{e}_{\mathrm{oblique\_x}}\cdot
-\hat{e}_{\mathrm{oblique\_y}}=1/2\), and each oblique vector has dot product
-\(1/\sqrt{2}\) with `normal_z`. This conflicts with both the historical text
-calling one path normal to the other two and the present Cartesian x/y/z
-model. The historical vectors therefore cannot be adopted without confirming
-the real laboratory coordinates.
-
-The initial notebooks explicitly described the implemented field calculation
-as a 780 nm cooling-beam check to be completed before adding 1529 nm trapping
-physics. No historical code actually constructed the two 1529 nm tones or
-applied their Stark shifts. In particular, the old focus geometry was used in
-a preliminary cooling-beam visualization; it was not a completed pMOT force
-model.
-
-### Differential-polarizability evidence
-
-The narrow Arora CCSD and ARC tables under `data/raw/pmot` span
-1529.124--1529.476 nm and contain a sharp dispersive structure near the two
-historical tones. The pMOT polarizability utility converts the tabulated values
-to MHz per `mW/(100 um)^2` and linearly interpolates within a selected table.
-
-Using the default Arora CCSD table and the current conversion convention gives
-the following interpolated coefficients:
+The two historical tones were separated by approximately 2.37377 GHz. Using
+the stored Arora CCSD conversion convention, their scalar, vector, and tensor
+coefficients were approximately
 
 | Tone | Scalar | Vector | Tensor |
 |---|---:|---:|---:|
 | 1529.376949 nm | -738.470536 | -662.817454 | -74.038857 |
 | 1529.358429 nm | +717.471334 | +648.808021 | +72.006236 |
 
-Applying the historical intensity fractions gives
+Weighting them by 0.492762 and 0.507238 gave approximately 0.038506,
+2.488829, and 0.040764 in the same units. That appears to have been an attempt
+to cancel scalar and tensor shifts while retaining a vector residual. The
+single-frequency 1529.268881-nm design supersedes this mechanism and power
+split.
+
+The historical code also stored the vectors
 
 \[
-\alpha_{\mathrm{weighted}}
-=0.492762\,\alpha_1+0.507238\,\alpha_2,
+\hat e_1=(1,0,1)/\sqrt2,\qquad
+\hat e_2=(0,1,1)/\sqrt2,\qquad
+\hat e_3=(0,0,1).
 \]
 
-with weighted scalar, vector, and tensor coefficients of approximately
-0.038506, 2.488829, and 0.040764 in the same units. Thus the historical pair
-appears designed to cancel most of the scalar and tensor differential shifts
-while leaving a vector residual roughly 60 times larger than either residual
-scalar or tensor coefficient. This interpretation is an inference from the
-stored wavelengths, fractions, and tables; the repository contains no
-authoritative derivation of the power split.
-
-The generic diffraction-limited Gaussian formula retained in `src/pmot/beams.py`
-would give, for a 35 mm input diameter and 80.3 mm focal length, an ideal 1529 nm
-waist radius of approximately 2.234 micrometers and a Rayleigh range of
-approximately 10.25 micrometers. At a point 10 mm from such a waist, the ideal
-Gaussian radius would be approximately 2.179 mm. These are derived ideal-beam
-numbers, not measured beam parameters or validated pMOT inputs.
-
-## Inferred trapping mechanism
-
-The historical displacement of the incident and retro waists suggests a
-spatial-gradient design. For a symmetric pair with waists on opposite sides of
-the origin, the ordinary sum of the two intensities is even about the center,
-so its first derivative vanishes there. Their signed intensity difference is
-odd and is locally linear. If the two propagation directions carry the
-appropriate opposite vector-Stark signs, their helicity-weighted shifts can
-therefore produce a zero-crossing, approximately linear state-dependent shift.
-That shift could play the role occupied by the Zeeman gradient in a normal MOT.
-
-The two 1529 nm frequencies would then suppress unwanted common differential
-scalar and tensor shifts through their opposite dispersive coefficients while
-retaining a smaller vector component. Three beam pairs could, in principle,
-supply three-dimensional spatially varying vector shifts while the 780 nm
-cooling and repump beams provide dissipative radiation pressure. This is the
-qualitative mechanism implied by the archived parameters and data; it is not
-yet demonstrated by the simulation.
-
-The future solver must distinguish at least three effects of the trapping
-light: state-dependent transition shifts that modify the cooling/repump
-scattering rates, conservative forces from gradients of the dressed-state
-energies, and stochastic heating or loss from trap-light scattering. Treating
-the vector shift as a fictitious magnetic field may be a useful representation,
-but the actual scalar/vector/tensor Hamiltonian and its action on every
-hyperfine state must be defined first.
-
-## Decisions required before construction
-
-The historical proposal is insufficient to specify a production simulation.
-The following decisions require experimental input or a documented physical
-derivation.
-
-### Laboratory geometry
-
-- Confirm the true lab-frame propagation vectors and the meaning of each
-  45-degree cell angle of incidence.
-- Decide whether refraction at the glass interfaces changes the in-cell path
-  directions and focus positions.
-- Define the origin and the signed focus offsets in laboratory coordinates.
-- Explain what the 40 mm mirror gap measures and place the lenses, cell
-  surfaces, and mirrors explicitly.
-- Specify the vertical-path optics; the recovered lens was described as a
-  horizontal-path achromat.
-- Supply measured or intended beam quality, waist, astigmatism, clipping, and
-  aberration parameters, or explicitly authorize the ideal Gaussian model.
-
-### Powers, frequencies, and polarizations
-
-- Define whether 0.5 W is the total before or after the two-tone split, whether
-  it is shared between incident and retro components, and whether it is a
-  per-path or apparatus-wide quantity.
-- Record transmission, retroreflection efficiency, and any imbalance.
-- Confirm both wavelengths and their uncertainties, the physical transition
-  they straddle, and whether the stored relative intensities are powers at the
-  atoms.
-- Decide whether the two tones add incoherently or whether their 2.374 GHz beat
-  and any coherent cross terms must be retained.
-- Specify a complex lab-frame polarization vector for every trapping
-  component, including window and mirror transformations. Use the project's
-  propagation-frame `sigma+`/`sigma-` convention rather than ambiguous RCP/LCP
-  labels.
-- Decide whether standing-wave interference is intentionally suppressed or
-  must be modeled.
-
-### Atomic Hamiltonian and force
-
-- Document the provenance, raw SI units, state definitions, and sign
-  conventions of each polarizability table.
-- Map scalar, vector, and tensor shifts onto all 8 ground and 16 excited
-  hyperfine-Zeeman states. A fine-structure differential coefficient alone is
-  not a hyperfine-resolved Hamiltonian.
-- Define whether the pMOT code adds transition-specific Stark shifts directly
-  or constructs an effective-field representation, and prove the equivalence
-  in the regime being used.
-- Define the local quantization basis at and near the fictitious-field zero,
-  including any residual real bias field and nonadiabatic state mixing.
-- Include conservative forces from spatial derivatives of the dressed-state
-  energies where physically required.
-- Add imaginary polarizability or another validated calculation for
-  trap-light scattering, heating, and loss; the current CSV files contain only
-  real differential coefficients.
-- Establish safe interpolation and exclusion rules around the sharp poles in
-  the narrow 1529 nm tables.
-
-### Integration and validation
-
-- Select and record the 780 nm cooling/repump baseline for the pMOT comparison.
-- Extend the production 24-state population-rate solver rather than the
-  preliminary two-level notebook helper.
-- Recompute local trapping intensities, the full Stark Hamiltonian, dressed
-  transition frequencies and polarizations, populations, scattering, and
-  force at every required trajectory evaluation.
-- Verify even scalar and odd vector symmetry at the origin, the intended
-  three-axis restoring signs, and reversal under helicity, focus-gradient, and
-  tone-order reversal.
-- Demonstrate convergence in field grids, trajectory timesteps, durations,
-  and state-basis treatment, followed by representative comparison with the
-  event-driven multilevel engine.
-
-Until these decisions are recorded, the historical values should be treated
-as a useful reconstruction of an earlier concept, not as defaults for a new
-pMOT simulation.
+They are not mutually orthogonal and must not be used for the current
+Cartesian in-trap model. No historical code constructed a complete 1529-nm
+Stark Hamiltonian or pMOT force model.

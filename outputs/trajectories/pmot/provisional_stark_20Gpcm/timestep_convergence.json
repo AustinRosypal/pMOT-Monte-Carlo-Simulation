@@ -1,0 +1,56 @@
+[
+  {
+    "time_step_s": 4.9999999999999996e-06,
+    "diffusion_enabled": false,
+    "final_position_m": [
+      -0.0006060319218774559,
+      0.0,
+      -0.0006063635382854853
+    ],
+    "final_velocity_m_per_s": [
+      -0.01987308786822172,
+      0.0,
+      -0.020127602522428185
+    ],
+    "maximum_radius_m": 0.0013888398061087728,
+    "maximum_speed_m_per_s": 4.014691353222923,
+    "final_position_error_vs_finest_m": 5.676756886098699e-06,
+    "final_velocity_error_vs_finest_m_per_s": 0.004491468794048971
+  },
+  {
+    "time_step_s": 2.4999999999999998e-06,
+    "diffusion_enabled": false,
+    "final_position_m": [
+      -0.0006088319292607844,
+      0.0,
+      -0.0006090376472497913
+    ],
+    "final_velocity_m_per_s": [
+      -0.017561859703706818,
+      0.0,
+      -0.018118776033388316
+    ],
+    "maximum_radius_m": 0.001387206996708716,
+    "maximum_speed_m_per_s": 4.052967371927921,
+    "final_position_error_vs_finest_m": 1.8049542856630264e-06,
+    "final_velocity_error_vs_finest_m_per_s": 0.001429305527021877
+  },
+  {
+    "time_step_s": 1.2499999999999999e-06,
+    "diffusion_enabled": false,
+    "final_position_m": [
+      -0.0006101334081555837,
+      0.0,
+      -0.0006102882521673114
+    ],
+    "final_velocity_m_per_s": [
+      -0.016492781210884187,
+      0.0,
+      -0.017170100395586134
+    ],
+    "maximum_radius_m": 0.0013862007439866943,
+    "maximum_speed_m_per_s": 4.072723888412192,
+    "final_position_error_vs_finest_m": 0.0,
+    "final_velocity_error_vs_finest_m_per_s": 0.0
+  }
+]

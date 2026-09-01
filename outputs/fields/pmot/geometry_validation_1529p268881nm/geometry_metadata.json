@@ -1,0 +1,81 @@
+{
+  "status": "geometry_validated_physics_not_implemented",
+  "configuration": {
+    "lens": "AC508-080-C",
+    "cooling_beam_diameter_mm": 12.7,
+    "cooling_power_w_per_beam": 0.027,
+    "cooling_detuning_mhz": -15.0,
+    "cooling_resonance_thz": 384.228115,
+    "repump_beam_diameter_mm": 12.7,
+    "repump_power_w_per_beam": 0.0001,
+    "repump_detuning_mhz": 0.0,
+    "repump_resonance_thz": 384.234683,
+    "axes": [
+      "horizontal_x",
+      "horizontal_y",
+      "vertical_z"
+    ],
+    "axis_aoi_deg": {
+      "horizontal_x": 45.0,
+      "horizontal_y": 45.0,
+      "vertical_z": 0.0
+    },
+    "volume_extent_mm": 50.0,
+    "samples_per_axis": 201,
+    "cooling_component_count": 6,
+    "repump_component_count": 6,
+    "trapping_laser_count": 1,
+    "trapping_path_count": 3,
+    "trapping_component_count": 6,
+    "trapping_wavelength_nm": 1529.268881,
+    "trapping_incident_helicity": "sigma+",
+    "trapping_retro_helicity": "sigma+",
+    "trapping_focus_positions_mm": [
+      -10.0,
+      10.0
+    ],
+    "trapping_waist_radius_um": 2.2336312398559133,
+    "trapping_intensity_normalization": "per watt incident on each Cartesian path",
+    "trapping_envelope_combination": "incoherent",
+    "external_magnetic_field_t": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "anti_helmholtz_coils_present": false
+  },
+  "modeling_statement": "One trapping-laser frequency is routed into three Cartesian round-trip paths, giving six traveling components. Each path uses ideal Gaussian envelopes with waist centers at -10 mm and +10 mm. Incident and retro intensities are added incoherently (standing-wave averaged). Results are normalized per watt incident on each path because total trapping power and its path split are not yet specified.",
+  "physics_boundary": "No AC Stark Hamiltonian, effective magnetic field, conservative force, trap-light scattering, or trajectory dynamics is calculated in this stage.",
+  "differential_polarizability_check": {
+    "units": "MHz per [mW/(100 um)^2] using the repository conversion",
+    "scalar": -53.054434984171074,
+    "vector": 136.33404483229927,
+    "tensor": 53.05378237879429,
+    "scalar_plus_tensor_residual": -0.0006526053767856865,
+    "absolute_residual_over_absolute_vector": 4.786811523038419e-06,
+    "qualification": "This verifies the stored differential-coefficient cancellation only; the full hyperfine-state angular factors remain for the physics stage."
+  },
+  "lineout_sample_count": 6001,
+  "plane_sample_count_per_axis": 601,
+  "figure_files": [
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\figures\\pmot\\geometry_validation_1529p268881nm\\trapping_intensity_x_axis.png",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\figures\\pmot\\geometry_validation_1529p268881nm\\trapping_intensity_y_axis.png",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\figures\\pmot\\geometry_validation_1529p268881nm\\trapping_intensity_z_axis.png",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\figures\\pmot\\geometry_validation_1529p268881nm\\trapping_intensity_xy_plane.png",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\figures\\pmot\\geometry_validation_1529p268881nm\\trapping_intensity_xz_plane.png",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\figures\\pmot\\geometry_validation_1529p268881nm\\trapping_intensity_yz_plane.png",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\figures\\pmot\\geometry_validation_1529p268881nm\\trapping_intensity_planes.png",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\figures\\pmot\\geometry_validation_1529p268881nm\\representative_round_trip_envelopes.png",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\figures\\pmot\\geometry_validation_1529p268881nm\\pmot_optical_geometry_3d.png"
+  ],
+  "lineout_files": [
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\fields\\pmot\\geometry_validation_1529p268881nm\\trapping_intensity_x_axis.csv",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\fields\\pmot\\geometry_validation_1529p268881nm\\trapping_intensity_y_axis.csv",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\fields\\pmot\\geometry_validation_1529p268881nm\\trapping_intensity_z_axis.csv"
+  ],
+  "plane_data_files": [
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\fields\\pmot\\geometry_validation_1529p268881nm\\trapping_intensity_xy_plane.npz",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\fields\\pmot\\geometry_validation_1529p268881nm\\trapping_intensity_xz_plane.npz",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\fields\\pmot\\geometry_validation_1529p268881nm\\trapping_intensity_yz_plane.npz"
+  ]
+}

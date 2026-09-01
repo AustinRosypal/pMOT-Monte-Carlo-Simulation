@@ -1,8 +1,10 @@
-"""Future pseudo-MOT branch and its explicitly preliminary optical tools.
+"""Pseudo-MOT geometry and explicitly provisional AC-Stark diagnostics.
 
-The trapping-light Hamiltonian and Stark-shift force are not implemented yet.
-The scattering helpers retained here predate the authoritative MOT solvers and
-exist only to keep the exploratory pMOT notebooks reproducible.
+The no-coil apparatus and focused trapping-light envelope are implemented.
+The differential-transition Stark layer can modify the authoritative 24-state
+cooling/repump rate equations, but it is not a unique state-resolved Stark
+Hamiltonian because the supplied CSV contains only differential rank data.
+The older scalar scattering helpers remain only for notebook reproducibility.
 """
 
 from ..configuration import default_mot_apparatus_config
@@ -19,11 +21,27 @@ from ..fields import (
 )
 from ..state import AtomState
 from .configuration import (
+    PMOTApparatusConfig,
+    build_pmot_cooling_and_repump_beams,
+    default_pmot_apparatus_config,
     describe_pmot_configuration,
     pmot_notebook_order,
     pmot_paths,
 )
+from .trapping_beams import (
+    DEFAULT_TRAPPING_AXES,
+    DEFAULT_TRAPPING_WAVELENGTH_M,
+    TrappingBeam,
+    TrappingLaserConfig,
+    beams_for_trapping_axis,
+    build_trapping_beams,
+    helicity_sign,
+    total_trapping_intensity_response_m_inv2,
+    trapping_beam_intensity_response_m_inv2,
+    vector_intensity_response_m_inv2,
+)
 from .polarizability import (
+    DifferentialPolarizabilityTable,
     DifferentialPolarizabilitySample,
     DifferentialShiftCoefficients,
     choose_polarizability_csv_path,
@@ -32,9 +50,29 @@ from .polarizability import (
     differential_shift_coefficients_for_wavelength,
     full_range_polarizability_csv_path,
     interpolate_differential_polarizability,
+    interpolate_differential_polarizability_arrays,
     load_differential_polarizability_csv,
+    load_differential_polarizability_table,
     polarizability_dataframe,
     wavelength_is_in_sample_range,
+)
+from .ac_stark import (
+    EFFECTIVE_DETUNING_EQUATION,
+    PROVISIONAL_MODEL_NAME,
+    ProvisionalStarkConfig,
+    ProvisionalStarkObservable,
+    atom_frame_trapping_frequencies_hz,
+    atom_frame_trapping_wavelengths_m,
+    build_physics_trapping_beams,
+    provisional_power_for_target_gradient_w_per_path,
+    provisional_transition_stark_shifts,
+    trapping_component_intensities_w_per_m2,
+)
+from .stark_trajectories import (
+    ProvisionalPMOTObservable,
+    ProvisionalPMOTTrajectoryRecord,
+    provisional_pmot_observable,
+    simulate_provisional_pmot_trajectory,
 )
 from .preliminary_scattering import (
     ScatteringSample,
@@ -78,17 +116,36 @@ __all__ = [
     "AnimationSamples",
     "AtomState",
     "DifferentialPolarizabilitySample",
+    "DifferentialPolarizabilityTable",
     "DifferentialShiftCoefficients",
+    "EFFECTIVE_DETUNING_EQUATION",
+    "DEFAULT_TRAPPING_AXES",
+    "DEFAULT_TRAPPING_WAVELENGTH_M",
+    "PMOTApparatusConfig",
+    "PROVISIONAL_MODEL_NAME",
+    "ProvisionalPMOTObservable",
+    "ProvisionalPMOTTrajectoryRecord",
+    "ProvisionalStarkConfig",
+    "ProvisionalStarkObservable",
     "ScatteringSample",
     "TrajectoryDiagnostics",
     "TrajectoryRecord",
+    "TrappingBeam",
+    "TrappingLaserConfig",
     "absorption_kick_velocity_m_per_s",
+    "atom_frame_trapping_frequencies_hz",
+    "atom_frame_trapping_wavelengths_m",
     "animation_samples",
     "beam_scattering_samples",
+    "beams_for_trapping_axis",
+    "build_pmot_cooling_and_repump_beams",
     "build_mot_beams",
+    "build_physics_trapping_beams",
+    "build_trapping_beams",
     "choose_polarizability_csv_path",
     "convert_differential_polarizability_to_mhz_per_intensity",
     "default_mot_apparatus_config",
+    "default_pmot_apparatus_config",
     "default_polarizability_csv_path",
     "describe_pmot_configuration",
     "differential_shift_coefficients_for_wavelength",
@@ -97,9 +154,12 @@ __all__ = [
     "emission_kick_velocity_m_per_s",
     "full_range_polarizability_csv_path",
     "gravitational_velocity_increment",
+    "helicity_sign",
     "interpolate_differential_polarizability",
+    "interpolate_differential_polarizability_arrays",
     "inward_radial_atom_state",
     "load_differential_polarizability_csv",
+    "load_differential_polarizability_table",
     "plot_apparatus_geometry_3d",
     "plot_beam_crossing_zoom",
     "plot_intensity_cloud_3d",
@@ -113,6 +173,9 @@ __all__ = [
     "pmot_notebook_order",
     "pmot_paths",
     "polarizability_dataframe",
+    "provisional_pmot_observable",
+    "provisional_power_for_target_gradient_w_per_path",
+    "provisional_transition_stark_shifts",
     "recoil_velocity_m_per_s",
     "sample_axis_pair_intensity_along_line",
     "sample_family_intensity_along_line",
@@ -125,10 +188,15 @@ __all__ = [
     "saturation_parameter",
     "scattering_rate_per_s",
     "simulate_scattering_trajectory",
+    "simulate_provisional_pmot_trajectory",
     "total_scattering_rate_per_s",
+    "total_trapping_intensity_response_m_inv2",
+    "trapping_component_intensities_w_per_m2",
+    "trapping_beam_intensity_response_m_inv2",
     "trajectory_diagnostics",
     "transition_for_beam",
     "unit_vector_from_angles",
+    "vector_intensity_response_m_inv2",
     "wavelength_is_in_sample_range",
     "wavevector_magnitude_m_inv",
 ]

@@ -1,0 +1,260 @@
+{
+  "status": "provisional diagnostic; not a validated pMOT trapping prediction",
+  "model": "stretched_reference_differential_transition_proxy",
+  "effective_detuning_equation": "Delta_eff[b,g->e] = Delta_L[b] - delta_HFS[g->e] - k_b dot v - (DeltaE_AC[e]-DeltaE_AC[g])/hbar; B_external = 0",
+  "atom_frame_doppler_equation": "nu'_trap,j = nu_trap,j * (1 - k_hat_j dot v / c); lambda'_trap,j = lambda_trap,j / (1 - k_hat_j dot v / c)",
+  "stark_decomposition_equation": "DeltaE_AC = DeltaE_scalar + DeltaE_vector + DeltaE_tensor; delta_nu_AC = DeltaE_AC / h; delta_omega_AC = DeltaE_AC / hbar",
+  "provisional_limitation": "The CSV contains only differential fine-structure-rank data. Scalar shifts are applied directly; vector shifts use a stretched-channel Zeeman-like rescaling; tensor shifts use an excited-state angular proxy. This is not a unique 24-state Stark Hamiltonian.",
+  "omitted_physics": [
+    "conservative Stark-gradient force",
+    "1529-nm scattering, heating, and loss",
+    "coherent standing-wave interference",
+    "window and mirror polarization transformations",
+    "full local Stark-operator diagonalization and nonadiabatic zero crossing"
+  ],
+  "external_magnetic_field_t": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "cooling_power_w_per_beam": 0.027,
+  "repump_power_w_per_beam": 0.0001,
+  "cooling_detuning_hz": -15000000.0,
+  "trapping_wavelength_m": 1.529268881e-06,
+  "trapping_power_w_per_path": 0.03829448617292197,
+  "trapping_power_source": "derived from provisional stretched-reference vector-gradient proxy",
+  "target_gradient_g_per_cm": 20.0,
+  "stark_config": {
+    "incident_path_powers_w": [
+      0.03829448617292197,
+      0.03829448617292197,
+      0.03829448617292197
+    ],
+    "incident_helicities_by_axis": [
+      "sigma+",
+      "sigma+",
+      "sigma-"
+    ],
+    "retro_helicities_by_axis": [
+      "sigma+",
+      "sigma+",
+      "sigma-"
+    ],
+    "optical_spin_energy_epsilon_j": 1e-40
+  },
+  "multilevel_config": {
+    "cooling_detuning_rad_per_s": -94247779.60769379,
+    "repump_detuning_rad_per_s": 0.0,
+    "repump_power_w_per_beam": 0.0001,
+    "natural_linewidth_rad_per_s": 38138934.81458009,
+    "saturation_intensity_w_per_m2": 16.69,
+    "wavelength_m": 7.8e-07,
+    "repump_wavelength_m": 7.80232684e-07,
+    "magnetic_field_epsilon_t": 1e-12,
+    "enabled_excited_manifolds": [
+      1,
+      2,
+      3
+    ],
+    "enabled_repump_excited_manifolds": [
+      0,
+      1,
+      2
+    ],
+    "repumper_enabled": true,
+    "initialization_mode": "validation",
+    "dark_state_behavior": "terminate",
+    "include_gravity": true,
+    "diagnostics_enabled": false
+  },
+  "duration_s": 5e-05,
+  "time_step_s": 4.9999999999999996e-06,
+  "include_diffusion": false,
+  "polarizability_csv": "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\data\\raw\\pmot\\Arora_CCSD_Differential_Polarizabilities.csv",
+  "polarizability_wavelength_range_nm": [
+    1529.124,
+    1529.476
+  ],
+  "origin_total_trapping_intensity_w_per_m2": 30797.97463491441,
+  "origin_reference_shift_mhz": -16.339691429122162,
+  "origin_reference_effective_cooling_detuning_mhz": 1.339691429122162,
+  "lineout_summary": {
+    "force_slope_x_n_per_m": 5.387013641864528e-19,
+    "linear_frequency_x_hz": null,
+    "force_slope_y_n_per_m": 5.387013641864678e-19,
+    "linear_frequency_y_hz": null,
+    "force_slope_z_n_per_m": 5.38701364186498e-19,
+    "linear_frequency_z_hz": null,
+    "all_axes_locally_restoring": false
+  },
+  "trajectory_summaries": {
+    "x_offset": {
+      "termination_reason": "duration",
+      "elapsed_s": 5e-05,
+      "sample_count": 12,
+      "initial_position_m": [
+        0.001,
+        0.0,
+        0.0
+      ],
+      "initial_velocity_m_per_s": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "final_position_m": [
+        0.0009943967926319618,
+        0.0,
+        -1.1546614192481342e-08
+      ],
+      "final_velocity_m_per_s": [
+        -0.19919178706166077,
+        0.0,
+        -0.00038850111071571
+      ],
+      "final_radius_m": 0.0009943967926989996,
+      "maximum_radius_m": 0.001,
+      "final_speed_m_per_s": 0.19919216592509614,
+      "maximum_speed_m_per_s": 0.19919216592509614,
+      "remained_inside_2mm_during_short_run": true,
+      "mean_scattering_rate_per_s": 70848282.71965146,
+      "maximum_force_n": 6.1360530437489165e-22,
+      "maximum_effective_field_proxy_g": 2.0406079296160167,
+      "reference_shift_range_mhz": [
+        -7.936361858353459,
+        -7.868131298644483
+      ],
+      "wall_time_s": 0.025441500009037554
+    },
+    "y_offset": {
+      "termination_reason": "duration",
+      "elapsed_s": 5e-05,
+      "sample_count": 12,
+      "initial_position_m": [
+        0.0,
+        0.001,
+        0.0
+      ],
+      "initial_velocity_m_per_s": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "final_position_m": [
+        0.0,
+        0.0009943967926319618,
+        -1.1546614192484207e-08
+      ],
+      "final_velocity_m_per_s": [
+        0.0,
+        -0.19919178706166066,
+        -0.00038850111071576205
+      ],
+      "final_radius_m": 0.0009943967926989996,
+      "maximum_radius_m": 0.001,
+      "final_speed_m_per_s": 0.19919216592509603,
+      "maximum_speed_m_per_s": 0.19919216592509603,
+      "remained_inside_2mm_during_short_run": true,
+      "mean_scattering_rate_per_s": 70848282.71965146,
+      "maximum_force_n": 6.136053043748909e-22,
+      "maximum_effective_field_proxy_g": 2.0406079296160167,
+      "reference_shift_range_mhz": [
+        -7.936361858353459,
+        -7.868131298644486
+      ],
+      "wall_time_s": 0.020299099967814982
+    },
+    "z_offset": {
+      "termination_reason": "duration",
+      "elapsed_s": 5e-05,
+      "sample_count": 12,
+      "initial_position_m": [
+        0.0,
+        0.0,
+        0.001
+      ],
+      "initial_velocity_m_per_s": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "final_position_m": [
+        0.0,
+        0.0,
+        0.0009943838738832157
+      ],
+      "final_velocity_m_per_s": [
+        0.0,
+        0.0,
+        -0.1996509291333396
+      ],
+      "final_radius_m": 0.0009943838738832157,
+      "maximum_radius_m": 0.001,
+      "final_speed_m_per_s": 0.1996509291333396,
+      "maximum_speed_m_per_s": 0.1996509291333396,
+      "remained_inside_2mm_during_short_run": true,
+      "mean_scattering_rate_per_s": 70848402.30111162,
+      "maximum_force_n": 6.136053043748894e-22,
+      "maximum_effective_field_proxy_g": 2.0406079296160167,
+      "reference_shift_range_mhz": [
+        -7.936519105966798,
+        -7.868131298644486
+      ],
+      "wall_time_s": 0.020514000032562762
+    },
+    "diagonal": {
+      "termination_reason": "duration",
+      "elapsed_s": 5e-05,
+      "sample_count": 12,
+      "initial_position_m": [
+        0.0008,
+        -0.0007,
+        0.0009
+      ],
+      "initial_velocity_m_per_s": [
+        -0.15,
+        0.1,
+        -0.05
+      ],
+      "final_position_m": [
+        0.000793321225921301,
+        -0.000695812090078156,
+        0.0008945912566129651
+      ],
+      "final_velocity_m_per_s": [
+        -0.12379864952732846,
+        0.07453449111941146,
+        -0.14350278048328236
+      ],
+      "final_radius_m": 0.001383403971587682,
+      "maximum_radius_m": 0.001392838827718412,
+      "final_speed_m_per_s": 0.20365299899007883,
+      "maximum_speed_m_per_s": 0.20365299899007883,
+      "remained_inside_2mm_during_short_run": true,
+      "mean_scattering_rate_per_s": 56662225.494369924,
+      "maximum_force_n": 4.187737738533759e-22,
+      "maximum_effective_field_proxy_g": 0.7805894137196066,
+      "reference_shift_range_mhz": [
+        -8.322146178538198,
+        -8.265592645566587
+      ],
+      "wall_time_s": 0.020564400008879602
+    }
+  },
+  "outputs": [
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\trajectories\\pmot\\provisional_stark_smoke\\force_lineouts.csv",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\figures\\pmot\\provisional_stark_smoke\\force_and_stark_shift_lineouts.png",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\trajectories\\pmot\\provisional_stark_smoke\\x_offset.csv",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\figures\\pmot\\provisional_stark_smoke\\x_offset_time_diagnostics.png",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\figures\\pmot\\provisional_stark_smoke\\x_offset_stark_diagnostics.png",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\trajectories\\pmot\\provisional_stark_smoke\\y_offset.csv",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\figures\\pmot\\provisional_stark_smoke\\y_offset_time_diagnostics.png",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\figures\\pmot\\provisional_stark_smoke\\y_offset_stark_diagnostics.png",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\trajectories\\pmot\\provisional_stark_smoke\\z_offset.csv",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\figures\\pmot\\provisional_stark_smoke\\z_offset_time_diagnostics.png",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\figures\\pmot\\provisional_stark_smoke\\z_offset_stark_diagnostics.png",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\trajectories\\pmot\\provisional_stark_smoke\\diagonal.csv",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\figures\\pmot\\provisional_stark_smoke\\diagonal_time_diagnostics.png",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\figures\\pmot\\provisional_stark_smoke\\diagonal_stark_diagnostics.png"
+  ]
+}

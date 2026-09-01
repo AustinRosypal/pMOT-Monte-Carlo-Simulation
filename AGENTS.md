@@ -14,8 +14,11 @@ Work must proceed in validated stages:
    `src/pmot/mot_simple`.
 2. Rebuild a multilevel Rb-87 MOT starting from that validated implementation.
 3. Validate the new multilevel MOT before introducing pMOT trapping light.
-4. Remove the magnetic field, introduce the scalar/vector AC Stark shifts, and
-   optimize trapping wavelengths, powers, and intensity gradients.
+4. Build and validate the no-coil pMOT in two sub-stages: first establish the
+   focused trapping-light geometry and intensity fields; then introduce the
+   hyperfine-resolved scalar/vector/tensor AC Stark Hamiltonian, forces,
+   scattering, and trajectory dynamics. Optimize powers and gradients only
+   after those physics layers pass their validation checks.
 
 The obsolete preliminary multilevel attempt has been removed. The replacement
 is isolated in `src/pmot/mot_multilevel`. Its authoritative production model is
@@ -107,16 +110,25 @@ radiation pressure explicitly and state when gravity is excluded.
 - `src/pmot/mot_multilevel`: authoritative 24-state, repumper-enabled
   population-rate MOT; it also retains isolated Gillespie event/recoil layers
   for short regression and diagnostic comparisons.
-- `src/pmot/pmot`: future pMOT branch. Its current polarizability,
-  visualization, and preliminary scattering utilities are not a production
-  pMOT force model; see `docs/pmot/GEOMETRY_AND_TRAPPING_BEAMS.md`.
+- `src/pmot/pmot`: pMOT branch. Its no-coil apparatus, single-frequency focused
+  trapping-light geometry, vectorized polarizability interpolation, and an
+  explicitly provisional differential-transition AC-Stark detuning layer are
+  implemented. The latter is not a unique 24-state Stark Hamiltonian and must
+  not be treated as a quantitative pMOT prediction; see
+  `docs/pmot/GEOMETRY_AND_TRAPPING_BEAMS.md` and
+  `docs/pmot/PMOT_AC_STARK_THEORY.md`, and
+  `docs/pmot/PROVISIONAL_AC_STARK_MODEL.md`.
 - `src/pmot/configuration.py`, `beams.py`, `fields.py`: shared apparatus and beam
   geometry.
 - `src/pmot/magnetic_fields.py`, `magnetic_field_plotting.py`,
   `launch_geometry.py`, `capture_statistics.py`, `loading.py`, `state.py`, and
   `beam_plotting.py`: model-neutral field, launch, capture-analysis, loading,
-  state, and visualization primitives. Model packages may depend on these
-  shared modules but must not depend on one another.
+  state, and visualization primitives. Model packages normally depend only on
+  these shared modules. The pMOT is the explicit exception: it may call the
+  public explicit-local-environment entry point of the authoritative
+  `mot_multilevel` 24-state rate kernel so cooling/repump physics is reused
+  exactly rather than copied. All pMOT-specific environment, Stark, geometry,
+  trajectory, and output code must remain under `src/pmot/pmot`.
 - `data/raw/pmot`: differential-polarizability datasets for the later pMOT phase.
 - `notebooks/mot_simple`: current interactive validation and sampling notebooks.
 - `tests`: automated physics and numerical checks.
@@ -180,6 +192,116 @@ radiation pressure explicitly and state when gravity is excluded.
   provisional until the applicable force-grid or trajectory timestep/duration
   convergence checks and representative comparisons against the event-driven
   engine have been documented.
+
+## Authoritative pMOT geometry-stage assumptions
+
+- The pMOT has no anti-Helmholtz coils and no applied external magnetic field.
+  Its configuration must not contain a coil object or call the conventional
+  quadrupole-field evaluator. Shared magnetic-field code remains available only
+  to `mot_simple` and `mot_multilevel`.
+- Retain the six 780 nm cooling and six repump traveling components on the
+  Cartesian x, y, and z paths. The first pMOT geometry configuration records
+  the current comparison baseline of 27 mW per cooling component and 0.1 mW per
+  repump component. Construct them through the authoritative multilevel beam
+  builder so the repump wavelength remains exactly 780.232684 nm.
+- Use one configurable trapping-laser frequency with default wavelength
+  1529.268881 nm. "One trapping beam" means one frequency/configuration routed
+  into three Cartesian round-trip paths, not one spatial ray: each path has an
+  incident and retroreflected component, for six trapping components total.
+- On each path the incident waist center is at -10 mm and the retro waist center
+  is at +10 mm, so the focal positions are separated by 20 mm. Do not describe
+  this as unequal lens focal lengths.
+- Incident and retro helicities are independent configuration values using the
+  propagation-frame `sigma+`, `sigma-`, or `pi` convention. The canonical
+  geometry check uses `sigma+` for both traveling directions, which makes their
+  lab-frame vector contributions oppose one another.
+- Until measured waist parameters are supplied, use the symmetric ideal
+  Gaussian in-trap approximation on x, y, and z: 35 mm input diameter and
+  80.3 mm focal length, giving about 2.234 micrometers waist radius at the
+  default wavelength. The external horizontal and vertical optical mechanics
+  are not asserted to be identical.
+- Trapping power and its three-path split are not yet specified. Geometry-stage
+  intensity outputs must therefore be labeled per watt incident on one path;
+  do not promote the superseded two-tone 0.5 W value into the current design.
+- Geometry QA uses the standing-wave-averaged incoherent envelope. It must show
+  both the even unsigned intensity sum and the odd helicity/direction-weighted
+  optical-spin factor `sum(s_helicity * I * k_hat)`, where the propagation-frame
+  convention gives `s_helicity = -1` for `sigma+`, `+1` for `sigma-`, and zero
+  for `pi`. The factor is not itself an effective magnetic field and must not be
+  used for quantitative force claims.
+- No production pMOT trajectory may run until the trapping power/path split,
+  coherent-interference treatment, window/mirror polarization transformations,
+  state-resolved Stark Hamiltonian for all 24 states, conservative force,
+  trap-light scattering/heating, and quantization-axis behavior at the
+  fictitious-field zero have been specified and validated.
+
+## Provisional pMOT AC-Stark diagnostic boundary
+
+- `data/raw/pmot/Arora_CCSD_Differential_Polarizabilities.csv` contains one
+  differential scalar/vector/tensor triplet per wavelength. It does not contain
+  separate level-resolved 5S and 5P polarizabilities and therefore cannot
+  uniquely determine all 24 hyperfine-Zeeman state shifts, a conservative
+  Stark force, or 1529-nm scattering/heating.
+- A provisional transition-level diagnostic is allowed only when its outputs
+  are labeled as such. It applies the scalar differential shift directly,
+  rescales the vector shift from the stretched cycling reference with the
+  transition Zeeman coefficient, and uses an excited-state tensor angular
+  proxy. These are ansatzes outside the stretched reference, not a recovered
+  Hamiltonian.
+- For every trapping component evaluate the nonrelativistic three-dimensional
+  atom-frame wavelength separately:
+  `lambda_seen = lambda_lab / [1 - dot(k_hat, v)/c]`. Preload and interpolate
+  the narrow polarizability table; do not extrapolate, clip, silently switch to
+  the coarse full-range table, reread the CSV at every step, or grow an
+  unbounded cache over continuous trajectory wavelengths.
+- The pMOT effective detuning in angular-frequency units is
+  `Delta_eff = Delta_L - delta_HFS - k_cooling_or_repump.v - DeltaE_AC/hbar`.
+  The external Zeeman term is exactly zero. The trapping-light Doppler shift
+  changes the wavelength used for the polarizability lookup; it is not added
+  directly as another 780-nm Doppler term.
+- Keep the validated 780-nm cooling/repump propagation-frame path helicities
+  fixed at `(x, y, z) = (sigma+, sigma+, sigma-)` for both incident and retro
+  components. With no trapping-light shift, their local velocity-force
+  Jacobian is negative definite, so they provide damping.
+- For the intended 1529.268881-nm vector-only design point, where the scalar
+  and tensor differential shifts cancel, the unique centered matched-path
+  helicity tuple that is position restoring on x, y, and z for the current
+  waist order is also `(sigma+, sigma+, sigma-)` on both the incident and
+  retro components. The globally reversed tuple `(sigma-, sigma-, sigma+)`
+  is position anti-restoring. The other six centered matched tuples are
+  saddles; unmatched incident/retro tuples bias the fictitious field at the
+  origin. These labels are propagation-frame targets at the atoms, not direct
+  laboratory waveplate settings.
+- Do not use the reversed `(sigma-, sigma-, sigma+)` result from the full
+  provisional total-shift sweep as a design recommendation. In that diagnostic
+  the helicity-independent -16.339691 MHz central shift changed the nominal
+  -15 MHz stretched-reference cooling detuning to +1.339691 MHz (blue), so
+  every centered configuration was anti-damping. Helicity cannot correct that
+  common detuning error: either enforce the intended scalar/tensor cancellation
+  or otherwise keep the relevant cooling transitions effectively red.
+- The provisional pMOT may use the `mot_multilevel` explicit-local-environment
+  rate-kernel entry point. Existing MOT callers must retain zero additional
+  transition shift and their anti-Helmholtz behavior bit-for-bit.
+- Physical pMOT trapping power remains unspecified. The first diagnostic's
+  approximately 38.294 mW/path value is only the stretched-reference power
+  scale corresponding to a nominal 20 G/cm vector-gradient proxy. It is not an
+  apparatus default or power recommendation.
+- Diagnostic trajectories include the unchanged 780-nm cooling/repump
+  radiation pressure and optional recoil diffusion plus gravity. They exclude
+  conservative Stark-gradient force, 1529-nm scattering/heating/loss,
+  coherent standing-wave structure, measured polarization transformations,
+  and nonadiabatic dynamics at the optical-spin zero. They must not be used for
+  capture, loading, temperature, or quantitative trapping claims.
+- The inherited rate kernel currently combines saturated per-transition rates,
+  explicit reverse stimulated-population links, and a force based on the
+  ground-population-weighted available absorption rate. Preserve and label
+  that convention for exact comparison with existing multilevel work, but do
+  not call it a validated net scattering force. Resolving it requires a
+  separate solver-wide derivation, two-level-limit tests, and event-engine
+  comparisons before rerunning quantitative multilevel or pMOT campaigns.
+- One-dimensional force zeros do not establish stability. Classify candidate
+  pMOT equilibria using the full three-dimensional force Jacobian and
+  distinguish position-restoring static zeros from dynamically stable trapping.
 
 ## Python environment and commands
 

@@ -186,6 +186,8 @@ def build_beam_stimulated_rate_matrices(
     field_magnitude_t: float,
     quantization_axis_vector: Vec3,
     config: MultilevelMOTConfig,
+    *,
+    transition_resonance_shift_rad_per_s: np.ndarray | None = None,
 ) -> np.ndarray:
     """Return incoherently summed beam rates W[b,e,g] in s^-1.
 
@@ -194,6 +196,22 @@ def build_beam_stimulated_rate_matrices(
     """
 
     gamma = config.natural_linewidth_rad_per_s
+    if transition_resonance_shift_rad_per_s is None:
+        transition_shift = np.zeros(len(model.transition_ground), dtype=float)
+    else:
+        transition_shift = np.asarray(
+            transition_resonance_shift_rad_per_s,
+            dtype=float,
+        )
+        if transition_shift.shape != model.transition_ground.shape:
+            raise ValueError(
+                "transition_resonance_shift_rad_per_s must have one value "
+                "per absorption transition"
+            )
+        if not np.all(np.isfinite(transition_shift)):
+            raise ValueError(
+                "transition_resonance_shift_rad_per_s must contain only finite values"
+            )
     beam_rates = np.zeros((len(beams), model.excited_count, model.ground_count))
     q_columns = model.transition_q + 1
     f2_reference_offset = model.structure.states[
@@ -223,7 +241,12 @@ def build_beam_stimulated_rate_matrices(
         polarization = np.asarray([weights[-1], weights[0], weights[1]])[q_columns]
         saturation = intensity_ratio * model.transition_strength * polarization
         doppler = float(np.dot(np.asarray(wavevector_rad_per_m(beam)), velocity))
-        detuning = laser_minus_hyperfine - doppler - model.transition_zeeman_coefficient * field_magnitude_t
+        detuning = (
+            laser_minus_hyperfine
+            - doppler
+            - model.transition_zeeman_coefficient * field_magnitude_t
+            - transition_shift
+        )
         # EFFICIENT_MOT.md transition-specific saturated Lorentzian.
         rates = 0.5 * gamma * saturation / (
             1.0 + saturation + 4.0 * detuning**2 / gamma**2
@@ -297,8 +320,57 @@ def rate_equation_observable(
     cfg = config or default_multilevel_mot_config()
     field_t = _local_field(position_m, coil_config)
     axis = quantization_axis(field_t, previous_axis, cfg.magnetic_field_epsilon_t)
+    return rate_equation_observable_from_local_environment(
+        model,
+        beams,
+        position_m,
+        velocity_m_per_s,
+        field_t,
+        axis,
+        cfg,
+        store_rate_matrix=store_rate_matrix,
+    )
+
+
+def rate_equation_observable_from_local_environment(
+    model: RateEquationModel,
+    beams: list[MOTBeam],
+    position_m: Vec3,
+    velocity_m_per_s: Vec3,
+    magnetic_field_t: Vec3,
+    quantization_axis_vector: Vec3,
+    config: MultilevelMOTConfig | None = None,
+    *,
+    transition_resonance_shift_rad_per_s: np.ndarray | None = None,
+    store_rate_matrix: bool = False,
+) -> RateEquationObservable:
+    """Solve the 24-state rate equations for an explicit local environment.
+
+    The conventional MOT wrapper supplies its anti-Helmholtz field and Zeeman
+    quantization axis.  Other apparatus models may supply a different local
+    axis and a transition-resonance shift while retaining the identical
+    cooling/repump population and radiation-pressure calculation.  A positive
+    transition-resonance shift is subtracted from the laser detuning.
+    """
+
+    cfg = config or default_multilevel_mot_config()
+    field_t = tuple(float(value) for value in magnetic_field_t)
+    if len(field_t) != 3 or not np.all(np.isfinite(field_t)):
+        raise ValueError("magnetic_field_t must contain three finite values")
+    axis_array = np.asarray(quantization_axis_vector, dtype=float)
+    axis_norm = float(np.linalg.norm(axis_array))
+    if axis_array.shape != (3,) or not np.all(np.isfinite(axis_array)) or axis_norm <= 0.0:
+        raise ValueError("quantization_axis_vector must be a finite nonzero 3-vector")
+    axis = tuple(float(value) for value in axis_array / axis_norm)
     beam_matrices = build_beam_stimulated_rate_matrices(
-        model, beams, position_m, velocity_m_per_s, float(np.linalg.norm(field_t)), axis, cfg,
+        model,
+        beams,
+        position_m,
+        velocity_m_per_s,
+        float(np.linalg.norm(field_t)),
+        axis,
+        cfg,
+        transition_resonance_shift_rad_per_s=transition_resonance_shift_rad_per_s,
     )
     total_stimulated = np.sum(beam_matrices, axis=0)
     rate_matrix = assemble_rate_matrix(total_stimulated, model.decay_rate_matrix_per_s)

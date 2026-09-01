@@ -1,0 +1,19 @@
+quantity,force_component,variable_component,value,units
+bare_780_position_jacobian,x,x,0.0,N/m
+bare_780_velocity_jacobian,x,vx,-1.0519846132567442e-21,N s/m
+bare_780_position_jacobian,x,y,0.0,N/m
+bare_780_velocity_jacobian,x,vy,0.0,N s/m
+bare_780_position_jacobian,x,z,0.0,N/m
+bare_780_velocity_jacobian,x,vz,0.0,N s/m
+bare_780_position_jacobian,y,x,0.0,N/m
+bare_780_velocity_jacobian,y,vx,0.0,N s/m
+bare_780_position_jacobian,y,y,0.0,N/m
+bare_780_velocity_jacobian,y,vy,-1.0519846132574958e-21,N s/m
+bare_780_position_jacobian,y,z,0.0,N/m
+bare_780_velocity_jacobian,y,vz,0.0,N s/m
+bare_780_position_jacobian,z,x,0.0,N/m
+bare_780_velocity_jacobian,z,vx,0.0,N s/m
+bare_780_position_jacobian,z,y,0.0,N/m
+bare_780_velocity_jacobian,z,vy,-5.6056386854837836e-34,N s/m
+bare_780_position_jacobian,z,z,0.0,N/m
+bare_780_velocity_jacobian,z,vz,-7.114996533476623e-22,N s/m

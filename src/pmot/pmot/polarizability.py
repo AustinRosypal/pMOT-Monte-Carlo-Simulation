@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 from ..configuration import PLANCK_CONSTANT_J_S
@@ -33,6 +34,21 @@ class DifferentialShiftCoefficients:
     scalar_mhz_per_intensity: float
     vector_mhz_per_intensity: float
     tensor_mhz_per_intensity: float
+
+
+@dataclass(frozen=True, slots=True)
+class DifferentialPolarizabilityTable:
+    """Preloaded narrow-band data for trajectory-safe interpolation."""
+
+    wavelengths_nm: np.ndarray
+    scalar_si: np.ndarray
+    vector_si: np.ndarray
+    tensor_si: np.ndarray
+    source_path: Path
+
+    @property
+    def wavelength_range_nm(self) -> tuple[float, float]:
+        return float(self.wavelengths_nm[0]), float(self.wavelengths_nm[-1])
 
 
 def default_polarizability_csv_path(root: Path | None = None) -> Path:
@@ -69,6 +85,77 @@ def load_differential_polarizability_csv(
     if not samples:
         raise ValueError(f"no polarizability samples found in {path}")
     return samples
+
+
+@lru_cache(maxsize=4)
+def load_differential_polarizability_table(
+    csv_path: Path | None = None,
+) -> DifferentialPolarizabilityTable:
+    """Load one CSV once into immutable NumPy arrays.
+
+    Continuously Doppler-shifted wavelengths should use this table rather than
+    the scalar, wavelength-cached helper below.  That avoids re-reading all
+    70,400 narrow-band rows for every new trajectory velocity.
+    """
+
+    path = (csv_path or default_polarizability_csv_path()).resolve()
+    dataframe = pd.read_csv(
+        path,
+        usecols=(
+            "Wavelength (nm)",
+            "Differential Scalar Polarizability",
+            "Differential Vector Polarizability",
+            "Differential Tensor Polarizability",
+        ),
+    )
+    arrays = [
+        dataframe[column].to_numpy(dtype=float)
+        for column in dataframe.columns
+    ]
+    if not arrays or len(arrays[0]) < 2:
+        raise ValueError(f"polarizability table must contain at least two rows: {path}")
+    if not all(np.all(np.isfinite(values)) for values in arrays):
+        raise ValueError(f"polarizability table contains non-finite values: {path}")
+    if not np.all(np.diff(arrays[0]) > 0.0):
+        raise ValueError(f"polarizability wavelengths must be strictly increasing: {path}")
+    for values in arrays:
+        values.setflags(write=False)
+    return DifferentialPolarizabilityTable(
+        wavelengths_nm=arrays[0],
+        scalar_si=arrays[1],
+        vector_si=arrays[2],
+        tensor_si=arrays[3],
+        source_path=path,
+    )
+
+
+def interpolate_differential_polarizability_arrays(
+    wavelengths_nm,
+    table: DifferentialPolarizabilityTable | None = None,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Vectorized, range-checked interpolation of all three differential ranks.
+
+    Extrapolation and silent clipping are forbidden because the narrow table
+    contains sharp resonant structure near the selected wavelength.
+    """
+
+    data = table or load_differential_polarizability_table()
+    requested = np.asarray(wavelengths_nm, dtype=float)
+    if not np.all(np.isfinite(requested)):
+        raise ValueError("wavelengths_nm must contain only finite values")
+    lower, upper = data.wavelength_range_nm
+    if np.any(requested < lower) or np.any(requested > upper):
+        actual_lower = float(np.min(requested))
+        actual_upper = float(np.max(requested))
+        raise ValueError(
+            f"requested wavelength range {actual_lower} to {actual_upper} nm is "
+            f"outside the narrow table range {lower} to {upper} nm"
+        )
+    return (
+        np.interp(requested, data.wavelengths_nm, data.scalar_si),
+        np.interp(requested, data.wavelengths_nm, data.vector_si),
+        np.interp(requested, data.wavelengths_nm, data.tensor_si),
+    )
 
 
 def wavelength_is_in_sample_range(

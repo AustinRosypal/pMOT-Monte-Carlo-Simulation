@@ -1,0 +1,2674 @@
+{
+  "schema": "pmot.vector-only-helicity-study.v1",
+  "status": "ideal-magic provisional diagnostic; not a production pMOT model",
+  "source_full_provisional_model": "stretched_reference_differential_transition_proxy",
+  "model": "ideal_magic_scalar_tensor_cancelled_vector_transition_proxy",
+  "effective_detuning_equation": "Delta_eff[b,g->e] = Delta_L[b] - delta_HFS[g->e] - k_b dot v - (DeltaE_AC[e]-DeltaE_AC[g])/hbar; B_external = 0",
+  "applied_shift_equation": "Delta_omega_applied[g->e] = DeltaE_vector[g->e] / hbar; DeltaE_scalar = DeltaE_tensor = 0 by imposed magic-wavelength idealization",
+  "force_mechanism": "F_proxy = sum_b hbar*k_780,b*R_abs,b evaluated after the 1529-nm vector transition-resonance shift; no direct 1529-nm force is applied",
+  "helicity_code_order": [
+    "incident_x",
+    "incident_y",
+    "incident_z",
+    "retro_x",
+    "retro_y",
+    "retro_z"
+  ],
+  "enumeration_policy": "all 64 sigma-only trapping configurations are recorded; only the 8 incident=retro zero-bias origin equilibria are linearized/classified",
+  "fixed_780_beam_manifest": [
+    {
+      "label": "horizontal_x_incident_cooling_780",
+      "family": "cooling",
+      "axis_name": "horizontal_x",
+      "propagation_sense": "incident",
+      "propagation_frame_helicity": "sigma+",
+      "direction": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "power_w": 0.027,
+      "wavelength_m": 7.8e-07,
+      "detuning_hz": -15000000.0
+    },
+    {
+      "label": "horizontal_x_retro_cooling_780",
+      "family": "cooling",
+      "axis_name": "horizontal_x",
+      "propagation_sense": "retro",
+      "propagation_frame_helicity": "sigma+",
+      "direction": [
+        -1.0,
+        -0.0,
+        -0.0
+      ],
+      "power_w": 0.027,
+      "wavelength_m": 7.8e-07,
+      "detuning_hz": -15000000.0
+    },
+    {
+      "label": "horizontal_y_incident_cooling_780",
+      "family": "cooling",
+      "axis_name": "horizontal_y",
+      "propagation_sense": "incident",
+      "propagation_frame_helicity": "sigma+",
+      "direction": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "power_w": 0.027,
+      "wavelength_m": 7.8e-07,
+      "detuning_hz": -15000000.0
+    },
+    {
+      "label": "horizontal_y_retro_cooling_780",
+      "family": "cooling",
+      "axis_name": "horizontal_y",
+      "propagation_sense": "retro",
+      "propagation_frame_helicity": "sigma+",
+      "direction": [
+        -0.0,
+        -1.0,
+        -0.0
+      ],
+      "power_w": 0.027,
+      "wavelength_m": 7.8e-07,
+      "detuning_hz": -15000000.0
+    },
+    {
+      "label": "vertical_z_incident_cooling_780",
+      "family": "cooling",
+      "axis_name": "vertical_z",
+      "propagation_sense": "incident",
+      "propagation_frame_helicity": "sigma-",
+      "direction": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "power_w": 0.027,
+      "wavelength_m": 7.8e-07,
+      "detuning_hz": -15000000.0
+    },
+    {
+      "label": "vertical_z_retro_cooling_780",
+      "family": "cooling",
+      "axis_name": "vertical_z",
+      "propagation_sense": "retro",
+      "propagation_frame_helicity": "sigma-",
+      "direction": [
+        -0.0,
+        -0.0,
+        -1.0
+      ],
+      "power_w": 0.027,
+      "wavelength_m": 7.8e-07,
+      "detuning_hz": -15000000.0
+    },
+    {
+      "label": "horizontal_x_incident_repump_780",
+      "family": "repump",
+      "axis_name": "horizontal_x",
+      "propagation_sense": "incident",
+      "propagation_frame_helicity": "sigma+",
+      "direction": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "power_w": 0.0001,
+      "wavelength_m": 7.80232684e-07,
+      "detuning_hz": 0.0
+    },
+    {
+      "label": "horizontal_x_retro_repump_780",
+      "family": "repump",
+      "axis_name": "horizontal_x",
+      "propagation_sense": "retro",
+      "propagation_frame_helicity": "sigma+",
+      "direction": [
+        -1.0,
+        -0.0,
+        -0.0
+      ],
+      "power_w": 0.0001,
+      "wavelength_m": 7.80232684e-07,
+      "detuning_hz": 0.0
+    },
+    {
+      "label": "horizontal_y_incident_repump_780",
+      "family": "repump",
+      "axis_name": "horizontal_y",
+      "propagation_sense": "incident",
+      "propagation_frame_helicity": "sigma+",
+      "direction": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "power_w": 0.0001,
+      "wavelength_m": 7.80232684e-07,
+      "detuning_hz": 0.0
+    },
+    {
+      "label": "horizontal_y_retro_repump_780",
+      "family": "repump",
+      "axis_name": "horizontal_y",
+      "propagation_sense": "retro",
+      "propagation_frame_helicity": "sigma+",
+      "direction": [
+        -0.0,
+        -1.0,
+        -0.0
+      ],
+      "power_w": 0.0001,
+      "wavelength_m": 7.80232684e-07,
+      "detuning_hz": 0.0
+    },
+    {
+      "label": "vertical_z_incident_repump_780",
+      "family": "repump",
+      "axis_name": "vertical_z",
+      "propagation_sense": "incident",
+      "propagation_frame_helicity": "sigma-",
+      "direction": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "power_w": 0.0001,
+      "wavelength_m": 7.80232684e-07,
+      "detuning_hz": 0.0
+    },
+    {
+      "label": "vertical_z_retro_repump_780",
+      "family": "repump",
+      "axis_name": "vertical_z",
+      "propagation_sense": "retro",
+      "propagation_frame_helicity": "sigma-",
+      "direction": [
+        -0.0,
+        -0.0,
+        -1.0
+      ],
+      "power_w": 0.0001,
+      "wavelength_m": 7.80232684e-07,
+      "detuning_hz": 0.0
+    }
+  ],
+  "fixed_parameters": {
+    "cooling_power_w_per_beam": 0.027,
+    "repump_power_w_per_beam": 0.0001,
+    "cooling_detuning_hz": -15000000.0,
+    "trapping_wavelength_m": 1.529268881e-06,
+    "trapping_power_w_per_path": 0.03829448617292197,
+    "trapping_power_source": "derived provisional stretched-reference vector-gradient proxy",
+    "target_gradient_g_per_cm": 20.0,
+    "external_magnetic_field_t": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "gravity_included": false,
+    "direct_1529_force_included": false,
+    "applied_scalar_transition_shift": 0.0,
+    "applied_tensor_transition_shift": 0.0
+  },
+  "numerical_method": {
+    "position_step_m": 2e-06,
+    "velocity_step_m_per_s": 0.001,
+    "comparison_position_extent_m": 0.0005,
+    "comparison_velocity_extent_m_per_s": 0.5,
+    "comparison_sample_count": 81,
+    "classification": "signs of real parts of complete 3x3 Jacobian eigenvalues"
+  },
+  "bare_780_control": {
+    "position_jacobian_n_per_m": [
+      [
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0
+      ]
+    ],
+    "position_eigenvalues_n_per_m": [
+      {
+        "real": 0.0,
+        "imaginary": 0.0
+      },
+      {
+        "real": 0.0,
+        "imaginary": 0.0
+      },
+      {
+        "real": 0.0,
+        "imaginary": 0.0
+      }
+    ],
+    "velocity_jacobian_n_s_per_m": [
+      [
+        -1.0519846132567442e-21,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        -1.0519846132574958e-21,
+        0.0
+      ],
+      [
+        0.0,
+        -5.6056386854837836e-34,
+        -7.114996533476623e-22
+      ]
+    ],
+    "velocity_eigenvalues_n_s_per_m": [
+      {
+        "real": -7.114996533476623e-22,
+        "imaginary": 0.0
+      },
+      {
+        "real": -1.0519846132567442e-21,
+        "imaginary": 0.0
+      },
+      {
+        "real": -1.0519846132574958e-21,
+        "imaginary": 0.0
+      }
+    ],
+    "velocity_classification": "damping",
+    "fallback_quantization_axis": [
+      0.0,
+      0.0,
+      1.0
+    ]
+  },
+  "counts": {
+    "enumerated": 64,
+    "centered_and_classified": 8,
+    "origin_biased_not_classified": 56,
+    "mismatched_path_count": {
+      "0": 8,
+      "1": 24,
+      "2": 24,
+      "3": 8
+    },
+    "centered_position": {
+      "saddle": 6,
+      "restoring": 1,
+      "anti_restoring": 1
+    },
+    "centered_velocity": {
+      "damping": 8
+    },
+    "centered_combined": {
+      "saddle_and_damping": 6,
+      "restoring_and_damping": 1,
+      "anti_restoring_but_damping": 1
+    }
+  },
+  "key_results": {
+    "restoring_and_damping_codes": [
+      "++-++-"
+    ],
+    "current": {
+      "combined_code": "++-++-",
+      "position": "restoring",
+      "velocity": "damping",
+      "combined": "restoring_and_damping"
+    },
+    "reversed": {
+      "combined_code": "--+--+",
+      "position": "anti_restoring",
+      "velocity": "damping",
+      "combined": "anti_restoring_but_damping"
+    }
+  },
+  "inherited_force_caveat": "The force is the authoritative multilevel kernel's ground-population-weighted absorption-momentum proxy. The same kernel includes stimulated population links, but their momentum is not subtracted. Its force sign and magnitude are not yet validated against a consistent two-level limit or the event engine.",
+  "vector_ansatz_caveat": "The differential table does not recover a state-resolved 24-state Hamiltonian; transition-dependent vector shifts retain the stretched-reference Zeeman-like ansatz.",
+  "zero_axis_caveat": "The centered optical-spin zero uses the +z fallback quantization axis; nonadiabatic zero-crossing dynamics are absent.",
+  "physical_retro_caveat": "The software labels six trapping components independently; physical retroreflection optics may constrain realizable label pairs.",
+  "polarizability_csv": "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\data\\raw\\pmot\\Arora_CCSD_Differential_Polarizabilities.csv",
+  "records": [
+    {
+      "combined_code": "++++++",
+      "incident_code_xyz": "+++",
+      "retro_code_xyz": "+++",
+      "mismatched_path_count": 0,
+      "pair_centered": true,
+      "origin_effective_field_zero": true,
+      "origin_force_equilibrium": true,
+      "centered_origin_equilibrium": true,
+      "origin_force_n": [
+        0.0,
+        0.0,
+        1.181371822576399e-36
+      ],
+      "origin_force_norm_n": 1.181371822576399e-36,
+      "origin_effective_field_proxy_t": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "origin_effective_field_proxy_magnitude_g": 0.0,
+      "position_jacobian_n_per_m": [
+        [
+          -1.311295384095848e-18,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          -1.3112953840961728e-18,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.3112953840963401e-18
+        ]
+      ],
+      "velocity_jacobian_n_s_per_m": [
+        [
+          -7.144316206324645e-22,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          -7.144316206327275e-22,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          -7.085676860586915e-22
+        ]
+      ],
+      "position_jacobian_eigenvalues_n_per_m": [
+        {
+          "real": -1.311295384095848e-18,
+          "imaginary": 0.0
+        },
+        {
+          "real": -1.3112953840961728e-18,
+          "imaginary": 0.0
+        },
+        {
+          "real": 1.3112953840963401e-18,
+          "imaginary": 0.0
+        }
+      ],
+      "velocity_jacobian_eigenvalues_n_s_per_m": [
+        {
+          "real": -7.144316206324645e-22,
+          "imaginary": 0.0
+        },
+        {
+          "real": -7.144316206327275e-22,
+          "imaginary": 0.0
+        },
+        {
+          "real": -7.085676860586915e-22,
+          "imaginary": 0.0
+        }
+      ],
+      "position_classification": "saddle",
+      "velocity_classification": "damping",
+      "combined_classification": "saddle_and_damping"
+    },
+    {
+      "combined_code": "+++++-",
+      "incident_code_xyz": "+++",
+      "retro_code_xyz": "++-",
+      "mismatched_path_count": 1,
+      "pair_centered": false,
+      "origin_effective_field_zero": false,
+      "origin_force_equilibrium": false,
+      "centered_origin_equilibrium": false,
+      "origin_force_n": [
+        0.0,
+        0.0,
+        -4.788230567636823e-21
+      ],
+      "origin_force_norm_n": 4.788230567636823e-21,
+      "origin_effective_field_proxy_t": [
+        0.0,
+        0.0,
+        -0.0010000010304571042
+      ],
+      "origin_effective_field_proxy_magnitude_g": 10.000010304571042,
+      "position_jacobian_n_per_m": null,
+      "velocity_jacobian_n_s_per_m": null,
+      "position_jacobian_eigenvalues_n_per_m": null,
+      "velocity_jacobian_eigenvalues_n_s_per_m": null,
+      "position_classification": "not_classified_origin_biased",
+      "velocity_classification": "not_classified_origin_biased",
+      "combined_classification": "not_classified_origin_biased"
+    },
+    {
+      "combined_code": "++++-+",
+      "incident_code_xyz": "+++",
+      "retro_code_xyz": "+-+",
+      "mismatched_path_count": 1,
+      "pair_centered": false,
+      "origin_effective_field_zero": false,
+      "origin_force_equilibrium": false,
+      "centered_origin_equilibrium": false,
+      "origin_force_n": [
+        0.0,
+        4.788230567636831e-21,
+        0.0
+      ],
+      "origin_force_norm_n": 4.788230567636831e-21,
+      "origin_effective_field_proxy_t": [
+        0.0,
+        -0.0010000010304571042,
+        0.0
+      ],
+      "origin_effective_field_proxy_magnitude_g": 10.000010304571042,
+      "position_jacobian_n_per_m": null,
+      "velocity_jacobian_n_s_per_m": null,
+      "position_jacobian_eigenvalues_n_per_m": null,
+      "velocity_jacobian_eigenvalues_n_s_per_m": null,
+      "position_classification": "not_classified_origin_biased",
+      "velocity_classification": "not_classified_origin_biased",
+      "combined_classification": "not_classified_origin_biased"
+    },
+    {
+      "combined_code": "++++--",
+      "incident_code_xyz": "+++",
+      "retro_code_xyz": "+--",
+      "mismatched_path_count": 2,
+      "pair_centered": false,
+      "origin_effective_field_zero": false,
+      "origin_force_equilibrium": false,
+      "centered_origin_equilibrium": false,
+      "origin_force_n": [
+        0.0,
+        3.629951822810512e-21,
+        -3.629951822810512e-21
+      ],
+      "origin_force_norm_n": 5.133527098579564e-21,
+      "origin_effective_field_proxy_t": [
+        0.0,
+        -0.0010000010304571042,
+        -0.0010000010304571042
+      ],
+      "origin_effective_field_proxy_magnitude_g": 14.142150196595072,
+      "position_jacobian_n_per_m": null,
+      "velocity_jacobian_n_s_per_m": null,
+      "position_jacobian_eigenvalues_n_per_m": null,
+      "velocity_jacobian_eigenvalues_n_s_per_m": null,
+      "position_classification": "not_classified_origin_biased",
+      "velocity_classification": "not_classified_origin_biased",
+      "combined_classification": "not_classified_origin_biased"
+    },
+    {
+      "combined_code": "+++-++",
+      "incident_code_xyz": "+++",
+      "retro_code_xyz": "-++",
+      "mismatched_path_count": 1,
+      "pair_centered": false,
+      "origin_effective_field_zero": false,
+      "origin_force_equilibrium": false,
+      "centered_origin_equilibrium": false,
+      "origin_force_n": [
+        4.788230567636831e-21,
+        0.0,
+        0.0
+      ],
+      "origin_force_norm_n": 4.788230567636831e-21,
+      "origin_effective_field_proxy_t": [
+        -0.0010000010304571042,
+        0.0,
+        0.0
+      ],
+      "origin_effective_field_proxy_magnitude_g": 10.000010304571042,
+      "position_jacobian_n_per_m": null,
+      "velocity_jacobian_n_s_per_m": null,
+      "position_jacobian_eigenvalues_n_per_m": null,
+      "velocity_jacobian_eigenvalues_n_s_per_m": null,
+      "position_classification": "not_classified_origin_biased",
+      "velocity_classification": "not_classified_origin_biased",
+      "combined_classification": "not_classified_origin_biased"
+    },
+    {
+      "combined_code": "+++-+-",
+      "incident_code_xyz": "+++",
+      "retro_code_xyz": "-+-",
+      "mismatched_path_count": 2,
+      "pair_centered": false,
+      "origin_effective_field_zero": false,
+      "origin_force_equilibrium": false,
+      "centered_origin_equilibrium": false,
+      "origin_force_n": [
+        3.6299518228105075e-21,
+        0.0,
+        -3.6299518228105075e-21
+      ],
+      "origin_force_norm_n": 5.133527098579558e-21,
+      "origin_effective_field_proxy_t": [
+        -0.0010000010304571042,
+        0.0,
+        -0.0010000010304571042
+      ],
+      "origin_effective_field_proxy_magnitude_g": 14.142150196595072,
+      "position_jacobian_n_per_m": null,
+      "velocity_jacobian_n_s_per_m": null,
+      "position_jacobian_eigenvalues_n_per_m": null,
+      "velocity_jacobian_eigenvalues_n_s_per_m": null,
+      "position_classification": "not_classified_origin_biased",
+      "velocity_classification": "not_classified_origin_biased",
+      "combined_classification": "not_classified_origin_biased"
+    },
+    {
+      "combined_code": "+++--+",
+      "incident_code_xyz": "+++",
+      "retro_code_xyz": "--+",
+      "mismatched_path_count": 2,
+      "pair_centered": false,
+      "origin_effective_field_zero": false,
+      "origin_force_equilibrium": false,
+      "centered_origin_equilibrium": false,
+      "origin_force_n": [
+        3.629951822810509e-21,
+        3.629951822810509e-21,
+        0.0
+      ],
+      "origin_force_norm_n": 5.13352709857956e-21,
+      "origin_effective_field_proxy_t": [
+        -0.0010000010304571042,
+        -0.0010000010304571042,
+        0.0
+      ],
+      "origin_effective_field_proxy_magnitude_g": 14.142150196595072,
+      "position_jacobian_n_per_m": null,
+      "velocity_jacobian_n_s_per_m": null,
+      "position_jacobian_eigenvalues_n_per_m": null,
+      "velocity_jacobian_eigenvalues_n_s_per_m": null,
+      "position_classification": "not_classified_origin_biased",
+      "velocity_classification": "not_classified_origin_biased",
+      "combined_classification": "not_classified_origin_biased"
+    },
+    {
+      "combined_code": "+++---",
+      "incident_code_xyz": "+++",
+      "retro_code_xyz": "---",
+      "mismatched_path_count": 3,
+      "pair_centered": false,
+      "origin_effective_field_zero": false,
+      "origin_force_equilibrium": false,
+      "centered_origin_equilibrium": false,
+      "origin_force_n": [
+        2.6640460462411243e-21,
+        2.6640460462411243e-21,
+        -2.6640460462411243e-21
+      ],
+      "origin_force_norm_n": 4.614263105792614e-21,
+      "origin_effective_field_proxy_t": [
+        -0.0010000010304571042,
+        -0.0010000010304571042,
+        -0.0010000010304571042
+      ],
+      "origin_effective_field_proxy_magnitude_g": 17.32052592372937,
+      "position_jacobian_n_per_m": null,
+      "velocity_jacobian_n_s_per_m": null,
+      "position_jacobian_eigenvalues_n_per_m": null,
+      "velocity_jacobian_eigenvalues_n_s_per_m": null,
+      "position_classification": "not_classified_origin_biased",
+      "velocity_classification": "not_classified_origin_biased",
+      "combined_classification": "not_classified_origin_biased"
+    },
+    {
+      "combined_code": "++-+++",
+      "incident_code_xyz": "++-",
+      "retro_code_xyz": "+++",
+      "mismatched_path_count": 1,
+      "pair_centered": false,
+      "origin_effective_field_zero": false,
+      "origin_force_equilibrium": false,
+      "centered_origin_equilibrium": false,
+      "origin_force_n": [
+        0.0,
+        0.0,
+        4.788230567636823e-21
+      ],
+      "origin_force_norm_n": 4.788230567636823e-21,
+      "origin_effective_field_proxy_t": [
+        0.0,
+        0.0,
+        0.0010000010304571042
+      ],
+      "origin_effective_field_proxy_magnitude_g": 10.000010304571042,
+      "position_jacobian_n_per_m": null,
+      "velocity_jacobian_n_s_per_m": null,
+      "position_jacobian_eigenvalues_n_per_m": null,
+      "velocity_jacobian_eigenvalues_n_s_per_m": null,
+      "position_classification": "not_classified_origin_biased",
+      "velocity_classification": "not_classified_origin_biased",
+      "combined_classification": "not_classified_origin_biased"
+    },
+    {
+      "combined_code": "++-++-",
+      "incident_code_xyz": "++-",
+      "retro_code_xyz": "++-",
+      "mismatched_path_count": 0,
+      "pair_centered": true,
+      "origin_effective_field_zero": true,
+      "origin_force_equilibrium": true,
+      "centered_origin_equilibrium": true,
+      "origin_force_n": [
+        0.0,
+        0.0,
+        1.181371822576399e-36
+      ],
+      "origin_force_norm_n": 1.181371822576399e-36,
+      "origin_effective_field_proxy_t": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "origin_effective_field_proxy_magnitude_g": 0.0,
+      "position_jacobian_n_per_m": [
+        [
+          -1.311295384095848e-18,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          -1.3112953840961728e-18,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          -1.3112953840963401e-18
+        ]
+      ],
+      "velocity_jacobian_n_s_per_m": [
+        [
+          -7.144316206324645e-22,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          -7.144316206327275e-22,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          -7.1443162063117295e-22
+        ]
+      ],
+      "position_jacobian_eigenvalues_n_per_m": [
+        {
+          "real": -1.311295384095848e-18,
+          "imaginary": 0.0
+        },
+        {
+          "real": -1.3112953840961728e-18,
+          "imaginary": 0.0
+        },
+        {
+          "real": -1.3112953840963401e-18,
+          "imaginary": 0.0
+        }
+      ],
+      "velocity_jacobian_eigenvalues_n_s_per_m": [
+        {
+          "real": -7.144316206324645e-22,
+          "imaginary": 0.0
+        },
+        {
+          "real": -7.144316206327275e-22,
+          "imaginary": 0.0
+        },
+        {
+          "real": -7.1443162063117295e-22,
+          "imaginary": 0.0
+        }
+      ],
+      "position_classification": "restoring",
+      "velocity_classification": "damping",
+      "combined_classification": "restoring_and_damping"
+    },
+    {
+      "combined_code": "++-+-+",
+      "incident_code_xyz": "++-",
+      "retro_code_xyz": "+-+",
+      "mismatched_path_count": 2,
+      "pair_centered": false,
+      "origin_effective_field_zero": false,
+      "origin_force_equilibrium": false,
+      "centered_origin_equilibrium": false,
+      "origin_force_n": [
+        0.0,
+        3.629951822810512e-21,
+        3.629951822810512e-21
+      ],
+      "origin_force_norm_n": 5.133527098579564e-21,
+      "origin_effective_field_proxy_t": [
+        0.0,
+        -0.0010000010304571042,
+        0.0010000010304571042
+      ],
+      "origin_effective_field_proxy_magnitude_g": 14.142150196595072,
+      "position_jacobian_n_per_m": null,
+      "velocity_jacobian_n_s_per_m": null,
+      "position_jacobian_eigenvalues_n_per_m": null,
+      "velocity_jacobian_eigenvalues_n_s_per_m": null,
+      "position_classification": "not_classified_origin_biased",
+      "velocity_classification": "not_classified_origin_biased",
+      "combined_classification": "not_classified_origin_biased"
+    },
+    {
+      "combined_code": "++-+--",
+      "incident_code_xyz": "++-",
+      "retro_code_xyz": "+--",
+      "mismatched_path_count": 1,
+      "pair_centered": false,
+      "origin_effective_field_zero": false,
+      "origin_force_equilibrium": false,
+      "centered_origin_equilibrium": false,
+      "origin_force_n": [
+        0.0,
+        4.788230567636831e-21,
+        0.0
+      ],
+      "origin_force_norm_n": 4.788230567636831e-21,
+      "origin_effective_field_proxy_t": [
+        0.0,
+        -0.0010000010304571042,
+        0.0
+      ],
+      "origin_effective_field_proxy_magnitude_g": 10.000010304571042,
+      "position_jacobian_n_per_m": null,
+      "velocity_jacobian_n_s_per_m": null,
+      "position_jacobian_eigenvalues_n_per_m": null,
+      "velocity_jacobian_eigenvalues_n_s_per_m": null,
+      "position_classification": "not_classified_origin_biased",
+      "velocity_classification": "not_classified_origin_biased",
+      "combined_classification": "not_classified_origin_biased"
+    },
+    {
+      "combined_code": "++--++",
+      "incident_code_xyz": "++-",
+      "retro_code_xyz": "-++",
+      "mismatched_path_count": 2,
+      "pair_centered": false,
+      "origin_effective_field_zero": false,
+      "origin_force_equilibrium": false,
+      "centered_origin_equilibrium": false,
+      "origin_force_n": [
+        3.6299518228105075e-21,
+        0.0,
+        3.6299518228105075e-21
+      ],
+      "origin_force_norm_n": 5.133527098579558e-21,
+      "origin_effective_field_proxy_t": [
+        -0.0010000010304571042,
+        0.0,
+        0.0010000010304571042
+      ],
+      "origin_effective_field_proxy_magnitude_g": 14.142150196595072,
+      "position_jacobian_n_per_m": null,
+      "velocity_jacobian_n_s_per_m": null,
+      "position_jacobian_eigenvalues_n_per_m": null,
+      "velocity_jacobian_eigenvalues_n_s_per_m": null,
+      "position_classification": "not_classified_origin_biased",
+      "velocity_classification": "not_classified_origin_biased",
+      "combined_classification": "not_classified_origin_biased"
+    },
+    {
+      "combined_code": "++--+-",
+      "incident_code_xyz": "++-",
+      "retro_code_xyz": "-+-",
+      "mismatched_path_count": 1,
+      "pair_centered": false,
+      "origin_effective_field_zero": false,
+      "origin_force_equilibrium": false,
+      "centered_origin_equilibrium": false,
+      "origin_force_n": [
+        4.788230567636831e-21,
+        0.0,
+        0.0
+      ],
+      "origin_force_norm_n": 4.788230567636831e-21,
+      "origin_effective_field_proxy_t": [
+        -0.0010000010304571042,
+        0.0,
+        0.0
+      ],
+      "origin_effective_field_proxy_magnitude_g": 10.000010304571042,
+      "position_jacobian_n_per_m": null,
+      "velocity_jacobian_n_s_per_m": null,
+      "position_jacobian_eigenvalues_n_per_m": null,
+      "velocity_jacobian_eigenvalues_n_s_per_m": null,
+      "position_classification": "not_classified_origin_biased",
+      "velocity_classification": "not_classified_origin_biased",
+      "combined_classification": "not_classified_origin_biased"
+    },
+    {
+      "combined_code": "++---+",
+      "incident_code_xyz": "++-",
+      "retro_code_xyz": "--+",
+      "mismatched_path_count": 3,
+      "pair_centered": false,
+      "origin_effective_field_zero": false,
+      "origin_force_equilibrium": false,
+      "centered_origin_equilibrium": false,
+      "origin_force_n": [
+        2.6640460462411247e-21,
+        2.6640460462411247e-21,
+        2.664046046241125e-21
+      ],
+      "origin_force_norm_n": 4.614263105792615e-21,
+      "origin_effective_field_proxy_t": [
+        -0.0010000010304571042,
+        -0.0010000010304571042,
+        0.0010000010304571042
+      ],
+      "origin_effective_field_proxy_magnitude_g": 17.32052592372937,
+      "position_jacobian_n_per_m": null,
+      "velocity_jacobian_n_s_per_m": null,
+      "position_jacobian_eigenvalues_n_per_m": null,
+      "velocity_jacobian_eigenvalues_n_s_per_m": null,
+      "position_classification": "not_classified_origin_biased",
+      "velocity_classification": "not_classified_origin_biased",
+      "combined_classification": "not_classified_origin_biased"
+    },
+    {
+      "combined_code": "++----",
+      "incident_code_xyz": "++-",
+      "retro_code_xyz": "---",
+      "mismatched_path_count": 2,
+      "pair_centered": false,
+      "origin_effective_field_zero": false,
+      "origin_force_equilibrium": false,
+      "centered_origin_equilibrium": false,
+      "origin_force_n": [
+        3.629951822810509e-21,
+        3.629951822810509e-21,
+        0.0
+      ],
+      "origin_force_norm_n": 5.13352709857956e-21,
+      "origin_effective_field_proxy_t": [
+        -0.0010000010304571042,
+        -0.0010000010304571042,
+        0.0
+      ],
+      "origin_effective_field_proxy_magnitude_g": 14.142150196595072,
+      "position_jacobian_n_per_m": null,
+      "velocity_jacobian_n_s_per_m": null,
+      "position_jacobian_eigenvalues_n_per_m": null,
+      "velocity_jacobian_eigenvalues_n_s_per_m": null,
+      "position_classification": "not_classified_origin_biased",
+      "velocity_classification": "not_classified_origin_biased",
+      "combined_classification": "not_classified_origin_biased"
+    },
+    {
+      "combined_code": "+-++++",
+      "incident_code_xyz": "+-+",
+      "retro_code_xyz": "+++",
+      "mismatched_path_count": 1,
+      "pair_centered": false,
+      "origin_effective_field_zero": false,
+      "origin_force_equilibrium": false,
+      "centered_origin_equilibrium": false,
+      "origin_force_n": [
+        0.0,
+        -4.788230567636831e-21,
+        0.0
+      ],
+      "origin_force_norm_n": 4.788230567636831e-21,
+      "origin_effective_field_proxy_t": [
+        0.0,
+        0.0010000010304571042,
+        0.0
+      ],
+      "origin_effective_field_proxy_magnitude_g": 10.000010304571042,
+      "position_jacobian_n_per_m": null,
+      "velocity_jacobian_n_s_per_m": null,
+      "position_jacobian_eigenvalues_n_per_m": null,
+      "velocity_jacobian_eigenvalues_n_s_per_m": null,
+      "position_classification": "not_classified_origin_biased",
+      "velocity_classification": "not_classified_origin_biased",
+      "combined_classification": "not_classified_origin_biased"
+    },
+    {
+      "combined_code": "+-+++-",
+      "incident_code_xyz": "+-+",
+      "retro_code_xyz": "++-",
+      "mismatched_path_count": 2,
+      "pair_centered": false,
+      "origin_effective_field_zero": false,
+      "origin_force_equilibrium": false,
+      "centered_origin_equilibrium": false,
+      "origin_force_n": [
+        0.0,
+        -3.6299518228105105e-21,
+        -3.6299518228105105e-21
+      ],
+      "origin_force_norm_n": 5.1335270985795624e-21,
+      "origin_effective_field_proxy_t": [
+        0.0,
+        0.0010000010304571042,
+        -0.0010000010304571042
+      ],
+      "origin_effective_field_proxy_magnitude_g": 14.142150196595072,
+      "position_jacobian_n_per_m": null,
+      "velocity_jacobian_n_s_per_m": null,
+      "position_jacobian_eigenvalues_n_per_m": null,
+      "velocity_jacobian_eigenvalues_n_s_per_m": null,
+      "position_classification": "not_classified_origin_biased",
+      "velocity_classification": "not_classified_origin_biased",
+      "combined_classification": "not_classified_origin_biased"
+    },
+    {
+      "combined_code": "+-++-+",
+      "incident_code_xyz": "+-+",
+      "retro_code_xyz": "+-+",
+      "mismatched_path_count": 0,
+      "pair_centered": true,
+      "origin_effective_field_zero": true,
+      "origin_force_equilibrium": true,
+      "centered_origin_equilibrium": true,
+      "origin_force_n": [
+        0.0,
+        0.0,
+        1.181371822576399e-36
+      ],
+      "origin_force_norm_n": 1.181371822576399e-36,
+      "origin_effective_field_proxy_t": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "origin_effective_field_proxy_magnitude_g": 0.0,
+      "position_jacobian_n_per_m": [
+        [
+          -1.311295384095848e-18,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.3112953840961728e-18,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.3112953840963401e-18
+        ]
+      ],
+      "velocity_jacobian_n_s_per_m": [
+        [
+          -7.144316206324645e-22,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          -7.085676860587385e-22,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          -7.085676860586915e-22
+        ]
+      ],
+      "position_jacobian_eigenvalues_n_per_m": [
+        {
+          "real": -1.311295384095848e-18,
+          "imaginary": 0.0
+        },
+        {
+          "real": 1.3112953840961728e-18,
+          "imaginary": 0.0
+        },
+        {
+          "real": 1.3112953840963401e-18,
+          "imaginary": 0.0
+        }
+      ],
+      "velocity_jacobian_eigenvalues_n_s_per_m": [
+        {
+          "real": -7.144316206324645e-22,
+          "imaginary": 0.0
+        },
+        {
+          "real": -7.085676860587385e-22,
+          "imaginary": 0.0
+        },
+        {
+          "real": -7.085676860586915e-22,
+          "imaginary": 0.0
+        }
+      ],
+      "position_classification": "saddle",
+      "velocity_classification": "damping",
+      "combined_classification": "saddle_and_damping"
+    },
+    {
+      "combined_code": "+-++--",
+      "incident_code_xyz": "+-+",
+      "retro_code_xyz": "+--",
+      "mismatched_path_count": 1,
+      "pair_centered": false,
+      "origin_effective_field_zero": false,
+      "origin_force_equilibrium": false,
+      "centered_origin_equilibrium": false,
+      "origin_force_n": [
+        0.0,
+        0.0,
+        -4.788230567636823e-21
+      ],
+      "origin_force_norm_n": 4.788230567636823e-21,
+      "origin_effective_field_proxy_t": [
+        0.0,
+        0.0,
+        -0.0010000010304571042
+      ],
+      "origin_effective_field_proxy_magnitude_g": 10.000010304571042,
+      "position_jacobian_n_per_m": null,
+      "velocity_jacobian_n_s_per_m": null,
+      "position_jacobian_eigenvalues_n_per_m": null,
+      "velocity_jacobian_eigenvalues_n_s_per_m": null,
+      "position_classification": "not_classified_origin_biased",
+      "velocity_classification": "not_classified_origin_biased",
+      "combined_classification": "not_classified_origin_biased"
+    },
+    {
+      "combined_code": "+-+-++",
+      "incident_code_xyz": "+-+",
+      "retro_code_xyz": "-++",
+      "mismatched_path_count": 2,
+      "pair_centered": false,
+      "origin_effective_field_zero": false,
+      "origin_force_equilibrium": false,
+      "centered_origin_equilibrium": false,
+      "origin_force_n": [
+        3.6299518228105075e-21,
+        -3.6299518228105075e-21,
+        0.0
+      ],
+      "origin_force_norm_n": 5.133527098579558e-21,
+      "origin_effective_field_proxy_t": [
+        -0.0010000010304571042,
+        0.0010000010304571042,
+        0.0
+      ],
+      "origin_effective_field_proxy_magnitude_g": 14.142150196595072,
+      "position_jacobian_n_per_m": null,
+      "velocity_jacobian_n_s_per_m": null,
+      "position_jacobian_eigenvalues_n_per_m": null,
+      "velocity_jacobian_eigenvalues_n_s_per_m": null,
+      "position_classification": "not_classified_origin_biased",
+      "velocity_classification": "not_classified_origin_biased",
+      "combined_classification": "not_classified_origin_biased"
+    },
+    {
+      "combined_code": "+-+-+-",
+      "incident_code_xyz": "+-+",
+      "retro_code_xyz": "-+-",
+      "mismatched_path_count": 3,
+      "pair_centered": false,
+      "origin_effective_field_zero": false,
+      "origin_force_equilibrium": false,
+      "centered_origin_equilibrium": false,
+      "origin_force_n": [
+        2.6640460462411243e-21,
+        -2.6640460462411243e-21,
+        -2.6640460462411243e-21
+      ],
+      "origin_force_norm_n": 4.614263105792614e-21,
+      "origin_effective_field_proxy_t": [
+        -0.0010000010304571042,
+        0.0010000010304571042,
+        -0.0010000010304571042
+      ],
+      "origin_effective_field_proxy_magnitude_g": 17.32052592372937,
+      "position_jacobian_n_per_m": null,
+      "velocity_jacobian_n_s_per_m": null,
+      "position_jacobian_eigenvalues_n_per_m": null,
+      "velocity_jacobian_eigenvalues_n_s_per_m": null,
+      "position_classification": "not_classified_origin_biased",
+      "velocity_classification": "not_classified_origin_biased",
+      "combined_classification": "not_classified_origin_biased"
+    },
+    {
+      "combined_code": "+-+--+",
+      "incident_code_xyz": "+-+",
+      "retro_code_xyz": "--+",
+      "mismatched_path_count": 1,
+      "pair_centered": false,
+      "origin_effective_field_zero": false,
+      "origin_force_equilibrium": false,
+      "centered_origin_equilibrium": false,
+      "origin_force_n": [
+        4.788230567636831e-21,
+        0.0,
+        0.0
+      ],
+      "origin_force_norm_n": 4.788230567636831e-21,
+      "origin_effective_field_proxy_t": [
+        -0.0010000010304571042,
+        0.0,
+        0.0
+      ],
+      "origin_effective_field_proxy_magnitude_g": 10.000010304571042,
+      "position_jacobian_n_per_m": null,
+      "velocity_jacobian_n_s_per_m": null,
+      "position_jacobian_eigenvalues_n_per_m": null,
+      "velocity_jacobian_eigenvalues_n_s_per_m": null,
+      "position_classification": "not_classified_origin_biased",
+      "velocity_classification": "not_classified_origin_biased",
+      "combined_classification": "not_classified_origin_biased"
+    },
+    {
+      "combined_code": "+-+---",
+      "incident_code_xyz": "+-+",
+      "retro_code_xyz": "---",
+      "mismatched_path_count": 2,
+      "pair_centered": false,
+      "origin_effective_field_zero": false,
+      "origin_force_equilibrium": false,
+      "centered_origin_equilibrium": false,
+      "origin_force_n": [
+        3.6299518228105075e-21,
+        0.0,
+        -3.6299518228105075e-21
+      ],
+      "origin_force_norm_n": 5.133527098579558e-21,
+      "origin_effective_field_proxy_t": [
+        -0.0010000010304571042,
+        0.0,
+        -0.0010000010304571042
+      ],
+      "origin_effective_field_proxy_magnitude_g": 14.142150196595072,
+      "position_jacobian_n_per_m": null,
+      "velocity_jacobian_n_s_per_m": null,
+      "position_jacobian_eigenvalues_n_per_m": null,
+      "velocity_jacobian_eigenvalues_n_s_per_m": null,
+      "position_classification": "not_classified_origin_biased",
+      "velocity_classification": "not_classified_origin_biased",
+      "combined_classification": "not_classified_origin_biased"
+    },
+    {
+      "combined_code": "+--+++",
+      "incident_code_xyz": "+--",
+      "retro_code_xyz": "+++",
+      "mismatched_path_count": 2,
+      "pair_centered": false,
+      "origin_effective_field_zero": false,
+      "origin_force_equilibrium": false,
+      "centered_origin_equilibrium": false,
+      "origin_force_n": [
+        0.0,
+        -3.629951822810507e-21,
+        3.629951822810507e-21
+      ],
+      "origin_force_norm_n": 5.1335270985795564e-21,
+      "origin_effective_field_proxy_t": [
+        0.0,
+        0.0010000010304571042,
+        0.0010000010304571042
+      ],
+      "origin_effective_field_proxy_magnitude_g": 14.142150196595072,
+      "position_jacobian_n_per_m": null,
+      "velocity_jacobian_n_s_per_m": null,
+      "position_jacobian_eigenvalues_n_per_m": null,
+      "velocity_jacobian_eigenvalues_n_s_per_m": null,
+      "position_classification": "not_classified_origin_biased",
+      "velocity_classification": "not_classified_origin_biased",
+      "combined_classification": "not_classified_origin_biased"
+    },
+    {
+      "combined_code": "+--++-",
+      "incident_code_xyz": "+--",
+      "retro_code_xyz": "++-",
+      "mismatched_path_count": 1,
+      "pair_centered": false,
+      "origin_effective_field_zero": false,
+      "origin_force_equilibrium": false,
+      "centered_origin_equilibrium": false,
+      "origin_force_n": [
+        0.0,
+        -4.788230567636831e-21,
+        0.0
+      ],
+      "origin_force_norm_n": 4.788230567636831e-21,
+      "origin_effective_field_proxy_t": [
+        0.0,
+        0.0010000010304571042,
+        0.0
+      ],
+      "origin_effective_field_proxy_magnitude_g": 10.000010304571042,
+      "position_jacobian_n_per_m": null,
+      "velocity_jacobian_n_s_per_m": null,
+      "position_jacobian_eigenvalues_n_per_m": null,
+      "velocity_jacobian_eigenvalues_n_s_per_m": null,
+      "position_classification": "not_classified_origin_biased",
+      "velocity_classification": "not_classified_origin_biased",
+      "combined_classification": "not_classified_origin_biased"
+    },
+    {
+      "combined_code": "+--+-+",
+      "incident_code_xyz": "+--",
+      "retro_code_xyz": "+-+",
+      "mismatched_path_count": 1,
+      "pair_centered": false,
+      "origin_effective_field_zero": false,
+      "origin_force_equilibrium": false,
+      "centered_origin_equilibrium": false,
+      "origin_force_n": [
+        0.0,
+        0.0,
+        4.788230567636823e-21
+      ],
+      "origin_force_norm_n": 4.788230567636823e-21,
+      "origin_effective_field_proxy_t": [
+        0.0,
+        0.0,
+        0.0010000010304571042
+      ],
+      "origin_effective_field_proxy_magnitude_g": 10.000010304571042,
+      "position_jacobian_n_per_m": null,
+      "velocity_jacobian_n_s_per_m": null,
+      "position_jacobian_eigenvalues_n_per_m": null,
+      "velocity_jacobian_eigenvalues_n_s_per_m": null,
+      "position_classification": "not_classified_origin_biased",
+      "velocity_classification": "not_classified_origin_biased",
+      "combined_classification": "not_classified_origin_biased"
+    },
+    {
+      "combined_code": "+--+--",
+      "incident_code_xyz": "+--",
+      "retro_code_xyz": "+--",
+      "mismatched_path_count": 0,
+      "pair_centered": true,
+      "origin_effective_field_zero": true,
+      "origin_force_equilibrium": true,
+      "centered_origin_equilibrium": true,
+      "origin_force_n": [
+        0.0,
+        0.0,
+        1.181371822576399e-36
+      ],
+      "origin_force_norm_n": 1.181371822576399e-36,
+      "origin_effective_field_proxy_t": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "origin_effective_field_proxy_magnitude_g": 0.0,
+      "position_jacobian_n_per_m": [
+        [
+          -1.311295384095848e-18,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.3112953840961728e-18,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          -1.3112953840963401e-18
+        ]
+      ],
+      "velocity_jacobian_n_s_per_m": [
+        [
+          -7.144316206324645e-22,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          -7.085676860587385e-22,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          -7.1443162063117295e-22
+        ]
+      ],
+      "position_jacobian_eigenvalues_n_per_m": [
+        {
+          "real": -1.311295384095848e-18,
+          "imaginary": 0.0
+        },
+        {
+          "real": 1.3112953840961728e-18,
+          "imaginary": 0.0
+        },
+        {
+          "real": -1.3112953840963401e-18,
+          "imaginary": 0.0
+        }
+      ],
+      "velocity_jacobian_eigenvalues_n_s_per_m": [
+        {
+          "real": -7.144316206324645e-22,
+          "imaginary": 0.0
+        },
+        {
+          "real": -7.085676860587385e-22,
+          "imaginary": 0.0
+        },
+        {
+          "real": -7.1443162063117295e-22,
+          "imaginary": 0.0
+        }
+      ],
+      "position_classification": "saddle",
+      "velocity_classification": "damping",
+      "combined_classification": "saddle_and_damping"
+    },
+    {
+      "combined_code": "+---++",
+      "incident_code_xyz": "+--",
+      "retro_code_xyz": "-++",
+      "mismatched_path_count": 3,
+      "pair_centered": false,
+      "origin_effective_field_zero": false,
+      "origin_force_equilibrium": false,
+      "centered_origin_equilibrium": false,
+      "origin_force_n": [
+        2.664046046241125e-21,
+        -2.664046046241125e-21,
+        2.6640460462411255e-21
+      ],
+      "origin_force_norm_n": 4.614263105792615e-21,
+      "origin_effective_field_proxy_t": [
+        -0.0010000010304571042,
+        0.0010000010304571042,
+        0.0010000010304571042
+      ],
+      "origin_effective_field_proxy_magnitude_g": 17.32052592372937,
+      "position_jacobian_n_per_m": null,
+      "velocity_jacobian_n_s_per_m": null,
+      "position_jacobian_eigenvalues_n_per_m": null,
+      "velocity_jacobian_eigenvalues_n_s_per_m": null,
+      "position_classification": "not_classified_origin_biased",
+      "velocity_classification": "not_classified_origin_biased",
+      "combined_classification": "not_classified_origin_biased"
+    },
+    {
+      "combined_code": "+---+-",
+      "incident_code_xyz": "+--",
+      "retro_code_xyz": "-+-",
+      "mismatched_path_count": 2,
+      "pair_centered": false,
+      "origin_effective_field_zero": false,
+      "origin_force_equilibrium": false,
+      "centered_origin_equilibrium": false,
+      "origin_force_n": [
+        3.6299518228105075e-21,
+        -3.6299518228105075e-21,
+        0.0
+      ],
+      "origin_force_norm_n": 5.133527098579558e-21,
+      "origin_effective_field_proxy_t": [
+        -0.0010000010304571042,
+        0.0010000010304571042,
+        0.0
+      ],
+      "origin_effective_field_proxy_magnitude_g": 14.142150196595072,
+      "position_jacobian_n_per_m": null,
+      "velocity_jacobian_n_s_per_m": null,
+      "position_jacobian_eigenvalues_n_per_m": null,
+      "velocity_jacobian_eigenvalues_n_s_per_m": null,
+      "position_classification": "not_classified_origin_biased",
+      "velocity_classification": "not_classified_origin_biased",
+      "combined_classification": "not_classified_origin_biased"
+    },
+    {
+      "combined_code": "+----+",
+      "incident_code_xyz": "+--",
+      "retro_code_xyz": "--+",
+      "mismatched_path_count": 2,
+      "pair_centered": false,
+      "origin_effective_field_zero": false,
+      "origin_force_equilibrium": false,
+      "centered_origin_equilibrium": false,
+      "origin_force_n": [
+        3.6299518228105075e-21,
+        0.0,
+        3.6299518228105075e-21
+      ],
+      "origin_force_norm_n": 5.133527098579558e-21,
+      "origin_effective_field_proxy_t": [
+        -0.0010000010304571042,
+        0.0,
+        0.0010000010304571042
+      ],
+      "origin_effective_field_proxy_magnitude_g": 14.142150196595072,
+      "position_jacobian_n_per_m": null,
+      "velocity_jacobian_n_s_per_m": null,
+      "position_jacobian_eigenvalues_n_per_m": null,
+      "velocity_jacobian_eigenvalues_n_s_per_m": null,
+      "position_classification": "not_classified_origin_biased",
+      "velocity_classification": "not_classified_origin_biased",
+      "combined_classification": "not_classified_origin_biased"
+    },
+    {
+      "combined_code": "+-----",
+      "incident_code_xyz": "+--",
+      "retro_code_xyz": "---",
+      "mismatched_path_count": 1,
+      "pair_centered": false,
+      "origin_effective_field_zero": false,
+      "origin_force_equilibrium": false,
+      "centered_origin_equilibrium": false,
+      "origin_force_n": [
+        4.788230567636831e-21,
+        0.0,
+        0.0
+      ],
+      "origin_force_norm_n": 4.788230567636831e-21,
+      "origin_effective_field_proxy_t": [
+        -0.0010000010304571042,
+        0.0,
+        0.0
+      ],
+      "origin_effective_field_proxy_magnitude_g": 10.000010304571042,
+      "position_jacobian_n_per_m": null,
+      "velocity_jacobian_n_s_per_m": null,
+      "position_jacobian_eigenvalues_n_per_m": null,
+      "velocity_jacobian_eigenvalues_n_s_per_m": null,
+      "position_classification": "not_classified_origin_biased",
+      "velocity_classification": "not_classified_origin_biased",
+      "combined_classification": "not_classified_origin_biased"
+    },
+    {
+      "combined_code": "-+++++",
+      "incident_code_xyz": "-++",
+      "retro_code_xyz": "+++",
+      "mismatched_path_count": 1,
+      "pair_centered": false,
+      "origin_effective_field_zero": false,
+      "origin_force_equilibrium": false,
+      "centered_origin_equilibrium": false,
+      "origin_force_n": [
+        -4.788230567636831e-21,
+        0.0,
+        0.0
+      ],
+      "origin_force_norm_n": 4.788230567636831e-21,
+      "origin_effective_field_proxy_t": [
+        0.0010000010304571042,
+        0.0,
+        0.0
+      ],
+      "origin_effective_field_proxy_magnitude_g": 10.000010304571042,
+      "position_jacobian_n_per_m": null,
+      "velocity_jacobian_n_s_per_m": null,
+      "position_jacobian_eigenvalues_n_per_m": null,
+      "velocity_jacobian_eigenvalues_n_s_per_m": null,
+      "position_classification": "not_classified_origin_biased",
+      "velocity_classification": "not_classified_origin_biased",
+      "combined_classification": "not_classified_origin_biased"
+    },
+    {
+      "combined_code": "-++++-",
+      "incident_code_xyz": "-++",
+      "retro_code_xyz": "++-",
+      "mismatched_path_count": 2,
+      "pair_centered": false,
+      "origin_effective_field_zero": false,
+      "origin_force_equilibrium": false,
+      "centered_origin_equilibrium": false,
+      "origin_force_n": [
+        -3.6299518228105075e-21,
+        0.0,
+        -3.6299518228105075e-21
+      ],
+      "origin_force_norm_n": 5.133527098579558e-21,
+      "origin_effective_field_proxy_t": [
+        0.0010000010304571042,
+        0.0,
+        -0.0010000010304571042
+      ],
+      "origin_effective_field_proxy_magnitude_g": 14.142150196595072,
+      "position_jacobian_n_per_m": null,
+      "velocity_jacobian_n_s_per_m": null,
+      "position_jacobian_eigenvalues_n_per_m": null,
+      "velocity_jacobian_eigenvalues_n_s_per_m": null,
+      "position_classification": "not_classified_origin_biased",
+      "velocity_classification": "not_classified_origin_biased",
+      "combined_classification": "not_classified_origin_biased"
+    },
+    {
+      "combined_code": "-+++-+",
+      "incident_code_xyz": "-++",
+      "retro_code_xyz": "+-+",
+      "mismatched_path_count": 2,
+      "pair_centered": false,
+      "origin_effective_field_zero": false,
+      "origin_force_equilibrium": false,
+      "centered_origin_equilibrium": false,
+      "origin_force_n": [
+        -3.629951822810509e-21,
+        3.629951822810509e-21,
+        0.0
+      ],
+      "origin_force_norm_n": 5.13352709857956e-21,
+      "origin_effective_field_proxy_t": [
+        0.0010000010304571042,
+        -0.0010000010304571042,
+        0.0
+      ],
+      "origin_effective_field_proxy_magnitude_g": 14.142150196595072,
+      "position_jacobian_n_per_m": null,
+      "velocity_jacobian_n_s_per_m": null,
+      "position_jacobian_eigenvalues_n_per_m": null,
+      "velocity_jacobian_eigenvalues_n_s_per_m": null,
+      "position_classification": "not_classified_origin_biased",
+      "velocity_classification": "not_classified_origin_biased",
+      "combined_classification": "not_classified_origin_biased"
+    },
+    {
+      "combined_code": "-+++--",
+      "incident_code_xyz": "-++",
+      "retro_code_xyz": "+--",
+      "mismatched_path_count": 3,
+      "pair_centered": false,
+      "origin_effective_field_zero": false,
+      "origin_force_equilibrium": false,
+      "centered_origin_equilibrium": false,
+      "origin_force_n": [
+        -2.6640460462411243e-21,
+        2.6640460462411243e-21,
+        -2.6640460462411243e-21
+      ],
+      "origin_force_norm_n": 4.614263105792614e-21,
+      "origin_effective_field_proxy_t": [
+        0.0010000010304571042,
+        -0.0010000010304571042,
+        -0.0010000010304571042
+      ],
+      "origin_effective_field_proxy_magnitude_g": 17.32052592372937,
+      "position_jacobian_n_per_m": null,
+      "velocity_jacobian_n_s_per_m": null,
+      "position_jacobian_eigenvalues_n_per_m": null,
+      "velocity_jacobian_eigenvalues_n_s_per_m": null,
+      "position_classification": "not_classified_origin_biased",
+      "velocity_classification": "not_classified_origin_biased",
+      "combined_classification": "not_classified_origin_biased"
+    },
+    {
+      "combined_code": "-++-++",
+      "incident_code_xyz": "-++",
+      "retro_code_xyz": "-++",
+      "mismatched_path_count": 0,
+      "pair_centered": true,
+      "origin_effective_field_zero": true,
+      "origin_force_equilibrium": true,
+      "centered_origin_equilibrium": true,
+      "origin_force_n": [
+        0.0,
+        0.0,
+        1.181371822576399e-36
+      ],
+      "origin_force_norm_n": 1.181371822576399e-36,
+      "origin_effective_field_proxy_t": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "origin_effective_field_proxy_magnitude_g": 0.0,
+      "position_jacobian_n_per_m": [
+        [
+          1.311295384095848e-18,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          -1.3112953840961728e-18,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.3112953840963401e-18
+        ]
+      ],
+      "velocity_jacobian_n_s_per_m": [
+        [
+          -7.085676860599214e-22,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          -7.144316206327275e-22,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          -7.085676860586915e-22
+        ]
+      ],
+      "position_jacobian_eigenvalues_n_per_m": [
+        {
+          "real": 1.311295384095848e-18,
+          "imaginary": 0.0
+        },
+        {
+          "real": -1.3112953840961728e-18,
+          "imaginary": 0.0
+        },
+        {
+          "real": 1.3112953840963401e-18,
+          "imaginary": 0.0
+        }
+      ],
+      "velocity_jacobian_eigenvalues_n_s_per_m": [
+        {
+          "real": -7.085676860599214e-22,
+          "imaginary": 0.0
+        },
+        {
+          "real": -7.144316206327275e-22,
+          "imaginary": 0.0
+        },
+        {
+          "real": -7.085676860586915e-22,
+          "imaginary": 0.0
+        }
+      ],
+      "position_classification": "saddle",
+      "velocity_classification": "damping",
+      "combined_classification": "saddle_and_damping"
+    },
+    {
+      "combined_code": "-++-+-",
+      "incident_code_xyz": "-++",
+      "retro_code_xyz": "-+-",
+      "mismatched_path_count": 1,
+      "pair_centered": false,
+      "origin_effective_field_zero": false,
+      "origin_force_equilibrium": false,
+      "centered_origin_equilibrium": false,
+      "origin_force_n": [
+        0.0,
+        0.0,
+        -4.788230567636823e-21
+      ],
+      "origin_force_norm_n": 4.788230567636823e-21,
+      "origin_effective_field_proxy_t": [
+        0.0,
+        0.0,
+        -0.0010000010304571042
+      ],
+      "origin_effective_field_proxy_magnitude_g": 10.000010304571042,
+      "position_jacobian_n_per_m": null,
+      "velocity_jacobian_n_s_per_m": null,
+      "position_jacobian_eigenvalues_n_per_m": null,
+      "velocity_jacobian_eigenvalues_n_s_per_m": null,
+      "position_classification": "not_classified_origin_biased",
+      "velocity_classification": "not_classified_origin_biased",
+      "combined_classification": "not_classified_origin_biased"
+    },
+    {
+      "combined_code": "-++--+",
+      "incident_code_xyz": "-++",
+      "retro_code_xyz": "--+",
+      "mismatched_path_count": 1,
+      "pair_centered": false,
+      "origin_effective_field_zero": false,
+      "origin_force_equilibrium": false,
+      "centered_origin_equilibrium": false,
+      "origin_force_n": [
+        0.0,
+        4.788230567636831e-21,
+        0.0
+      ],
+      "origin_force_norm_n": 4.788230567636831e-21,
+      "origin_effective_field_proxy_t": [
+        0.0,
+        -0.0010000010304571042,
+        0.0
+      ],
+      "origin_effective_field_proxy_magnitude_g": 10.000010304571042,
+      "position_jacobian_n_per_m": null,
+      "velocity_jacobian_n_s_per_m": null,
+      "position_jacobian_eigenvalues_n_per_m": null,
+      "velocity_jacobian_eigenvalues_n_s_per_m": null,
+      "position_classification": "not_classified_origin_biased",
+      "velocity_classification": "not_classified_origin_biased",
+      "combined_classification": "not_classified_origin_biased"
+    },
+    {
+      "combined_code": "-++---",
+      "incident_code_xyz": "-++",
+      "retro_code_xyz": "---",
+      "mismatched_path_count": 2,
+      "pair_centered": false,
+      "origin_effective_field_zero": false,
+      "origin_force_equilibrium": false,
+      "centered_origin_equilibrium": false,
+      "origin_force_n": [
+        0.0,
+        3.629951822810512e-21,
+        -3.629951822810512e-21
+      ],
+      "origin_force_norm_n": 5.133527098579564e-21,
+      "origin_effective_field_proxy_t": [
+        0.0,
+        -0.0010000010304571042,
+        -0.0010000010304571042
+      ],
+      "origin_effective_field_proxy_magnitude_g": 14.142150196595072,
+      "position_jacobian_n_per_m": null,
+      "velocity_jacobian_n_s_per_m": null,
+      "position_jacobian_eigenvalues_n_per_m": null,
+      "velocity_jacobian_eigenvalues_n_s_per_m": null,
+      "position_classification": "not_classified_origin_biased",
+      "velocity_classification": "not_classified_origin_biased",
+      "combined_classification": "not_classified_origin_biased"
+    },
+    {
+      "combined_code": "-+-+++",
+      "incident_code_xyz": "-+-",
+      "retro_code_xyz": "+++",
+      "mismatched_path_count": 2,
+      "pair_centered": false,
+      "origin_effective_field_zero": false,
+      "origin_force_equilibrium": false,
+      "centered_origin_equilibrium": false,
+      "origin_force_n": [
+        -3.6299518228105075e-21,
+        0.0,
+        3.6299518228105075e-21
+      ],
+      "origin_force_norm_n": 5.133527098579558e-21,
+      "origin_effective_field_proxy_t": [
+        0.0010000010304571042,
+        0.0,
+        0.0010000010304571042
+      ],
+      "origin_effective_field_proxy_magnitude_g": 14.142150196595072,
+      "position_jacobian_n_per_m": null,
+      "velocity_jacobian_n_s_per_m": null,
+      "position_jacobian_eigenvalues_n_per_m": null,
+      "velocity_jacobian_eigenvalues_n_s_per_m": null,
+      "position_classification": "not_classified_origin_biased",
+      "velocity_classification": "not_classified_origin_biased",
+      "combined_classification": "not_classified_origin_biased"
+    },
+    {
+      "combined_code": "-+-++-",
+      "incident_code_xyz": "-+-",
+      "retro_code_xyz": "++-",
+      "mismatched_path_count": 1,
+      "pair_centered": false,
+      "origin_effective_field_zero": false,
+      "origin_force_equilibrium": false,
+      "centered_origin_equilibrium": false,
+      "origin_force_n": [
+        -4.788230567636831e-21,
+        0.0,
+        0.0
+      ],
+      "origin_force_norm_n": 4.788230567636831e-21,
+      "origin_effective_field_proxy_t": [
+        0.0010000010304571042,
+        0.0,
+        0.0
+      ],
+      "origin_effective_field_proxy_magnitude_g": 10.000010304571042,
+      "position_jacobian_n_per_m": null,
+      "velocity_jacobian_n_s_per_m": null,
+      "position_jacobian_eigenvalues_n_per_m": null,
+      "velocity_jacobian_eigenvalues_n_s_per_m": null,
+      "position_classification": "not_classified_origin_biased",
+      "velocity_classification": "not_classified_origin_biased",
+      "combined_classification": "not_classified_origin_biased"
+    },
+    {
+      "combined_code": "-+-+-+",
+      "incident_code_xyz": "-+-",
+      "retro_code_xyz": "+-+",
+      "mismatched_path_count": 3,
+      "pair_centered": false,
+      "origin_effective_field_zero": false,
+      "origin_force_equilibrium": false,
+      "centered_origin_equilibrium": false,
+      "origin_force_n": [
+        -2.6640460462411247e-21,
+        2.6640460462411247e-21,
+        2.664046046241125e-21
+      ],
+      "origin_force_norm_n": 4.614263105792615e-21,
+      "origin_effective_field_proxy_t": [
+        0.0010000010304571042,
+        -0.0010000010304571042,
+        0.0010000010304571042
+      ],
+      "origin_effective_field_proxy_magnitude_g": 17.32052592372937,
+      "position_jacobian_n_per_m": null,
+      "velocity_jacobian_n_s_per_m": null,
+      "position_jacobian_eigenvalues_n_per_m": null,
+      "velocity_jacobian_eigenvalues_n_s_per_m": null,
+      "position_classification": "not_classified_origin_biased",
+      "velocity_classification": "not_classified_origin_biased",
+      "combined_classification": "not_classified_origin_biased"
+    },
+    {
+      "combined_code": "-+-+--",
+      "incident_code_xyz": "-+-",
+      "retro_code_xyz": "+--",
+      "mismatched_path_count": 2,
+      "pair_centered": false,
+      "origin_effective_field_zero": false,
+      "origin_force_equilibrium": false,
+      "centered_origin_equilibrium": false,
+      "origin_force_n": [
+        -3.629951822810509e-21,
+        3.629951822810509e-21,
+        0.0
+      ],
+      "origin_force_norm_n": 5.13352709857956e-21,
+      "origin_effective_field_proxy_t": [
+        0.0010000010304571042,
+        -0.0010000010304571042,
+        0.0
+      ],
+      "origin_effective_field_proxy_magnitude_g": 14.142150196595072,
+      "position_jacobian_n_per_m": null,
+      "velocity_jacobian_n_s_per_m": null,
+      "position_jacobian_eigenvalues_n_per_m": null,
+      "velocity_jacobian_eigenvalues_n_s_per_m": null,
+      "position_classification": "not_classified_origin_biased",
+      "velocity_classification": "not_classified_origin_biased",
+      "combined_classification": "not_classified_origin_biased"
+    },
+    {
+      "combined_code": "-+--++",
+      "incident_code_xyz": "-+-",
+      "retro_code_xyz": "-++",
+      "mismatched_path_count": 1,
+      "pair_centered": false,
+      "origin_effective_field_zero": false,
+      "origin_force_equilibrium": false,
+      "centered_origin_equilibrium": false,
+      "origin_force_n": [
+        0.0,
+        0.0,
+        4.788230567636823e-21
+      ],
+      "origin_force_norm_n": 4.788230567636823e-21,
+      "origin_effective_field_proxy_t": [
+        0.0,
+        0.0,
+        0.0010000010304571042
+      ],
+      "origin_effective_field_proxy_magnitude_g": 10.000010304571042,
+      "position_jacobian_n_per_m": null,
+      "velocity_jacobian_n_s_per_m": null,
+      "position_jacobian_eigenvalues_n_per_m": null,
+      "velocity_jacobian_eigenvalues_n_s_per_m": null,
+      "position_classification": "not_classified_origin_biased",
+      "velocity_classification": "not_classified_origin_biased",
+      "combined_classification": "not_classified_origin_biased"
+    },
+    {
+      "combined_code": "-+--+-",
+      "incident_code_xyz": "-+-",
+      "retro_code_xyz": "-+-",
+      "mismatched_path_count": 0,
+      "pair_centered": true,
+      "origin_effective_field_zero": true,
+      "origin_force_equilibrium": true,
+      "centered_origin_equilibrium": true,
+      "origin_force_n": [
+        0.0,
+        0.0,
+        1.181371822576399e-36
+      ],
+      "origin_force_norm_n": 1.181371822576399e-36,
+      "origin_effective_field_proxy_t": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "origin_effective_field_proxy_magnitude_g": 0.0,
+      "position_jacobian_n_per_m": [
+        [
+          1.311295384095848e-18,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          -1.3112953840961728e-18,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          -1.3112953840963401e-18
+        ]
+      ],
+      "velocity_jacobian_n_s_per_m": [
+        [
+          -7.085676860599214e-22,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          -7.144316206327275e-22,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          -7.1443162063117295e-22
+        ]
+      ],
+      "position_jacobian_eigenvalues_n_per_m": [
+        {
+          "real": 1.311295384095848e-18,
+          "imaginary": 0.0
+        },
+        {
+          "real": -1.3112953840961728e-18,
+          "imaginary": 0.0
+        },
+        {
+          "real": -1.3112953840963401e-18,
+          "imaginary": 0.0
+        }
+      ],
+      "velocity_jacobian_eigenvalues_n_s_per_m": [
+        {
+          "real": -7.085676860599214e-22,
+          "imaginary": 0.0
+        },
+        {
+          "real": -7.144316206327275e-22,
+          "imaginary": 0.0
+        },
+        {
+          "real": -7.1443162063117295e-22,
+          "imaginary": 0.0
+        }
+      ],
+      "position_classification": "saddle",
+      "velocity_classification": "damping",
+      "combined_classification": "saddle_and_damping"
+    },
+    {
+      "combined_code": "-+---+",
+      "incident_code_xyz": "-+-",
+      "retro_code_xyz": "--+",
+      "mismatched_path_count": 2,
+      "pair_centered": false,
+      "origin_effective_field_zero": false,
+      "origin_force_equilibrium": false,
+      "centered_origin_equilibrium": false,
+      "origin_force_n": [
+        0.0,
+        3.629951822810512e-21,
+        3.629951822810512e-21
+      ],
+      "origin_force_norm_n": 5.133527098579564e-21,
+      "origin_effective_field_proxy_t": [
+        0.0,
+        -0.0010000010304571042,
+        0.0010000010304571042
+      ],
+      "origin_effective_field_proxy_magnitude_g": 14.142150196595072,
+      "position_jacobian_n_per_m": null,
+      "velocity_jacobian_n_s_per_m": null,
+      "position_jacobian_eigenvalues_n_per_m": null,
+      "velocity_jacobian_eigenvalues_n_s_per_m": null,
+      "position_classification": "not_classified_origin_biased",
+      "velocity_classification": "not_classified_origin_biased",
+      "combined_classification": "not_classified_origin_biased"
+    },
+    {
+      "combined_code": "-+----",
+      "incident_code_xyz": "-+-",
+      "retro_code_xyz": "---",
+      "mismatched_path_count": 1,
+      "pair_centered": false,
+      "origin_effective_field_zero": false,
+      "origin_force_equilibrium": false,
+      "centered_origin_equilibrium": false,
+      "origin_force_n": [
+        0.0,
+        4.788230567636831e-21,
+        0.0
+      ],
+      "origin_force_norm_n": 4.788230567636831e-21,
+      "origin_effective_field_proxy_t": [
+        0.0,
+        -0.0010000010304571042,
+        0.0
+      ],
+      "origin_effective_field_proxy_magnitude_g": 10.000010304571042,
+      "position_jacobian_n_per_m": null,
+      "velocity_jacobian_n_s_per_m": null,
+      "position_jacobian_eigenvalues_n_per_m": null,
+      "velocity_jacobian_eigenvalues_n_s_per_m": null,
+      "position_classification": "not_classified_origin_biased",
+      "velocity_classification": "not_classified_origin_biased",
+      "combined_classification": "not_classified_origin_biased"
+    },
+    {
+      "combined_code": "--++++",
+      "incident_code_xyz": "--+",
+      "retro_code_xyz": "+++",
+      "mismatched_path_count": 2,
+      "pair_centered": false,
+      "origin_effective_field_zero": false,
+      "origin_force_equilibrium": false,
+      "centered_origin_equilibrium": false,
+      "origin_force_n": [
+        -3.6299518228105075e-21,
+        -3.6299518228105075e-21,
+        0.0
+      ],
+      "origin_force_norm_n": 5.133527098579558e-21,
+      "origin_effective_field_proxy_t": [
+        0.0010000010304571042,
+        0.0010000010304571042,
+        0.0
+      ],
+      "origin_effective_field_proxy_magnitude_g": 14.142150196595072,
+      "position_jacobian_n_per_m": null,
+      "velocity_jacobian_n_s_per_m": null,
+      "position_jacobian_eigenvalues_n_per_m": null,
+      "velocity_jacobian_eigenvalues_n_s_per_m": null,
+      "position_classification": "not_classified_origin_biased",
+      "velocity_classification": "not_classified_origin_biased",
+      "combined_classification": "not_classified_origin_biased"
+    },
+    {
+      "combined_code": "--+++-",
+      "incident_code_xyz": "--+",
+      "retro_code_xyz": "++-",
+      "mismatched_path_count": 3,
+      "pair_centered": false,
+      "origin_effective_field_zero": false,
+      "origin_force_equilibrium": false,
+      "centered_origin_equilibrium": false,
+      "origin_force_n": [
+        -2.6640460462411243e-21,
+        -2.6640460462411243e-21,
+        -2.6640460462411243e-21
+      ],
+      "origin_force_norm_n": 4.614263105792614e-21,
+      "origin_effective_field_proxy_t": [
+        0.0010000010304571042,
+        0.0010000010304571042,
+        -0.0010000010304571042
+      ],
+      "origin_effective_field_proxy_magnitude_g": 17.32052592372937,
+      "position_jacobian_n_per_m": null,
+      "velocity_jacobian_n_s_per_m": null,
+      "position_jacobian_eigenvalues_n_per_m": null,
+      "velocity_jacobian_eigenvalues_n_s_per_m": null,
+      "position_classification": "not_classified_origin_biased",
+      "velocity_classification": "not_classified_origin_biased",
+      "combined_classification": "not_classified_origin_biased"
+    },
+    {
+      "combined_code": "--++-+",
+      "incident_code_xyz": "--+",
+      "retro_code_xyz": "+-+",
+      "mismatched_path_count": 1,
+      "pair_centered": false,
+      "origin_effective_field_zero": false,
+      "origin_force_equilibrium": false,
+      "centered_origin_equilibrium": false,
+      "origin_force_n": [
+        -4.788230567636831e-21,
+        0.0,
+        0.0
+      ],
+      "origin_force_norm_n": 4.788230567636831e-21,
+      "origin_effective_field_proxy_t": [
+        0.0010000010304571042,
+        0.0,
+        0.0
+      ],
+      "origin_effective_field_proxy_magnitude_g": 10.000010304571042,
+      "position_jacobian_n_per_m": null,
+      "velocity_jacobian_n_s_per_m": null,
+      "position_jacobian_eigenvalues_n_per_m": null,
+      "velocity_jacobian_eigenvalues_n_s_per_m": null,
+      "position_classification": "not_classified_origin_biased",
+      "velocity_classification": "not_classified_origin_biased",
+      "combined_classification": "not_classified_origin_biased"
+    },
+    {
+      "combined_code": "--++--",
+      "incident_code_xyz": "--+",
+      "retro_code_xyz": "+--",
+      "mismatched_path_count": 2,
+      "pair_centered": false,
+      "origin_effective_field_zero": false,
+      "origin_force_equilibrium": false,
+      "centered_origin_equilibrium": false,
+      "origin_force_n": [
+        -3.6299518228105075e-21,
+        0.0,
+        -3.6299518228105075e-21
+      ],
+      "origin_force_norm_n": 5.133527098579558e-21,
+      "origin_effective_field_proxy_t": [
+        0.0010000010304571042,
+        0.0,
+        -0.0010000010304571042
+      ],
+      "origin_effective_field_proxy_magnitude_g": 14.142150196595072,
+      "position_jacobian_n_per_m": null,
+      "velocity_jacobian_n_s_per_m": null,
+      "position_jacobian_eigenvalues_n_per_m": null,
+      "velocity_jacobian_eigenvalues_n_s_per_m": null,
+      "position_classification": "not_classified_origin_biased",
+      "velocity_classification": "not_classified_origin_biased",
+      "combined_classification": "not_classified_origin_biased"
+    },
+    {
+      "combined_code": "--+-++",
+      "incident_code_xyz": "--+",
+      "retro_code_xyz": "-++",
+      "mismatched_path_count": 1,
+      "pair_centered": false,
+      "origin_effective_field_zero": false,
+      "origin_force_equilibrium": false,
+      "centered_origin_equilibrium": false,
+      "origin_force_n": [
+        0.0,
+        -4.788230567636831e-21,
+        0.0
+      ],
+      "origin_force_norm_n": 4.788230567636831e-21,
+      "origin_effective_field_proxy_t": [
+        0.0,
+        0.0010000010304571042,
+        0.0
+      ],
+      "origin_effective_field_proxy_magnitude_g": 10.000010304571042,
+      "position_jacobian_n_per_m": null,
+      "velocity_jacobian_n_s_per_m": null,
+      "position_jacobian_eigenvalues_n_per_m": null,
+      "velocity_jacobian_eigenvalues_n_s_per_m": null,
+      "position_classification": "not_classified_origin_biased",
+      "velocity_classification": "not_classified_origin_biased",
+      "combined_classification": "not_classified_origin_biased"
+    },
+    {
+      "combined_code": "--+-+-",
+      "incident_code_xyz": "--+",
+      "retro_code_xyz": "-+-",
+      "mismatched_path_count": 2,
+      "pair_centered": false,
+      "origin_effective_field_zero": false,
+      "origin_force_equilibrium": false,
+      "centered_origin_equilibrium": false,
+      "origin_force_n": [
+        0.0,
+        -3.6299518228105105e-21,
+        -3.6299518228105105e-21
+      ],
+      "origin_force_norm_n": 5.1335270985795624e-21,
+      "origin_effective_field_proxy_t": [
+        0.0,
+        0.0010000010304571042,
+        -0.0010000010304571042
+      ],
+      "origin_effective_field_proxy_magnitude_g": 14.142150196595072,
+      "position_jacobian_n_per_m": null,
+      "velocity_jacobian_n_s_per_m": null,
+      "position_jacobian_eigenvalues_n_per_m": null,
+      "velocity_jacobian_eigenvalues_n_s_per_m": null,
+      "position_classification": "not_classified_origin_biased",
+      "velocity_classification": "not_classified_origin_biased",
+      "combined_classification": "not_classified_origin_biased"
+    },
+    {
+      "combined_code": "--+--+",
+      "incident_code_xyz": "--+",
+      "retro_code_xyz": "--+",
+      "mismatched_path_count": 0,
+      "pair_centered": true,
+      "origin_effective_field_zero": true,
+      "origin_force_equilibrium": true,
+      "centered_origin_equilibrium": true,
+      "origin_force_n": [
+        0.0,
+        0.0,
+        1.181371822576399e-36
+      ],
+      "origin_force_norm_n": 1.181371822576399e-36,
+      "origin_effective_field_proxy_t": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "origin_effective_field_proxy_magnitude_g": 0.0,
+      "position_jacobian_n_per_m": [
+        [
+          1.311295384095848e-18,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.3112953840961728e-18,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.3112953840963401e-18
+        ]
+      ],
+      "velocity_jacobian_n_s_per_m": [
+        [
+          -7.085676860599214e-22,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          -7.085676860587385e-22,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          -7.085676860586915e-22
+        ]
+      ],
+      "position_jacobian_eigenvalues_n_per_m": [
+        {
+          "real": 1.311295384095848e-18,
+          "imaginary": 0.0
+        },
+        {
+          "real": 1.3112953840961728e-18,
+          "imaginary": 0.0
+        },
+        {
+          "real": 1.3112953840963401e-18,
+          "imaginary": 0.0
+        }
+      ],
+      "velocity_jacobian_eigenvalues_n_s_per_m": [
+        {
+          "real": -7.085676860599214e-22,
+          "imaginary": 0.0
+        },
+        {
+          "real": -7.085676860587385e-22,
+          "imaginary": 0.0
+        },
+        {
+          "real": -7.085676860586915e-22,
+          "imaginary": 0.0
+        }
+      ],
+      "position_classification": "anti_restoring",
+      "velocity_classification": "damping",
+      "combined_classification": "anti_restoring_but_damping"
+    },
+    {
+      "combined_code": "--+---",
+      "incident_code_xyz": "--+",
+      "retro_code_xyz": "---",
+      "mismatched_path_count": 1,
+      "pair_centered": false,
+      "origin_effective_field_zero": false,
+      "origin_force_equilibrium": false,
+      "centered_origin_equilibrium": false,
+      "origin_force_n": [
+        0.0,
+        0.0,
+        -4.788230567636823e-21
+      ],
+      "origin_force_norm_n": 4.788230567636823e-21,
+      "origin_effective_field_proxy_t": [
+        0.0,
+        0.0,
+        -0.0010000010304571042
+      ],
+      "origin_effective_field_proxy_magnitude_g": 10.000010304571042,
+      "position_jacobian_n_per_m": null,
+      "velocity_jacobian_n_s_per_m": null,
+      "position_jacobian_eigenvalues_n_per_m": null,
+      "velocity_jacobian_eigenvalues_n_s_per_m": null,
+      "position_classification": "not_classified_origin_biased",
+      "velocity_classification": "not_classified_origin_biased",
+      "combined_classification": "not_classified_origin_biased"
+    },
+    {
+      "combined_code": "---+++",
+      "incident_code_xyz": "---",
+      "retro_code_xyz": "+++",
+      "mismatched_path_count": 3,
+      "pair_centered": false,
+      "origin_effective_field_zero": false,
+      "origin_force_equilibrium": false,
+      "centered_origin_equilibrium": false,
+      "origin_force_n": [
+        -2.664046046241125e-21,
+        -2.664046046241125e-21,
+        2.6640460462411255e-21
+      ],
+      "origin_force_norm_n": 4.614263105792615e-21,
+      "origin_effective_field_proxy_t": [
+        0.0010000010304571042,
+        0.0010000010304571042,
+        0.0010000010304571042
+      ],
+      "origin_effective_field_proxy_magnitude_g": 17.32052592372937,
+      "position_jacobian_n_per_m": null,
+      "velocity_jacobian_n_s_per_m": null,
+      "position_jacobian_eigenvalues_n_per_m": null,
+      "velocity_jacobian_eigenvalues_n_s_per_m": null,
+      "position_classification": "not_classified_origin_biased",
+      "velocity_classification": "not_classified_origin_biased",
+      "combined_classification": "not_classified_origin_biased"
+    },
+    {
+      "combined_code": "---++-",
+      "incident_code_xyz": "---",
+      "retro_code_xyz": "++-",
+      "mismatched_path_count": 2,
+      "pair_centered": false,
+      "origin_effective_field_zero": false,
+      "origin_force_equilibrium": false,
+      "centered_origin_equilibrium": false,
+      "origin_force_n": [
+        -3.6299518228105075e-21,
+        -3.6299518228105075e-21,
+        0.0
+      ],
+      "origin_force_norm_n": 5.133527098579558e-21,
+      "origin_effective_field_proxy_t": [
+        0.0010000010304571042,
+        0.0010000010304571042,
+        0.0
+      ],
+      "origin_effective_field_proxy_magnitude_g": 14.142150196595072,
+      "position_jacobian_n_per_m": null,
+      "velocity_jacobian_n_s_per_m": null,
+      "position_jacobian_eigenvalues_n_per_m": null,
+      "velocity_jacobian_eigenvalues_n_s_per_m": null,
+      "position_classification": "not_classified_origin_biased",
+      "velocity_classification": "not_classified_origin_biased",
+      "combined_classification": "not_classified_origin_biased"
+    },
+    {
+      "combined_code": "---+-+",
+      "incident_code_xyz": "---",
+      "retro_code_xyz": "+-+",
+      "mismatched_path_count": 2,
+      "pair_centered": false,
+      "origin_effective_field_zero": false,
+      "origin_force_equilibrium": false,
+      "centered_origin_equilibrium": false,
+      "origin_force_n": [
+        -3.6299518228105075e-21,
+        0.0,
+        3.6299518228105075e-21
+      ],
+      "origin_force_norm_n": 5.133527098579558e-21,
+      "origin_effective_field_proxy_t": [
+        0.0010000010304571042,
+        0.0,
+        0.0010000010304571042
+      ],
+      "origin_effective_field_proxy_magnitude_g": 14.142150196595072,
+      "position_jacobian_n_per_m": null,
+      "velocity_jacobian_n_s_per_m": null,
+      "position_jacobian_eigenvalues_n_per_m": null,
+      "velocity_jacobian_eigenvalues_n_s_per_m": null,
+      "position_classification": "not_classified_origin_biased",
+      "velocity_classification": "not_classified_origin_biased",
+      "combined_classification": "not_classified_origin_biased"
+    },
+    {
+      "combined_code": "---+--",
+      "incident_code_xyz": "---",
+      "retro_code_xyz": "+--",
+      "mismatched_path_count": 1,
+      "pair_centered": false,
+      "origin_effective_field_zero": false,
+      "origin_force_equilibrium": false,
+      "centered_origin_equilibrium": false,
+      "origin_force_n": [
+        -4.788230567636831e-21,
+        0.0,
+        0.0
+      ],
+      "origin_force_norm_n": 4.788230567636831e-21,
+      "origin_effective_field_proxy_t": [
+        0.0010000010304571042,
+        0.0,
+        0.0
+      ],
+      "origin_effective_field_proxy_magnitude_g": 10.000010304571042,
+      "position_jacobian_n_per_m": null,
+      "velocity_jacobian_n_s_per_m": null,
+      "position_jacobian_eigenvalues_n_per_m": null,
+      "velocity_jacobian_eigenvalues_n_s_per_m": null,
+      "position_classification": "not_classified_origin_biased",
+      "velocity_classification": "not_classified_origin_biased",
+      "combined_classification": "not_classified_origin_biased"
+    },
+    {
+      "combined_code": "----++",
+      "incident_code_xyz": "---",
+      "retro_code_xyz": "-++",
+      "mismatched_path_count": 2,
+      "pair_centered": false,
+      "origin_effective_field_zero": false,
+      "origin_force_equilibrium": false,
+      "centered_origin_equilibrium": false,
+      "origin_force_n": [
+        0.0,
+        -3.629951822810507e-21,
+        3.629951822810507e-21
+      ],
+      "origin_force_norm_n": 5.1335270985795564e-21,
+      "origin_effective_field_proxy_t": [
+        0.0,
+        0.0010000010304571042,
+        0.0010000010304571042
+      ],
+      "origin_effective_field_proxy_magnitude_g": 14.142150196595072,
+      "position_jacobian_n_per_m": null,
+      "velocity_jacobian_n_s_per_m": null,
+      "position_jacobian_eigenvalues_n_per_m": null,
+      "velocity_jacobian_eigenvalues_n_s_per_m": null,
+      "position_classification": "not_classified_origin_biased",
+      "velocity_classification": "not_classified_origin_biased",
+      "combined_classification": "not_classified_origin_biased"
+    },
+    {
+      "combined_code": "----+-",
+      "incident_code_xyz": "---",
+      "retro_code_xyz": "-+-",
+      "mismatched_path_count": 1,
+      "pair_centered": false,
+      "origin_effective_field_zero": false,
+      "origin_force_equilibrium": false,
+      "centered_origin_equilibrium": false,
+      "origin_force_n": [
+        0.0,
+        -4.788230567636831e-21,
+        0.0
+      ],
+      "origin_force_norm_n": 4.788230567636831e-21,
+      "origin_effective_field_proxy_t": [
+        0.0,
+        0.0010000010304571042,
+        0.0
+      ],
+      "origin_effective_field_proxy_magnitude_g": 10.000010304571042,
+      "position_jacobian_n_per_m": null,
+      "velocity_jacobian_n_s_per_m": null,
+      "position_jacobian_eigenvalues_n_per_m": null,
+      "velocity_jacobian_eigenvalues_n_s_per_m": null,
+      "position_classification": "not_classified_origin_biased",
+      "velocity_classification": "not_classified_origin_biased",
+      "combined_classification": "not_classified_origin_biased"
+    },
+    {
+      "combined_code": "-----+",
+      "incident_code_xyz": "---",
+      "retro_code_xyz": "--+",
+      "mismatched_path_count": 1,
+      "pair_centered": false,
+      "origin_effective_field_zero": false,
+      "origin_force_equilibrium": false,
+      "centered_origin_equilibrium": false,
+      "origin_force_n": [
+        0.0,
+        0.0,
+        4.788230567636823e-21
+      ],
+      "origin_force_norm_n": 4.788230567636823e-21,
+      "origin_effective_field_proxy_t": [
+        0.0,
+        0.0,
+        0.0010000010304571042
+      ],
+      "origin_effective_field_proxy_magnitude_g": 10.000010304571042,
+      "position_jacobian_n_per_m": null,
+      "velocity_jacobian_n_s_per_m": null,
+      "position_jacobian_eigenvalues_n_per_m": null,
+      "velocity_jacobian_eigenvalues_n_s_per_m": null,
+      "position_classification": "not_classified_origin_biased",
+      "velocity_classification": "not_classified_origin_biased",
+      "combined_classification": "not_classified_origin_biased"
+    },
+    {
+      "combined_code": "------",
+      "incident_code_xyz": "---",
+      "retro_code_xyz": "---",
+      "mismatched_path_count": 0,
+      "pair_centered": true,
+      "origin_effective_field_zero": true,
+      "origin_force_equilibrium": true,
+      "centered_origin_equilibrium": true,
+      "origin_force_n": [
+        0.0,
+        0.0,
+        1.181371822576399e-36
+      ],
+      "origin_force_norm_n": 1.181371822576399e-36,
+      "origin_effective_field_proxy_t": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "origin_effective_field_proxy_magnitude_g": 0.0,
+      "position_jacobian_n_per_m": [
+        [
+          1.311295384095848e-18,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.3112953840961728e-18,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          -1.3112953840963401e-18
+        ]
+      ],
+      "velocity_jacobian_n_s_per_m": [
+        [
+          -7.085676860599214e-22,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          -7.085676860587385e-22,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          -7.1443162063117295e-22
+        ]
+      ],
+      "position_jacobian_eigenvalues_n_per_m": [
+        {
+          "real": 1.311295384095848e-18,
+          "imaginary": 0.0
+        },
+        {
+          "real": 1.3112953840961728e-18,
+          "imaginary": 0.0
+        },
+        {
+          "real": -1.3112953840963401e-18,
+          "imaginary": 0.0
+        }
+      ],
+      "velocity_jacobian_eigenvalues_n_s_per_m": [
+        {
+          "real": -7.085676860599214e-22,
+          "imaginary": 0.0
+        },
+        {
+          "real": -7.085676860587385e-22,
+          "imaginary": 0.0
+        },
+        {
+          "real": -7.1443162063117295e-22,
+          "imaginary": 0.0
+        }
+      ],
+      "position_classification": "saddle",
+      "velocity_classification": "damping",
+      "combined_classification": "saddle_and_damping"
+    }
+  ],
+  "wall_time_s": 4.263419699971564,
+  "outputs": [
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\statistics\\pmot\\vector_only_helicity_20Gpcm\\vector_only_helicity_64_configurations.csv",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\statistics\\pmot\\vector_only_helicity_20Gpcm\\bare_780_jacobians.csv",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\statistics\\pmot\\vector_only_helicity_20Gpcm\\current_vs_reversed_vector_only_lineouts.csv",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\figures\\pmot\\vector_only_helicity_20Gpcm\\all_64_vector_only_origin_bias.png",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\figures\\pmot\\vector_only_helicity_20Gpcm\\centered_vector_only_jacobians.png",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\figures\\pmot\\vector_only_helicity_20Gpcm\\current_vs_reversed_vector_only_response.png",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\statistics\\pmot\\vector_only_helicity_20Gpcm\\vector_only_helicity_summary.json"
+  ]
+}
