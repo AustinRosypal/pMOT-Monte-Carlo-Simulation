@@ -728,8 +728,12 @@ def plot_capture_velocity_vs_impact_parameter(
     path: Path,
     *,
     power_w_per_beam: float = COOLING_POWER_W_PER_BEAM,
+    velocity_resolved_override_count: int = 0,
 ) -> Path:
     """Plot all capture thresholds against sampled disc impact parameter."""
+
+    if velocity_resolved_override_count < 0:
+        raise ValueError("velocity_resolved_override_count cannot be negative")
 
     s_mm = 1.0e3 * np.asarray([sample.s_m for sample in samples], dtype=float)
     capture = np.asarray([sample.capture_velocity_m_per_s for sample in samples], dtype=float)
@@ -760,6 +764,25 @@ def plot_capture_velocity_vs_impact_parameter(
     axis.set_xlabel("Impact parameter [mm]")
     axis.set_ylabel("Capture velocity [m/s]")
     axis.grid(True, alpha=0.25)
+    if velocity_resolved_override_count:
+        axis.text(
+            0.985,
+            0.985,
+            f"Caveat: {velocity_resolved_override_count} rays use velocity-resolved "
+            "capture masks.\nScalar points show only the first capture interval; "
+            "the masks govern cross section and loading.",
+            transform=axis.transAxes,
+            ha="right",
+            va="top",
+            fontsize=7.5,
+            color="#7c2d12",
+            bbox={
+                "boxstyle": "round,pad=0.35",
+                "facecolor": "#fff7ed",
+                "edgecolor": "#c2410c",
+                "alpha": 0.94,
+            },
+        )
     path.parent.mkdir(parents=True, exist_ok=True)
     figure.savefig(path, dpi=180)
     plt.close(figure)

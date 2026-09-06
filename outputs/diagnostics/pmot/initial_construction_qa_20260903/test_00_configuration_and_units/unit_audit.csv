@@ -1,0 +1,12 @@
+quantity,units,convention,status
+position,m,SI internal,PASS
+velocity,m/s,SI internal,PASS
+780 wavevector,rad/m,2*pi/lambda,PASS
+multilevel detuning,rad/s,angular frequency,PASS
+natural linewidth,rad/s,angular frequency,PASS
+MOTBeam.detuning_hz,Hz,apparatus metadata only,PASS
+intensity,W/m^2,per traveling component before summation,PASS
+Gaussian radius,m,1/e^2 intensity radius,PASS
+saturation,dimensionless,"per beam, transition strength, and P_q",PASS
+polarizability,assumed SI (physical dimension absent from raw CSV header),values are consumed as SI by -alpha*E^2,WARNING
+1529 shift,J then rad/s,differential transition proxy divided by hbar,PASS_WITH_MODEL_LIMITATION

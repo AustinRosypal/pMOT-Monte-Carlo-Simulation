@@ -1,0 +1,62 @@
+[
+  {
+    "test_number": 0,
+    "test_name": "Configuration and unit audit",
+    "status": "PASS_WITH_QUALIFICATIONS",
+    "reason": "raw polarizability unit provenance remains external to the CSV"
+  },
+  {
+    "test_number": 1,
+    "test_name": "Cooling-only Doppler force",
+    "status": "PASS_WITH_QUALIFICATIONS",
+    "reason": "fixed uniform F=2 stage using the inherited absorption-momentum proxy"
+  },
+  {
+    "test_number": 2,
+    "test_name": "Signed 1529-nm vector-shift profile",
+    "status": "FAIL",
+    "reason": "The differential-only Arora table cannot determine individual ground- and excited-level shifts U_g/h and U_e/h for all 24 states."
+  },
+  {
+    "test_number": 3,
+    "test_name": "Static restoring force",
+    "status": "NOT_RUN",
+    "reason": "ordered plan stopped after Test 2 failed"
+  },
+  {
+    "test_number": 4,
+    "test_name": "Transition-resolved scattering audit",
+    "status": "NOT_RUN",
+    "reason": "ordered plan stopped after Test 2 failed"
+  },
+  {
+    "test_number": 5,
+    "test_name": "Central detuning and power scan",
+    "status": "NOT_RUN",
+    "reason": "ordered plan stopped after Test 2 failed"
+  },
+  {
+    "test_number": 6,
+    "test_name": "Internal-state population dynamics",
+    "status": "NOT_RUN",
+    "reason": "ordered plan stopped after Test 2 failed"
+  },
+  {
+    "test_number": 7,
+    "test_name": "Handedness and polarization conventions",
+    "status": "NOT_RUN",
+    "reason": "ordered plan stopped after Test 2 failed"
+  },
+  {
+    "test_number": 8,
+    "test_name": "Deterministic trajectories and capture map",
+    "status": "NOT_RUN",
+    "reason": "ordered plan stopped after Test 2 failed"
+  },
+  {
+    "test_number": 9,
+    "test_name": "Three-dimensional stability",
+    "status": "NOT_RUN",
+    "reason": "ordered plan stopped after Test 2 failed"
+  }
+]

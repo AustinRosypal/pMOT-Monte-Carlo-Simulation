@@ -1,0 +1,10 @@
+{
+  "available": false,
+  "required": [
+    "separate absolute 5S scalar/vector/tensor polarizabilities",
+    "separate absolute 5P scalar/vector/tensor polarizabilities",
+    "hyperfine recoupling and a fixed-basis Stark Hamiltonian"
+  ],
+  "current_input": "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\data\\raw\\pmot\\Arora_CCSD_Differential_Polarizabilities.csv",
+  "current_input_semantics": "one differential scalar/vector/tensor triplet per wavelength"
+}

@@ -3,7 +3,10 @@
 This module uses the quasi-steady population-rate observable from
 ``rate_equations.py``.  It does not use the legacy event-averaged force or the
 effective two-level model.  Gravity is excluded because the reported values
-are derivatives and extrema of radiation pressure itself.
+are derivatives and extrema of radiation pressure itself.  The inherited
+force observable is the ground-population-weighted available absorption rate;
+it is retained for exact comparison with the production multilevel model but
+is not yet a validated net-scattering-force convention.
 """
 
 from __future__ import annotations
@@ -45,11 +48,20 @@ AXIS_LABELS = "xyz"
 EVALUATION_COUNT = 1
 """One deterministic rate-equation force calculation per detuning point."""
 
+COOLING_POWER_W_PER_BEAM = 27.0e-3
+REPUMP_POWER_W_PER_BEAM = 0.1e-3
+"""Fixed per-traveling-component powers for this force campaign."""
+
+ABSORPTION_FORCE_CONVENTION_WARNING = (
+    "Force convention: ground-population-weighted available absorption; "
+    "provisional, not a validated net scattering force."
+)
+
 # Kept as a compatibility alias for callers of the initial sweep draft.  This
 # is an evaluation count, not a stochastic replicate count.
 REPLICATE_COUNT = EVALUATION_COUNT
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 
 @dataclass(frozen=True, slots=True)
@@ -94,6 +106,8 @@ CSV_FIELDNAMES = (
     "detuning_mhz",
     "linewidth_rad_per_s",
     "model_state_count",
+    "cooling_power_w_per_beam",
+    "repump_power_w_per_beam",
     *(
         field
         for axis in AXIS_LABELS
@@ -146,7 +160,12 @@ def _validate_detuning_values(values: Sequence[float]) -> tuple[float, ...]:
 def build_force_sweep_configuration(
     detuning_n: float,
 ) -> tuple[MultilevelMOTConfig, MOTApparatusConfig, list[MOTBeam]]:
-    """Build solver, apparatus, and beam metadata with one consistent detuning."""
+    """Build solver, apparatus, and beams with synchronized detuning and power.
+
+    Every cooling traveling component carries 27 mW and every repump component
+    carries 0.1 mW.  The explicit synchronization here avoids inheriting the
+    shared apparatus' 20 mW cooling and 0.5 mW repump benchmark defaults.
+    """
 
     if not np.isfinite(detuning_n) or detuning_n >= 0.0:
         raise ValueError("detuning_n must be a finite negative number for red detuning")
@@ -155,6 +174,7 @@ def build_force_sweep_configuration(
     config = replace(
         base,
         cooling_detuning_rad_per_s=detuning_rad_per_s,
+        repump_power_w_per_beam=REPUMP_POWER_W_PER_BEAM,
         repumper_enabled=True,
     )
     apparatus = default_mot_apparatus_config()
@@ -163,9 +183,39 @@ def build_force_sweep_configuration(
         cooling=replace(
             apparatus.cooling,
             detuning_hz=detuning_rad_per_s / (2.0 * np.pi),
+            power_w_per_beam=COOLING_POWER_W_PER_BEAM,
+        ),
+        repump=replace(
+            apparatus.repump,
+            detuning_hz=config.repump_detuning_rad_per_s / (2.0 * np.pi),
+            power_w_per_beam=REPUMP_POWER_W_PER_BEAM,
         ),
     )
     beams = build_multilevel_mot_beams(apparatus_config=apparatus, config=config)
+    cooling_beams = [beam for beam in beams if beam.family == "cooling"]
+    repump_beams = [beam for beam in beams if beam.family == "repump"]
+    if len(cooling_beams) != 6 or len(repump_beams) != 6:
+        raise RuntimeError("force sweep requires six cooling and six repump components")
+    if not all(
+        np.isclose(
+            beam.power_w,
+            COOLING_POWER_W_PER_BEAM,
+            rtol=0.0,
+            atol=1.0e-15,
+        )
+        for beam in cooling_beams
+    ):
+        raise RuntimeError("built cooling-beam powers do not match the 27 mW campaign")
+    if not all(
+        np.isclose(
+            beam.power_w,
+            REPUMP_POWER_W_PER_BEAM,
+            rtol=0.0,
+            atol=1.0e-15,
+        )
+        for beam in repump_beams
+    ):
+        raise RuntimeError("built repump-beam powers do not match the 0.1 mW campaign")
     return config, apparatus, beams
 
 
@@ -276,7 +326,7 @@ def _evaluate_force_detuning_once(
     """
 
     numerics.validate()
-    config, _, beams = build_force_sweep_configuration(detuning_n)
+    config, apparatus, beams = build_force_sweep_configuration(detuning_n)
     rate_model = model or build_rate_equation_model(config.natural_linewidth_rad_per_s)
     coil = coil_config or default_anti_helmholtz_config()
     started = perf_counter()
@@ -289,6 +339,8 @@ def _evaluate_force_detuning_once(
         "detuning_mhz": float(config.cooling_detuning_rad_per_s / (2.0 * np.pi * 1.0e6)),
         "linewidth_rad_per_s": float(gamma),
         "model_state_count": int(rate_model.state_count),
+        "cooling_power_w_per_beam": float(apparatus.cooling.power_w_per_beam),
+        "repump_power_w_per_beam": float(config.repump_power_w_per_beam),
     }
 
     coarse_intervals = int(
@@ -506,6 +558,50 @@ _AXIS_STYLES = {
 }
 
 
+def _dense_display_indices(point_count: int, axis_index: int) -> np.ndarray:
+    """Return visually thinned marker/whisker indices for a dense trace.
+
+    Lines always retain every calculated point.  Above forty points, at most
+    about 28 markers and uncertainty whiskers are drawn per axis, with staggered
+    starts so coincident Cartesian traces remain visible.
+    """
+
+    if point_count <= 0:
+        raise ValueError("point_count must be positive")
+    if axis_index not in range(len(AXIS_LABELS)):
+        raise ValueError("axis_index must identify x, y, or z")
+    if point_count <= 40:
+        return np.arange(point_count, dtype=int)
+    stride = max(2, int(np.ceil(point_count / 28.0)))
+    start = min(axis_index, stride - 1)
+    return np.arange(start, point_count, stride, dtype=int)
+
+
+def _force_plot_caption(
+    rows: Sequence[Mapping[str, object]],
+    *,
+    dense: bool,
+) -> str:
+    cooling_power = float(
+        rows[0].get("cooling_power_w_per_beam", COOLING_POWER_W_PER_BEAM)
+    )
+    repump_power = float(
+        rows[0].get("repump_power_w_per_beam", REPUMP_POWER_W_PER_BEAM)
+    )
+    lines = [
+        "One deterministic rate-equation calculation per detuning; gravity excluded",
+        (
+            rf"$P_{{cool}}={1e3*cooling_power:g}$ mW and "
+            rf"$P_{{repump}}={1e3*repump_power:g}$ mW per traveling component"
+        ),
+        r"Whiskers show $|$fine$-$coarse$|$ numerical resolution; no statistical bars",
+        ABSORPTION_FORCE_CONVENTION_WARNING,
+    ]
+    if dense:
+        lines.append("Dense-grid markers/whiskers are thinned; every calculated point is retained in each line")
+    return "\n".join(lines)
+
+
 def _style_summary_axis(axis) -> None:
     axis.axhline(0.0, color="#111827", linewidth=1.1, zorder=2)
     axis.grid(color="#94a3b8", alpha=0.28, linewidth=0.8, zorder=0)
@@ -515,6 +611,21 @@ def _style_summary_axis(axis) -> None:
         spine.set_linewidth(1.1)
         spine.set_zorder(10)
     axis.tick_params(axis="both", colors="#111827", width=1.0)
+
+
+def _show_detuning_endpoints(axis, n_values: np.ndarray) -> None:
+    """Label both sampled endpoints while retaining a small unclipped margin."""
+
+    lower = float(np.min(n_values))
+    upper = float(np.max(n_values))
+    if np.isclose(lower, upper):
+        axis.set_xticks([lower])
+        return
+    span = upper - lower
+    ticks = np.asarray(axis.get_xticks(), dtype=float)
+    ticks = ticks[(ticks >= lower) & (ticks <= upper)]
+    axis.set_xticks(np.unique(np.concatenate((ticks, (lower, upper)))))
+    axis.set_xlim(lower - 0.02 * span, upper + 0.02 * span)
 
 
 def _xy_overlap(values_x: np.ndarray, values_y: np.ndarray) -> bool:
@@ -550,21 +661,24 @@ def plot_restoring_slopes_vs_detuning(
         )
         for label in AXIS_LABELS
     }
-    figure, axis = plt.subplots(figsize=(9.2, 5.8), constrained_layout=True)
+    figure, axis = plt.subplots(figsize=(9.4, 7.4))
+    figure.subplots_adjust(left=0.125, right=0.985, top=0.78, bottom=0.27)
     overlap = _xy_overlap(values_by_axis["x"], values_by_axis["y"])
     all_axis_overlap = overlap and _xy_overlap(
         values_by_axis["x"], values_by_axis["z"]
     )
-    for label in AXIS_LABELS:
+    dense = len(rows) > 40
+    for axis_index, label in enumerate(AXIS_LABELS):
         legend_label = rf"${label}$ axis"
         if all_axis_overlap:
             legend_label += " (coincident x/y/z trio)"
         elif overlap and label in "xy":
             legend_label += " (coincident x/y pair)"
+        display_indices = _dense_display_indices(len(rows), axis_index)
         axis.errorbar(
-            n_values,
-            values_by_axis[label],
-            yerr=numerical_uncertainty_by_axis[label],
+            n_values[display_indices],
+            values_by_axis[label][display_indices],
+            yerr=numerical_uncertainty_by_axis[label][display_indices],
             fmt="none",
             ecolor=_AXIS_STYLES[label]["color"],
             elinewidth=0.9,
@@ -572,11 +686,19 @@ def plot_restoring_slopes_vs_detuning(
             alpha=0.65,
             zorder=3,
         )
+        style = dict(_AXIS_STYLES[label])
+        if dense:
+            style["markevery"] = (
+                int(display_indices[0]),
+                int(display_indices[1] - display_indices[0])
+                if display_indices.size > 1
+                else len(rows),
+            )
         axis.plot(
             n_values,
             values_by_axis[label],
             label=legend_label,
-            **_AXIS_STYLES[label],
+            **style,
         )
         unconverged = np.asarray(
             [
@@ -596,58 +718,64 @@ def plot_restoring_slopes_vs_detuning(
             )
     if all_axis_overlap:
         axis.text(
-            0.02,
-            0.84,
+            0.0,
+            1.08,
             r"$x=y=z$ to numerical precision; distinct dashes/markers expose all traces",
             transform=axis.transAxes,
             ha="left",
             va="top",
-            bbox={"facecolor": "white", "edgecolor": "#94a3b8", "alpha": 0.92},
+            clip_on=False,
             zorder=12,
         )
     elif overlap:
         axis.text(
-            0.02,
-            0.84,
+            0.0,
+            1.08,
             r"$x=y$ to numerical precision; dashed squares expose the $y$ trace",
             transform=axis.transAxes,
             ha="left",
             va="top",
-            bbox={"facecolor": "white", "edgecolor": "#94a3b8", "alpha": 0.92},
+            clip_on=False,
             zorder=12,
         )
     gamma = float(rows[0]["linewidth_rad_per_s"])
     axis.text(
-        0.02,
-        0.97,
+        0.0,
+        1.18,
         rf"$\Delta=n\Gamma$; $n<0$ is red; $\Gamma/(2\pi)={gamma/(2*np.pi*1e6):.2f}$ MHz",
         transform=axis.transAxes,
         ha="left",
         va="top",
+        clip_on=False,
         zorder=12,
     )
     axis.text(
-        0.02,
-        0.03,
-        "One deterministic rate-equation calculation per detuning\n"
-        r"Whiskers show $|$fine$-$coarse$|$ numerical-resolution difference; no statistical bars",
+        0.0,
+        -0.28,
+        _force_plot_caption(rows, dense=dense),
         transform=axis.transAxes,
         ha="left",
-        va="bottom",
-        fontsize=8.5,
+        va="top",
+        fontsize=7.5,
+        clip_on=False,
         zorder=12,
     )
     axis.set(
         xlabel=r"detuning multiplier $n$",
         ylabel=r"signed origin slope $\left.\partial F_i/\partial x_i\right|_0$ [N m$^{-1}$]",
-        title="Multilevel MOT restoring-force slope versus cooling detuning",
     )
+    figure.suptitle(
+        "Multilevel MOT restoring-force slope versus cooling detuning",
+        fontsize=16,
+        y=0.965,
+    )
+    _show_detuning_endpoints(axis, n_values)
     axis.ticklabel_format(axis="y", style="sci", scilimits=(0, 0), useMathText=True)
     _style_summary_axis(axis)
     axis.legend(loc="best", framealpha=0.96)
     destination = Path(output_path)
     destination.parent.mkdir(parents=True, exist_ok=True)
-    figure.savefig(destination, dpi=190)
+    figure.savefig(destination, dpi=190, bbox_inches="tight", pad_inches=0.08)
     plt.close(figure)
     return destination
 
@@ -680,21 +808,24 @@ def plot_damping_turnarounds_vs_detuning(
         )
         for label in AXIS_LABELS
     }
-    figure, axis = plt.subplots(figsize=(9.2, 5.8), constrained_layout=True)
+    figure, axis = plt.subplots(figsize=(9.4, 7.4))
+    figure.subplots_adjust(left=0.125, right=0.985, top=0.78, bottom=0.27)
     overlap = _xy_overlap(values_by_axis["x"], values_by_axis["y"])
     all_axis_overlap = overlap and _xy_overlap(
         values_by_axis["x"], values_by_axis["z"]
     )
-    for label in AXIS_LABELS:
+    dense = len(rows) > 40
+    for axis_index, label in enumerate(AXIS_LABELS):
         legend_label = rf"${label}$ axis"
         if all_axis_overlap:
             legend_label += " (coincident x/y/z trio)"
         elif overlap and label in "xy":
             legend_label += " (coincident x/y pair)"
+        display_indices = _dense_display_indices(len(rows), axis_index)
         axis.errorbar(
-            n_values,
-            values_by_axis[label],
-            yerr=numerical_uncertainty_by_axis[label],
+            n_values[display_indices],
+            values_by_axis[label][display_indices],
+            yerr=numerical_uncertainty_by_axis[label][display_indices],
             fmt="none",
             ecolor=_AXIS_STYLES[label]["color"],
             elinewidth=0.9,
@@ -702,11 +833,19 @@ def plot_damping_turnarounds_vs_detuning(
             alpha=0.65,
             zorder=3,
         )
+        style = dict(_AXIS_STYLES[label])
+        if dense:
+            style["markevery"] = (
+                int(display_indices[0]),
+                int(display_indices[1] - display_indices[0])
+                if display_indices.size > 1
+                else len(rows),
+            )
         axis.plot(
             n_values,
             values_by_axis[label],
             label=legend_label,
-            **_AXIS_STYLES[label],
+            **style,
         )
         unconverged = np.asarray(
             [
@@ -726,57 +865,63 @@ def plot_damping_turnarounds_vs_detuning(
             )
     if all_axis_overlap:
         axis.text(
-            0.02,
-            0.84,
+            0.0,
+            1.07,
             r"$x=y=z$ to numerical precision; distinct dashes/markers expose all traces",
             transform=axis.transAxes,
             ha="left",
             va="top",
-            bbox={"facecolor": "white", "edgecolor": "#94a3b8", "alpha": 0.92},
+            clip_on=False,
             zorder=12,
         )
     elif overlap:
         axis.text(
-            0.02,
-            0.84,
+            0.0,
+            1.07,
             r"$x=y$ to numerical precision; dashed squares expose the $y$ trace",
             transform=axis.transAxes,
             ha="left",
             va="top",
-            bbox={"facecolor": "white", "edgecolor": "#94a3b8", "alpha": 0.92},
+            clip_on=False,
             zorder=12,
         )
     axis.text(
-        0.02,
-        0.97,
+        0.0,
+        1.20,
         "Turnaround: positive speed where $F_i(v_i)$ is most negative\n"
         "(strongest force opposing +motion; local parabolic interpolation, not a zero crossing)",
         transform=axis.transAxes,
         ha="left",
         va="top",
+        clip_on=False,
         zorder=12,
     )
     axis.text(
-        0.02,
-        0.075,
-        "One deterministic rate-equation calculation per detuning\n"
-        r"Whiskers show $|$fine$-$coarse$|$ numerical-resolution difference; no statistical bars",
+        0.0,
+        -0.28,
+        _force_plot_caption(rows, dense=dense),
         transform=axis.transAxes,
         ha="left",
-        va="bottom",
-        fontsize=8.5,
+        va="top",
+        fontsize=7.5,
+        clip_on=False,
         zorder=12,
     )
     axis.set(
         xlabel=r"detuning multiplier $n$ in $\Delta=n\Gamma$",
         ylabel=r"damping-turnaround speed [m s$^{-1}$]",
-        title="Multilevel MOT damping-force turnaround versus cooling detuning",
     )
+    figure.suptitle(
+        "Multilevel MOT damping-force turnaround versus cooling detuning",
+        fontsize=16,
+        y=0.965,
+    )
+    _show_detuning_endpoints(axis, n_values)
     _style_summary_axis(axis)
     axis.legend(loc="upper right", framealpha=0.96)
     destination = Path(output_path)
     destination.parent.mkdir(parents=True, exist_ok=True)
-    figure.savefig(destination, dpi=190)
+    figure.savefig(destination, dpi=190, bbox_inches="tight", pad_inches=0.08)
     plt.close(figure)
     return destination
 
@@ -789,12 +934,13 @@ def _resume_signature(
     detuning_values: Sequence[float],
     numerics: ForceSweepNumerics,
 ) -> dict[str, object]:
-    production_config = replace(
-        default_multilevel_mot_config(), repumper_enabled=True
+    production_config, apparatus, beams = build_force_sweep_configuration(
+        float(detuning_values[0])
     )
-    apparatus = default_mot_apparatus_config()
     coil = default_anti_helmholtz_config()
     model = build_rate_equation_model(production_config.natural_linewidth_rad_per_s)
+    cooling_beams = [beam for beam in beams if beam.family == "cooling"]
+    repump_beams = [beam for beam in beams if beam.family == "repump"]
 
     def json_compatible(value: object) -> object:
         return json.loads(json.dumps(value))
@@ -803,6 +949,10 @@ def _resume_signature(
         "schema_version": SCHEMA_VERSION,
         "detuning_n_values": [float(value) for value in detuning_values],
         "deterministic_evaluation_count_per_point": EVALUATION_COUNT,
+        "cooling_power_w_per_beam": float(cooling_beams[0].power_w),
+        "repump_power_w_per_beam": float(repump_beams[0].power_w),
+        "cooling_component_count": len(cooling_beams),
+        "repump_component_count": len(repump_beams),
         "numerics": asdict(numerics),
         "multilevel_config": json_compatible(asdict(production_config)),
         "apparatus_config": json_compatible(asdict(apparatus)),
@@ -824,7 +974,9 @@ def _metadata_payload(
     restoring_plot_path: Path,
     turnaround_plot_path: Path,
 ) -> dict[str, object]:
-    base = replace(default_multilevel_mot_config(), repumper_enabled=True)
+    base, _, _ = build_force_sweep_configuration(
+        float(signature["detuning_n_values"][0])
+    )
     model = build_rate_equation_model(base.natural_linewidth_rad_per_s)
     return {
         "schema_version": SCHEMA_VERSION,
@@ -870,11 +1022,23 @@ def _metadata_payload(
             "retains F'=0; the cooling-only specification had 23"
         ),
         "repumper_enabled": True,
+        "cooling_power_w_per_beam": float(
+            signature["cooling_power_w_per_beam"]
+        ),
+        "cooling_power_mw_per_beam": 1.0e3
+        * float(signature["cooling_power_w_per_beam"]),
+        "repump_power_w_per_beam": float(signature["repump_power_w_per_beam"]),
+        "repump_power_mw_per_beam": 1.0e3
+        * float(signature["repump_power_w_per_beam"]),
+        "cooling_component_count": int(signature["cooling_component_count"]),
+        "repump_component_count": int(signature["repump_component_count"]),
         "gravity_included_in_force": False,
         "linewidth_rad_per_s": base.natural_linewidth_rad_per_s,
         "linewidth_hz": base.natural_linewidth_rad_per_s / (2.0 * np.pi),
+        "force_convention": ABSORPTION_FORCE_CONVENTION_WARNING,
         "limitations": [
             "The rate-equation model includes populations but excludes optical coherences and sub-Doppler physics.",
+            ABSORPTION_FORCE_CONVENTION_WARNING,
             "Turnaround is the global minimum within the configured positive-velocity window.",
             "Rows that fail coarse/fine convergence remain checkpointed and are visibly flagged in plots.",
         ],
@@ -1108,8 +1272,11 @@ if __name__ == "__main__":
 
 
 __all__ = [
+    "ABSORPTION_FORCE_CONVENTION_WARNING",
+    "COOLING_POWER_W_PER_BEAM",
     "DETUNING_N_VALUES",
     "EVALUATION_COUNT",
+    "REPUMP_POWER_W_PER_BEAM",
     "REPLICATE_COUNT",
     "ForceSweepNumerics",
     "build_argument_parser",

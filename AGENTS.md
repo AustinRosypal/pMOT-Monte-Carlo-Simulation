@@ -56,6 +56,26 @@ live in `src/pmot/magnetic_fields.py` and
   saturation, Doppler and Zeeman shifts, scattering rates, and force.
 - The two-level model is a deterministic mean-force model. It does not include
   recoil diffusion and must not be used to claim a Doppler-limit temperature.
+- The September 2026 two-level comparison campaign lives entirely under
+  `mot_simple` and deliberately omits temperature plots.  It reuses the seeded
+  full-sphere geometry from the multilevel campaign (seed 20260903): 25
+  direction discs by 25 uniform-area points per disc at a 15 mm disc radius.
+  Treat the 25 discs as the independent clusters for 95% Student-t intervals
+  (24 degrees of freedom).  Its loading grids are the explicitly requested 24
+  raw-saturation values from 0.25 through 125, 20 effective-saturation values
+  from 0.25 through 5 in steps of 0.25, and detunings from -0.5 through -6 in
+  steps of -0.25 linewidth.  Raw/effective saturation scans vary only power at
+  -15 MHz; the detuning scan holds 27 mW per cooling beam.  The dense force
+  diagnostics use the same detuning limits in 0.05-linewidth steps, with
+  gravity excluded from radiation-force calculations.
+- Campaign capture audits fail closed.  Every zero scalar threshold is scanned
+  directly on the loading velocity grid.  If a positive scalar boundary is
+  censored or incompatible in the 200 ms dual-timestep audit, repeat the whole
+  boundary search at 250 ms and, only if still needed, 400 ms.  Preserve every
+  evaluated node.  Once a positive scalar search has failed its premise, use a
+  separately converged 0--30 m/s by 0.25 m/s dual-timestep boolean capture mask
+  as that ray's authoritative loading evidence even if the mask is monotone;
+  never select or average conflicting scalar thresholds.
 
 ## Polarization convention
 
@@ -132,6 +152,10 @@ radiation pressure explicitly and state when gravity is excluded.
 - `data/raw/pmot`: differential-polarizability datasets for the later pMOT phase.
 - `notebooks/mot_simple`: current interactive validation and sampling notebooks.
 - `tests`: automated physics and numerical checks.
+- `docs/pmot/DIAGNOSTIC_TESTS.md`: canonical ordered pMOT construction-QA
+  procedure. Generated campaigns live under `outputs/diagnostics/pmot` and
+  must stop at the first failed test, with every later test explicitly marked
+  not run.
 - `docs/shared/BFIELD.md`, `docs/mot_multilevel/ZEEMAN.md`, and
   `docs/mot_simple/SAMPLINGALGORITHM.md`: historical derivations and
   requirements. `docs/mot_multilevel/MULTILEVEL_MOT.md` is the historical
@@ -168,6 +192,39 @@ radiation pressure explicitly and state when gravity is excluded.
   independent clusters for Student-t intervals (14 degrees of freedom). Keep
   the 30x30 and 15x15 products in separately named output roots so their sample
   sizes and provenance cannot be confused.
+- The September 2026 refinement is a separate resumable campaign under the
+  `refined_relationships_full_sphere_25x25_r15mm_27mW_reference_repump0p1mW_20260903`
+  output root. Its three loading sweeps are independent and sequential, never a
+  Cartesian product; every point uses 25 full-sphere direction discs by 25
+  uniform-area points on a 15 mm disc. Its grids are the retained saturation
+  values through 50 plus 60, 70, 80, 90, 100, 110, 120, and 125; effective
+  saturation 0.25 through 5.00 by 0.25; and loading detuning -0.5 through -6.0
+  by -0.25. Saturation studies vary cooling power to realize the requested
+  value at -15 MHz and mark 27 mW as the reference; detuning, temperature, and
+  force stages fix cooling components at 27 mW and repump components at 0.1 mW.
+  Temperature uses 25 independent preloaded Langevin clouds by 25 atoms per
+  cloud, with common seeded clouds across detuning and the multilevel Doppler
+  overlay. The deterministic restoring/damping sweep uses 111 detunings from
+  -0.5 through -6.0 by -0.05, with gravity excluded.
+- The completed September 2026 campaign is a post-audited hybrid dataset. The
+  detuning audit replaced 225 endpoint-timeout classifications across 11 scan
+  points, and the raw-saturation audit replaced 155 across 4 scan points, using
+  documented 200 ms coarse/fine trajectory checks. At `s0 = 0.25`, two
+  near-edge rays have genuine nonmonotone low-speed capture islands: disc 6,
+  point 22 captures 0.50--1.25 m/s, and disc 17, point 23 captures 0.75--1.00
+  m/s on the audited 0.25 m/s grid. Spectra and loading integrals must use
+  those immutable velocity-resolved masks; their zero-valued scalar rows are
+  compatibility fallbacks only. Preserve dataset revisions
+  `83717017fca6aaa5fcff6986cb09bcff2df782d3814c8451f1210f26e83fc7f7`
+  (detuning) and
+  `3dfa82f82e0b3edf1a6cceb804e56460c8e117e07db07bfc4714e9465143c4d5`
+  (raw saturation) and the associated audit provenance.
+- Every September 2026 temperature trajectory completed and remained inside
+  the final 2 mm core, but all 23 aggregate detuning points fail the strict
+  all-cloud stationarity gate (313 of 575 individual clouds pass). Report the
+  plotted quantities as finite-25-ms final-window estimates, not equilibrium
+  temperatures. A survivor fraction of one describes retention of preloaded
+  clouds and is not an incident capture or loading fraction.
 - The August 2026 sampling-disc-radius loading campaign uses 27 mW in each of
   the six cooling beams (the -15 MHz center-beam effective saturation is about
   one) and 0.1 mW in each repump beam. Its phase-one radii are 3, 5, 8, 12, 15,

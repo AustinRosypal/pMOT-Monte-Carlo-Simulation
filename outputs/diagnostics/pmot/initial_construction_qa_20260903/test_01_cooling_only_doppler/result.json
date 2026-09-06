@@ -1,0 +1,61 @@
+{
+  "test_number": 1,
+  "name": "Cooling-only Doppler force",
+  "status": "PASS_WITH_QUALIFICATIONS",
+  "population_stage": "fixed uniform population over the five F=2 mF states",
+  "force_convention": "ground-population-weighted available absorption-momentum proxy",
+  "qualification_is_non_gating": true,
+  "fitted_beta_z_n_s_per_m": 9.499376087300602e-22,
+  "fitted_intercept_n": -2.023889795598455e-37,
+  "zero_velocity_force_n": 0.0,
+  "derivative_convergence": [
+    {
+      "velocity_step_m_per_s": 0.001,
+      "dFz_dvz_n_s_per_m": -9.49824412321731e-22,
+      "beta_z_n_s_per_m": 9.49824412321731e-22
+    },
+    {
+      "velocity_step_m_per_s": 0.0005,
+      "dFz_dvz_n_s_per_m": -9.498244102588794e-22,
+      "beta_z_n_s_per_m": 9.498244102588794e-22
+    },
+    {
+      "velocity_step_m_per_s": 0.00025,
+      "dFz_dvz_n_s_per_m": -9.49824409744295e-22,
+      "beta_z_n_s_per_m": 9.49824409744295e-22
+    }
+  ],
+  "criteria": {
+    "small_velocity_force_opposes_velocity": true,
+    "fitted_beta_positive": true,
+    "balanced_zero_force": true,
+    "all_refined_beta_values_positive": true,
+    "transition_rates_match_production_formula": true,
+    "transition_sums_reproduce_beam_rates_and_forces": true,
+    "polarization_weights_normalized_per_beam": true
+  },
+  "numerical_ranges_and_tolerances": {
+    "velocity_plot_range_m_per_s": [
+      -2.0,
+      2.0
+    ],
+    "near_zero_fit_abs_velocity_max_m_per_s": 0.25,
+    "damping_sign_abs_velocity_max_m_per_s": 0.5,
+    "balanced_force_absolute_tolerance_n": 1e-30,
+    "rate_reconstruction_relative_tolerance": 2e-14,
+    "rate_reconstruction_absolute_tolerance_per_s": 1e-08,
+    "force_reconstruction_absolute_tolerance_n": 1e-30
+  },
+  "steady_state_control_warning": "The full 24-state graph with only two cooling beams and no repumper has disconnected F=1 dark states and a nonunique steady state. It returns zero force, so the staged fixed-population diagnostic required before Test 6 is used here.",
+  "dipole_amplitude_limitation": "The current rate model stores only the normalized full hyperfine line strength C^2 (including Wigner-6j and Wigner-3j factors). sqrt(C^2) is saved as a nonnegative magnitude; a signed Clebsch-Gordan phase is not available from this representation.",
+  "outputs": [
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\diagnostics\\pmot\\initial_construction_qa_20260903\\test_01_cooling_only_doppler\\README.md",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\diagnostics\\pmot\\initial_construction_qa_20260903\\test_01_cooling_only_doppler\\result.json",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\diagnostics\\pmot\\initial_construction_qa_20260903\\test_01_cooling_only_doppler\\cooling_force_and_rates_vs_velocity.csv",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\diagnostics\\pmot\\initial_construction_qa_20260903\\test_01_cooling_only_doppler\\transition_resolved_cooling_force.csv",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\diagnostics\\pmot\\initial_construction_qa_20260903\\test_01_cooling_only_doppler\\transition_sum_reconstruction.csv",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\diagnostics\\pmot\\initial_construction_qa_20260903\\test_01_cooling_only_doppler\\beta_velocity_step_convergence.csv",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\diagnostics\\pmot\\initial_construction_qa_20260903\\test_01_cooling_only_doppler\\full_24state_two_beam_steady_state_control.csv",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\diagnostics\\pmot\\initial_construction_qa_20260903\\test_01_cooling_only_doppler\\figures\\cooling_only_doppler_force.png"
+  ]
+}

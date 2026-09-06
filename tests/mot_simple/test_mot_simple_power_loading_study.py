@@ -255,3 +255,42 @@ def test_mocked_end_to_end_run_writes_completed_resumable_products(tmp_path, mon
         analyze_only=True,
     )
     assert resumed["run_signature_sha256"] == summary["run_signature_sha256"]
+
+
+def test_impact_parameter_plot_marks_velocity_mask_authority(
+    tmp_path, monkeypatch
+) -> None:
+    samples = [_capture_sample(0, 0, 0.0), _capture_sample(0, 1, 1.0)]
+    captured = {}
+    original_close = study.plt.close
+
+    def capture_close(figure):
+        captured["figure"] = figure
+
+    monkeypatch.setattr(study.plt, "close", capture_close)
+    destination = tmp_path / "impact_parameter.png"
+    try:
+        assert study.plot_capture_velocity_vs_impact_parameter(
+            samples,
+            destination,
+            velocity_resolved_override_count=2,
+        ) == destination
+        assert destination.is_file()
+        caveats = [
+            text.get_text()
+            for text in captured["figure"].axes[0].texts
+            if "velocity-resolved capture masks" in text.get_text()
+        ]
+        assert len(caveats) == 1
+        assert "masks govern cross section and loading" in caveats[0]
+    finally:
+        original_close(captured.get("figure"))
+
+
+def test_impact_parameter_plot_rejects_negative_override_count(tmp_path) -> None:
+    with pytest.raises(ValueError, match="cannot be negative"):
+        study.plot_capture_velocity_vs_impact_parameter(
+            [_capture_sample(0, 0, 1.0)],
+            tmp_path / "unused.png",
+            velocity_resolved_override_count=-1,
+        )

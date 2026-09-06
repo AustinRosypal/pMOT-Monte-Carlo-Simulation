@@ -1,0 +1,8 @@
+case,beam,ground_F,ground_mF,excited_F,excited_mF,q,speed_along_khat_m_per_s,k_dot_v_rad_per_s,transition_shift_rad_per_s,production_stimulated_rate_per_s
+baseline,vertical_z_retro_cooling_780,2,2,3,3,1,0.0,0.0,0.0,9556136.980958771
+plus_velocity_zero_shift,vertical_z_retro_cooling_780,2,2,3,3,1,0.05,402768.2889217683,0.0,9517069.698018886
+minus_velocity_zero_shift,vertical_z_retro_cooling_780,2,2,3,3,1,-0.05,-402768.2889217683,0.0,9595357.664964339
+zero_velocity_plus_shift,vertical_z_retro_cooling_780,2,2,3,3,1,0.0,0.0,402768.2889217683,9517069.698018886
+zero_velocity_minus_shift,vertical_z_retro_cooling_780,2,2,3,3,1,0.0,0.0,-402768.2889217683,9595357.664964339
+plus_velocity_minus_shift,vertical_z_retro_cooling_780,2,2,3,3,1,0.05,402768.2889217683,-402768.2889217683,9556136.980958771
+minus_velocity_plus_shift,vertical_z_retro_cooling_780,2,2,3,3,1,-0.05,-402768.2889217683,402768.2889217683,9556136.980958771

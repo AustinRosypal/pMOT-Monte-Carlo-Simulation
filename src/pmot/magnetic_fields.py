@@ -82,14 +82,29 @@ def default_anti_helmholtz_config(
     )
 
 
+def _within_absolute_tolerance(values, target: float, atol: float) -> np.ndarray:
+    """Vectorized equivalent of ``isclose(values, target, rtol=0)``.
+
+    Every caller supplies a finite scalar target.  The direct comparison keeps
+    exactly the absolute-tolerance boundary while avoiding ``numpy.isclose``'s
+    generic relative-tolerance and error-state overhead in the trajectory hot
+    path.
+    """
+
+    return np.abs(np.asarray(values, dtype=float) - float(target)) <= float(atol)
+
+
 def _coil_singularity_mask(rho_m, z_m, config: AntiHelmholtzCoilConfig, atol: float = 1.0e-15):
     """Return a mask for points exactly on the wire loops."""
 
     rho_array = np.asarray(rho_m, dtype=float)
     z_array = np.asarray(z_m, dtype=float)
-    return np.isclose(rho_array, config.radius_m, atol=atol, rtol=0.0) & (
-        np.isclose(z_array, -config.half_separation_m, atol=atol, rtol=0.0)
-        | np.isclose(z_array, config.half_separation_m, atol=atol, rtol=0.0)
+    # ``np.isclose(..., rtol=0)`` is exactly this absolute comparison for the
+    # finite coil coordinates used here, but its generic error-state and
+    # broadcasting machinery is costly inside every RK4 force evaluation.
+    return _within_absolute_tolerance(rho_array, config.radius_m, atol) & (
+        _within_absolute_tolerance(z_array, -config.half_separation_m, atol)
+        | _within_absolute_tolerance(z_array, config.half_separation_m, atol)
     )
 
 
@@ -130,7 +145,7 @@ def anti_helmholtz_cylindrical_field_t(
         e_plus_term = ellipe(m_plus)
         e_minus_term = ellipe(m_minus)
 
-        rho_axis_mask = np.isclose(rho, 0.0, atol=1.0e-18, rtol=0.0)
+        rho_axis_mask = _within_absolute_tolerance(rho, 0.0, 1.0e-18)
         off_axis_mask = ~rho_axis_mask
 
         bz_safe = prefactor * (
@@ -207,7 +222,7 @@ def anti_helmholtz_field_t(
 
     bx = np.zeros_like(x_array, dtype=float)
     by = np.zeros_like(y_array, dtype=float)
-    on_axis_mask = np.isclose(rho, 0.0, atol=1.0e-18, rtol=0.0)
+    on_axis_mask = _within_absolute_tolerance(rho, 0.0, 1.0e-18)
     off_axis_mask = ~on_axis_mask
     bx[off_axis_mask] = brho[off_axis_mask] * x_array[off_axis_mask] / rho[off_axis_mask]
     by[off_axis_mask] = brho[off_axis_mask] * y_array[off_axis_mask] / rho[off_axis_mask]

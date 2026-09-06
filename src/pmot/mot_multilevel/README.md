@@ -85,6 +85,56 @@ directions across radii. If the saturating fit does not pass its goodness,
 monotonicity, plateau, and convergence-radius uncertainty gates, the independent
 confirmation uses the prescribed 12 mm fallback.
 
+Run the isolated September 2026 relationship refinement with:
+
+```bash
+OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+/home/ajrosy/pMOT_MonteCarlo/.venv_pMOT_MC/bin/python \
+  -m pmot.mot_multilevel.refined_relationship_campaign campaign --workers 24
+```
+
+This checkpointed campaign runs three independent loading sweeps in sequence;
+it never forms a Cartesian product. Each loading point uses 25 full-sphere
+direction discs by 25 independent uniform-area points on a 15 mm-radius disc.
+The on-resonance-saturation grid retains the prior 16 values through 50 and
+adds 60, 70, 80, 90, 100, 110, 120, and 125. The effective-saturation grid is
+0.25 through 5.00 in steps of 0.25, and the loading-detuning grid is
+`Delta/Gamma = -0.5` through `-6.0` in steps of `-0.25`. Saturation sweeps
+necessarily vary cooling power to realize the requested saturation value at
+-15 MHz; 27 mW is shown as the reference. With the package's 6.07 MHz
+linewidth, the final `s_eff = 5` point corresponds to `s_0 = 127.134` and
+134.395 mW per cooling component, so its range is close to, but not exactly,
+the `s_0 = 125` endpoint. Detuning loading, temperature, and force calculations
+hold every cooling component at 27 mW. Every stage keeps the repump components
+at 0.1 mW.
+
+Temperature is a distinct Langevin experiment: each detuning uses 25
+independent preloaded clouds by 25 atoms, not incident sampling discs. The same
+seeded clouds are reused across detunings so only cooling detuning changes. Its
+plot includes the detuning-dependent multilevel Doppler reference. The
+deterministic force stage uses 111 detunings from -0.5 through -6.0 in steps of
+-0.05 and produces the Cartesian restoring-slope and damping-force-turnaround
+plots at fixed 27 mW. It excludes gravity and reports numerical-resolution
+whiskers rather than statistical error bars.
+
+Statistics and figures are kept separate from every historical campaign under
+`outputs/{statistics,figures}/mot_multilevel/refined_relationships_full_sphere_25x25_r15mm_27mW_reference_repump0p1mW_20260903`.
+
+The completed dataset was subsequently audited at 200 ms with 5 and 2.5 us
+trajectory steps. This resolved all endpoint timeouts: 225 detuning samples and
+155 raw-saturation samples were transactionally replaced with full backup and
+hash provenance. Two weak-light (`s0 = 0.25`) near-edge rays are physically
+nonmonotone at low speed, so their cross sections and loading contributions use
+the exact dual-timestep capture masks recorded by the audit rather than a
+single scalar capture threshold. See `FINAL_QA_REPORT.md` in the campaign's
+statistics root for the applied revision hashes and final numerical checks.
+
+All 23 temperature points are finite-time estimates. Although every preloaded
+atom remains within the final 2 mm core, only 313 of 575 clouds pass the
+stationarity test and no detuning passes the strict all-cloud gate. These
+values must not be described as equilibrium temperatures; the survivor
+fraction is likewise not an incident capture fraction.
+
 Run and visualize a configurable full-MOT launch directly in
 `notebooks/mot_multilevel/full_mot_single_trajectory.ipynb`. It adapts the
 `Single Trajectory` controls and 3D beam/path view from the simplified-MOT disc

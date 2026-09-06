@@ -1,0 +1,12 @@
+{
+  "apply_intent_json": "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\diagnostics\\mot_multilevel\\refined_relationships_full_sphere_25x25_r15mm_27mW_reference_repump0p1mW_20260903\\03_detuning_timeout_audit\\20260905T114926798577-0500\\timeout_apply_intent.json",
+  "apply_intent_sha256": "71ea59f5c7bffc9573404dd3d188d561b54c022d782b40310917f8b74e6c4c2f",
+  "audit_report_json": "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\diagnostics\\mot_multilevel\\refined_relationships_full_sphere_25x25_r15mm_27mW_reference_repump0p1mW_20260903\\03_detuning_timeout_audit\\20260905T114926798577-0500\\timeout_audit_report.json",
+  "audit_report_sha256": "334f18b71c5922045d2cf6b17bfe113d85c6b3bbe3a945154764f12644c9cd37",
+  "created_utc": "2026-09-05T16:49:41.848418+00:00",
+  "error": "ApplyTransactionError: ValueError: configuration value differs at post_apply.000_detuning_n_m0p5.13.17.capture_velocity_m_per_s",
+  "production_modified": false,
+  "rollback_complete": true,
+  "schema_version": 1,
+  "status": "failed"
+}

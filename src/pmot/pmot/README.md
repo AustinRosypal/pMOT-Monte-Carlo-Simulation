@@ -77,6 +77,10 @@ also absent.
   `notebooks/pmot/trajectory_sampling.ipynb`; it exposes every traveling
   component's propagation-frame polarization and writes optional CSV, JSON,
   and PNG outputs below the pMOT output tree.
+- `diagnostic_suite.py` executes the ordered initial-construction QA procedure
+  in `docs/pmot/DIAGNOSTIC_TESTS.md`, saves machine-readable inputs and
+  criteria below `outputs/diagnostics/pmot`, and exits nonzero after recording
+  the first scientific failure.
 - `preliminary_scattering.py` is an old scalar two-level exploration retained
   only for notebook reproducibility. It is not an alternative production
   solver.
@@ -87,6 +91,18 @@ Reproduce the geometry outputs with:
 /home/ajrosy/pMOT_MonteCarlo/.venv_pMOT_MC/bin/python \
   -m pmot.pmot.geometry_validation
 ```
+
+Run the ordered construction QA campaign with:
+
+```bash
+/home/ajrosy/pMOT_MonteCarlo/.venv_pMOT_MC/bin/python \
+  -m pmot.pmot.diagnostic_suite
+```
+
+Its canonical campaign output is
+`outputs/diagnostics/pmot/initial_construction_qa_20260903`. A nonzero process
+exit is expected while a diagnostic test remains failed; inspect
+`result_index.csv` for the scientific status.
 
 Run the provisional 20-G/cm-equivalent diagnostic with:
 

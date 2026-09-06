@@ -1,0 +1,4 @@
+position_step_m,fixed_basis_signed_gradient_hz_per_m,center_signed_shift_hz,applied_named_left_slope_hz_per_m,applied_named_right_slope_hz_per_m,applied_named_symmetric_derivative_hz_per_m
+4e-06,-2799206258.3808513,0.0,-2799206258.3808513,2799206258.3808513,0.0
+2e-06,-2799205586.573283,0.0,-2799205586.573283,2799205586.573283,0.0
+1e-06,-2799205418.6194286,0.0,-2799205418.6194286,2799205418.6194286,0.0

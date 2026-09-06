@@ -17,6 +17,7 @@ from pmot.mot_multilevel.force_sweep import (
     EVALUATION_COUNT,
     ForceSweepNumerics,
     _parabolic_minimum,
+    _dense_display_indices,
     build_argument_parser,
     build_force_sweep_configuration,
     detuning_n_grid,
@@ -58,18 +59,54 @@ def test_force_configuration_syncs_angular_and_ordinary_detuning() -> None:
     assert len(cooling_beams) == 6
     assert len(repump_beams) == 6
     assert all(beam.detuning_hz == expected_hz for beam in cooling_beams)
+    assert apparatus.cooling.power_w_per_beam == pytest.approx(27.0e-3)
+    assert apparatus.repump.power_w_per_beam == pytest.approx(0.1e-3)
+    assert config.repump_power_w_per_beam == pytest.approx(0.1e-3)
+    assert all(beam.power_w == pytest.approx(27.0e-3) for beam in cooling_beams)
+    assert all(beam.power_w == pytest.approx(0.1e-3) for beam in repump_beams)
 
     base_config = default_multilevel_mot_config()
     assert config == replace(
         base_config,
         cooling_detuning_rad_per_s=expected_rad_per_s,
+        repump_power_w_per_beam=0.1e-3,
         repumper_enabled=True,
     )
     base_apparatus = default_mot_apparatus_config()
     assert apparatus == replace(
         base_apparatus,
-        cooling=replace(base_apparatus.cooling, detuning_hz=expected_hz),
+        cooling=replace(
+            base_apparatus.cooling,
+            detuning_hz=expected_hz,
+            power_w_per_beam=27.0e-3,
+        ),
+        repump=replace(
+            base_apparatus.repump,
+            detuning_hz=0.0,
+            power_w_per_beam=0.1e-3,
+        ),
     )
+
+
+def test_dense_plot_sampling_retains_lines_but_thins_markers_and_whiskers() -> None:
+    assert np.array_equal(_dense_display_indices(25, 0), np.arange(25))
+    dense_indices = [_dense_display_indices(111, axis) for axis in range(3)]
+    assert all(0 < indices.size <= 28 for indices in dense_indices)
+    assert [int(indices[0]) for indices in dense_indices] == [0, 1, 2]
+    assert all(np.all(np.diff(indices) == 4) for indices in dense_indices)
+
+
+def test_force_plot_detuning_axis_labels_both_endpoints_with_margin() -> None:
+    figure, axis = force_sweep.plt.subplots()
+    n_values = np.asarray((-6.0, -0.5))
+    axis.plot(n_values, (0.0, 1.0))
+
+    force_sweep._show_detuning_endpoints(axis, n_values)
+
+    assert axis.get_xlim() == pytest.approx((-6.11, -0.39))
+    assert np.any(np.isclose(axis.get_xticks(), -6.0))
+    assert np.any(np.isclose(axis.get_xticks(), -0.5))
+    force_sweep.plt.close(figure)
 
 
 def test_parabolic_turnaround_is_an_interior_force_minimum() -> None:
@@ -95,6 +132,8 @@ def test_real_rate_equation_smoke_has_restoring_slopes_and_turnarounds() -> None
     assert row["detuning_rad_per_s"] == pytest.approx(
         -row["linewidth_rad_per_s"]
     )
+    assert row["cooling_power_w_per_beam"] == pytest.approx(27.0e-3)
+    assert row["repump_power_w_per_beam"] == pytest.approx(0.1e-3)
     for axis in "xyz":
         assert row[f"restoring_slope_{axis}_n_per_m"] < 0.0
         assert 0.0 < row[f"turnaround_velocity_{axis}_m_per_s"] < 8.0
@@ -140,6 +179,10 @@ def test_checkpoint_resume_and_plotting_smoke(tmp_path, monkeypatch) -> None:
 
     metadata = json.loads((output / "force_vs_detuning_metadata.json").read_text())
     assert metadata["repumper_enabled"]
+    assert metadata["cooling_power_mw_per_beam"] == pytest.approx(27.0)
+    assert metadata["repump_power_mw_per_beam"] == pytest.approx(0.1)
+    assert metadata["cooling_component_count"] == 6
+    assert metadata["repump_component_count"] == 6
     assert not metadata["gravity_included_in_force"]
     assert "not a force zero crossing" in metadata["turnaround_definition"]
     assert metadata["model_state_count"] == 24
@@ -147,9 +190,20 @@ def test_checkpoint_resume_and_plotting_smoke(tmp_path, monkeypatch) -> None:
     assert metadata["deterministic_evaluation_count_per_point"] == 1
     assert metadata["total_deterministic_evaluations"] == 1
     assert metadata["resume_signature"]["deterministic_evaluation_count_per_point"] == 1
+    assert metadata["resume_signature"]["cooling_power_w_per_beam"] == pytest.approx(
+        27.0e-3
+    )
+    assert metadata["resume_signature"]["repump_power_w_per_beam"] == pytest.approx(
+        0.1e-3
+    )
     assert metadata["statistical_uncertainty_applicable"] is False
     assert metadata["resume_signature"]["multilevel_config"]["repumper_enabled"]
     assert "coil_config" in metadata["resume_signature"]
+    assert "not a validated net scattering force" in metadata["force_convention"]
+    assert any(
+        "not a validated net scattering force" in limitation
+        for limitation in metadata["limitations"]
+    )
 
     def fail_if_recomputed(*args, **kwargs):
         raise AssertionError("resume should not recompute a completed detuning")
@@ -196,6 +250,10 @@ def test_plots_annotate_all_axis_overlap(tmp_path, monkeypatch) -> None:
         [row], tmp_path / "turnaround.png"
     )
     assert sum("x=y=z" in annotation for annotation in annotations) == 2
+    assert sum(
+        "not a validated net scattering force" in annotation
+        for annotation in annotations
+    ) == 2
 
 
 def test_cli_accepts_explicit_no_resume() -> None:

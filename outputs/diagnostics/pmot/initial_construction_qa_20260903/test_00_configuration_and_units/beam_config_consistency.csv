@@ -1,0 +1,13 @@
+beam,family,beam_detuning_hz,production_config_detuning_hz,detuning_matches,beam_wavelength_m,production_config_wavelength_m,wavelength_matches,beam_power_w,apparatus_power_w,power_matches
+horizontal_x_incident_cooling_780,cooling,-15000000.0,-15000000.0,True,7.8e-07,7.8e-07,True,0.027,0.027,True
+horizontal_x_retro_cooling_780,cooling,-15000000.0,-15000000.0,True,7.8e-07,7.8e-07,True,0.027,0.027,True
+horizontal_y_incident_cooling_780,cooling,-15000000.0,-15000000.0,True,7.8e-07,7.8e-07,True,0.027,0.027,True
+horizontal_y_retro_cooling_780,cooling,-15000000.0,-15000000.0,True,7.8e-07,7.8e-07,True,0.027,0.027,True
+vertical_z_incident_cooling_780,cooling,-15000000.0,-15000000.0,True,7.8e-07,7.8e-07,True,0.027,0.027,True
+vertical_z_retro_cooling_780,cooling,-15000000.0,-15000000.0,True,7.8e-07,7.8e-07,True,0.027,0.027,True
+horizontal_x_incident_repump_780,repump,0.0,0.0,True,7.80232684e-07,7.80232684e-07,True,0.0001,0.0001,True
+horizontal_x_retro_repump_780,repump,0.0,0.0,True,7.80232684e-07,7.80232684e-07,True,0.0001,0.0001,True
+horizontal_y_incident_repump_780,repump,0.0,0.0,True,7.80232684e-07,7.80232684e-07,True,0.0001,0.0001,True
+horizontal_y_retro_repump_780,repump,0.0,0.0,True,7.80232684e-07,7.80232684e-07,True,0.0001,0.0001,True
+vertical_z_incident_repump_780,repump,0.0,0.0,True,7.80232684e-07,7.80232684e-07,True,0.0001,0.0001,True
+vertical_z_retro_repump_780,repump,0.0,0.0,True,7.80232684e-07,7.80232684e-07,True,0.0001,0.0001,True

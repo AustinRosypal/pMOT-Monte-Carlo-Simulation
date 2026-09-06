@@ -1,0 +1,28 @@
+{
+  "test_number": 0,
+  "name": "Configuration and unit audit",
+  "status": "PASS_WITH_QUALIFICATIONS",
+  "criteria": {
+    "explicit_frequency_unit_types": true,
+    "single_documented_effective_detuning_definition": true,
+    "zero_shift_removes_ac_stark_contribution_exactly": true,
+    "production_kernel_doppler_and_stark_sign_checks": true,
+    "beam_metadata_matches_production_configuration": true,
+    "beam_polarizations_normalized_and_transverse": true
+  },
+  "qualification_is_non_gating": true,
+  "warnings": [
+    "The raw CSV column headers do not encode the physical SI dimension. The implementation names and consumes the values as SI; independent source-unit provenance is still required.",
+    "With a frozen transition shift, reversing velocity changes only the 780-nm Doppler term. In the full pMOT evaluation it also changes each trapping component's atom-frame wavelength and therefore its interpolated polarizability, as separately required by the model."
+  ],
+  "outputs": [
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\diagnostics\\pmot\\initial_construction_qa_20260903\\test_00_configuration_and_units\\README.md",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\diagnostics\\pmot\\initial_construction_qa_20260903\\test_00_configuration_and_units\\result.json",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\diagnostics\\pmot\\initial_construction_qa_20260903\\test_00_configuration_and_units\\configuration_snapshot.json",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\diagnostics\\pmot\\initial_construction_qa_20260903\\test_00_configuration_and_units\\unit_audit.csv",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\diagnostics\\pmot\\initial_construction_qa_20260903\\test_00_configuration_and_units\\beam_manifest.csv",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\diagnostics\\pmot\\initial_construction_qa_20260903\\test_00_configuration_and_units\\beam_config_consistency.csv",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\diagnostics\\pmot\\initial_construction_qa_20260903\\test_00_configuration_and_units\\velocity_reversal_algebra.csv",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\diagnostics\\pmot\\initial_construction_qa_20260903\\test_00_configuration_and_units\\production_kernel_detuning_sign_probe.csv"
+  ]
+}

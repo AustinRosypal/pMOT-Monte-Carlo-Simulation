@@ -1,0 +1,11 @@
+test_number,test_name,status,reason
+0,Configuration and unit audit,PASS_WITH_QUALIFICATIONS,raw polarizability unit provenance remains external to the CSV
+1,Cooling-only Doppler force,PASS_WITH_QUALIFICATIONS,fixed uniform F=2 stage using the inherited absorption-momentum proxy
+2,Signed 1529-nm vector-shift profile,FAIL,The differential-only Arora table cannot determine individual ground- and excited-level shifts U_g/h and U_e/h for all 24 states.
+3,Static restoring force,NOT_RUN,ordered plan stopped after Test 2 failed
+4,Transition-resolved scattering audit,NOT_RUN,ordered plan stopped after Test 2 failed
+5,Central detuning and power scan,NOT_RUN,ordered plan stopped after Test 2 failed
+6,Internal-state population dynamics,NOT_RUN,ordered plan stopped after Test 2 failed
+7,Handedness and polarization conventions,NOT_RUN,ordered plan stopped after Test 2 failed
+8,Deterministic trajectories and capture map,NOT_RUN,ordered plan stopped after Test 2 failed
+9,Three-dimensional stability,NOT_RUN,ordered plan stopped after Test 2 failed

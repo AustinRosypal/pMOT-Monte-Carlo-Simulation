@@ -1,0 +1,8 @@
+scenario,gradient_hz_per_m,center_signed_shift_hz,gradient_over_baseline,expected_relation_from_plan_or_global_reversal,matches_expected_relation,interpretation
+baseline,-2799205418.6194286,0.0,1.0,same_as_baseline,True,reference
+reverse_one_z_incident_component,0.0,-13996041.51540146,-0.0,opposite_baseline,False,plan says reverse gradient; physical pair instead becomes even and biased
+reverse_both_z_component_helicities,2799205418.6194286,0.0,-1.0,opposite_baseline,True,global path reversal
+reverse_alpha1_sign,2799205418.6194286,0.0,-1.0,opposite_baseline,True,global sign reversal
+swap_z_focus_locations,2799205418.6194286,0.0,-1.0,opposite_baseline,True,global spatial reversal
+reverse_alpha1_and_swap_foci,-2799205418.6194286,0.0,1.0,same_as_baseline,True,two global reversals
+reverse_both_helicities_and_alpha1,-2799205418.6194286,0.0,1.0,same_as_baseline,True,two global reversals

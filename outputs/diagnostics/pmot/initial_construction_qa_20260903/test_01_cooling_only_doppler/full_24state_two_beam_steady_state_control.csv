@@ -1,0 +1,4 @@
+velocity_z_m_per_s,force_z_n,total_absorption_proxy_per_s,F1_ground_population,interpretation
+-0.1,0.0,0.0,1.0,nonunique full-graph steady state collapses into disconnected F=1; not used for the staged Test-1 pass decision
+0.0,0.0,0.0,1.0,nonunique full-graph steady state collapses into disconnected F=1; not used for the staged Test-1 pass decision
+0.1,0.0,0.0,1.0,nonunique full-graph steady state collapses into disconnected F=1; not used for the staged Test-1 pass decision

@@ -1,0 +1,209 @@
+{
+  "schema": "pmot.diagnostic.test-00.v1",
+  "effective_detuning_equation": "Delta_eff[b,g->e] = Delta_L[b] - delta_HFS[g->e] - k_b dot v - (DeltaE_AC[e]-DeltaE_AC[g])/hbar; B_external = 0",
+  "frequency_convention": "Delta = omega_L - omega_0; angular frequency",
+  "natural_linewidth_rad_per_s": 38138934.81458009,
+  "natural_linewidth_hz": 6070000.0,
+  "position_units": "m",
+  "velocity_units": "m/s",
+  "intensity_units": "W/m^2",
+  "beam_radius_convention": "Gaussian 1/e^2 intensity radius",
+  "saturation_convention": "per beam and per transition",
+  "external_magnetic_field_t": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "cooling_power_w_per_beam": 0.027,
+  "repump_power_w_per_beam": 0.0001,
+  "trapping_power_w_per_incident_path": 0.03829448617292197,
+  "trapping_power_source": "derived provisional stretched-reference vector-gradient proxy",
+  "trapping_wavelength_m": 1.529268881e-06,
+  "polarizability_source": "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\data\\raw\\pmot\\Arora_CCSD_Differential_Polarizabilities.csv",
+  "polarizability_wavelength_range_nm": [
+    1529.124,
+    1529.476
+  ],
+  "polarizability_source_unit_warning": "The raw CSV column headers do not encode the physical SI dimension. The implementation names and consumes the values as SI; independent source-unit provenance is still required.",
+  "resolved_apparatus_config": {
+    "mot_light": {
+      "lens": {
+        "name": "AC508-080-C",
+        "focal_length_m": 0.0803,
+        "effective_focal_length_m": 0.0803,
+        "back_focal_length_m": 0.0669,
+        "center_thickness_m": 0.0205,
+        "mount_length_m": 0.0277,
+        "mount_overhang_m": 0.0039,
+        "mount_half_height_m": 0.033
+      },
+      "cell": {
+        "outer_diameter_m": 0.03,
+        "wall_thickness_m": 0.005
+      },
+      "cooling": {
+        "name": "cooling_780",
+        "role": "780 nm cooling light",
+        "wavelength_m": 7.8e-07,
+        "resonance_frequency_hz": 384228115000000.0,
+        "detuning_hz": -15000000.0,
+        "beam_diameter_m": 0.0127,
+        "power_w_per_beam": 0.027,
+        "propagation_length_m": 0.12
+      },
+      "repump": {
+        "name": "repump_780",
+        "role": "780 nm repump light",
+        "wavelength_m": 7.8e-07,
+        "resonance_frequency_hz": 384234683000000.0,
+        "detuning_hz": 0.0,
+        "beam_diameter_m": 0.0127,
+        "power_w_per_beam": 0.0001,
+        "propagation_length_m": 0.12
+      },
+      "axes": [
+        {
+          "name": "horizontal_x",
+          "cell_angle_of_incidence_deg": 45.0,
+          "description": "first horizontal beam axis entering the cell at 45 degree AOI"
+        },
+        {
+          "name": "horizontal_y",
+          "cell_angle_of_incidence_deg": 45.0,
+          "description": "second horizontal beam axis orthogonal to the first"
+        },
+        {
+          "name": "vertical_z",
+          "cell_angle_of_incidence_deg": 0.0,
+          "description": "vertical beam axis entering from the top of the cell"
+        }
+      ],
+      "samples_per_axis": 201,
+      "volume_extent_m": 0.05
+    },
+    "trapping_laser": {
+      "wavelength_m": 1.529268881e-06,
+      "incident_helicity": "sigma+",
+      "retro_helicity": "sigma+",
+      "focus_offset_m": 0.01,
+      "input_beam_diameter_m": 0.035,
+      "focal_length_m": 0.0803,
+      "incident_waist_radius_m": null,
+      "retro_waist_radius_m": null,
+      "retro_power_fraction": 1.0,
+      "axes": [
+        "horizontal_x",
+        "horizontal_y",
+        "vertical_z"
+      ],
+      "envelope_combination": "incoherent"
+    }
+  },
+  "resolved_multilevel_rate_config": {
+    "cooling_detuning_rad_per_s": -94247779.60769379,
+    "repump_detuning_rad_per_s": 0.0,
+    "repump_power_w_per_beam": 0.0001,
+    "natural_linewidth_rad_per_s": 38138934.81458009,
+    "saturation_intensity_w_per_m2": 16.69,
+    "wavelength_m": 7.8e-07,
+    "repump_wavelength_m": 7.80232684e-07,
+    "magnetic_field_epsilon_t": 1e-12,
+    "enabled_excited_manifolds": [
+      1,
+      2,
+      3
+    ],
+    "enabled_repump_excited_manifolds": [
+      0,
+      1,
+      2
+    ],
+    "repumper_enabled": true,
+    "initialization_mode": "validation",
+    "dark_state_behavior": "terminate",
+    "include_gravity": true,
+    "diagnostics_enabled": false
+  },
+  "resolved_provisional_stark_config": {
+    "incident_path_powers_w": [
+      0.03829448617292197,
+      0.03829448617292197,
+      0.03829448617292197
+    ],
+    "incident_helicities_by_axis": [
+      "sigma+",
+      "sigma+",
+      "sigma-"
+    ],
+    "retro_helicities_by_axis": [
+      "sigma+",
+      "sigma+",
+      "sigma-"
+    ],
+    "optical_spin_energy_epsilon_j": 1e-40
+  },
+  "resolved_component_helicities": {
+    "cooling_incident_xyz": [
+      "sigma+",
+      "sigma+",
+      "sigma-"
+    ],
+    "cooling_retro_xyz": [
+      "sigma+",
+      "sigma+",
+      "sigma-"
+    ],
+    "repump_incident_xyz": [
+      "sigma+",
+      "sigma+",
+      "sigma-"
+    ],
+    "repump_retro_xyz": [
+      "sigma+",
+      "sigma+",
+      "sigma-"
+    ],
+    "trapping_incident_xyz": [
+      "sigma+",
+      "sigma+",
+      "sigma-"
+    ],
+    "trapping_retro_xyz": [
+      "sigma+",
+      "sigma+",
+      "sigma-"
+    ]
+  },
+  "rate_model_dimensions": {
+    "ground_states": 8,
+    "excited_states": 16,
+    "allowed_absorption_transitions": 54
+  },
+  "configuration_consistency_checks": {
+    "all_beam_detunings_match_production_config": true,
+    "all_beam_wavelengths_match_production_config": true,
+    "all_beam_powers_match_apparatus": true,
+    "repump_beam_power_matches_rate_config": true
+  },
+  "production_kernel_detuning_sign_checks": {
+    "plus_velocity_equals_positive_transition_shift": true,
+    "minus_velocity_equals_negative_transition_shift": true,
+    "minus_shift_compensates_plus_velocity": true,
+    "plus_shift_compensates_minus_velocity": true,
+    "red_detuned_doppler_rate_ordering": true,
+    "red_detuned_transition_shift_rate_ordering": true
+  },
+  "stark_zero_and_analytic_velocity_checks": {
+    "zero_transition_shift_exactly_matches_omitted_shift": true,
+    "frozen_shift_velocity_reversal_max_mean_residual_rad_per_s": 0.0,
+    "frozen_shift_velocity_reversal_max_odd_residual_rad_per_s": 1.307344064116478e-07,
+    "full_physics_probe_position_m": [
+      0.0,
+      0.0,
+      0.001
+    ],
+    "full_physics_probe_speed_m_per_s": 0.1,
+    "full_physics_max_applied_stark_shift_change_under_velocity_reversal_hz": 2366.6768234519823,
+    "qualification": "With a frozen transition shift, reversing velocity changes only the 780-nm Doppler term. In the full pMOT evaluation it also changes each trapping component's atom-frame wavelength and therefore its interpolated polarizability, as separately required by the model."
+  }
+}

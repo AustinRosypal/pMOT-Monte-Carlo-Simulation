@@ -1,0 +1,25 @@
+state_index,manifold,F,mF,U_level_over_h_available,U_level_over_h_hz,reason
+0,ground,1,-1,False,,Arora input contains differential transition polarizabilities only; separate 5S/5P and hyperfine-resolved level polarizabilities are absent
+1,ground,1,0,False,,Arora input contains differential transition polarizabilities only; separate 5S/5P and hyperfine-resolved level polarizabilities are absent
+2,ground,1,1,False,,Arora input contains differential transition polarizabilities only; separate 5S/5P and hyperfine-resolved level polarizabilities are absent
+3,ground,2,-2,False,,Arora input contains differential transition polarizabilities only; separate 5S/5P and hyperfine-resolved level polarizabilities are absent
+4,ground,2,-1,False,,Arora input contains differential transition polarizabilities only; separate 5S/5P and hyperfine-resolved level polarizabilities are absent
+5,ground,2,0,False,,Arora input contains differential transition polarizabilities only; separate 5S/5P and hyperfine-resolved level polarizabilities are absent
+6,ground,2,1,False,,Arora input contains differential transition polarizabilities only; separate 5S/5P and hyperfine-resolved level polarizabilities are absent
+7,ground,2,2,False,,Arora input contains differential transition polarizabilities only; separate 5S/5P and hyperfine-resolved level polarizabilities are absent
+8,excited,0,0,False,,Arora input contains differential transition polarizabilities only; separate 5S/5P and hyperfine-resolved level polarizabilities are absent
+9,excited,1,-1,False,,Arora input contains differential transition polarizabilities only; separate 5S/5P and hyperfine-resolved level polarizabilities are absent
+10,excited,1,0,False,,Arora input contains differential transition polarizabilities only; separate 5S/5P and hyperfine-resolved level polarizabilities are absent
+11,excited,1,1,False,,Arora input contains differential transition polarizabilities only; separate 5S/5P and hyperfine-resolved level polarizabilities are absent
+12,excited,2,-2,False,,Arora input contains differential transition polarizabilities only; separate 5S/5P and hyperfine-resolved level polarizabilities are absent
+13,excited,2,-1,False,,Arora input contains differential transition polarizabilities only; separate 5S/5P and hyperfine-resolved level polarizabilities are absent
+14,excited,2,0,False,,Arora input contains differential transition polarizabilities only; separate 5S/5P and hyperfine-resolved level polarizabilities are absent
+15,excited,2,1,False,,Arora input contains differential transition polarizabilities only; separate 5S/5P and hyperfine-resolved level polarizabilities are absent
+16,excited,2,2,False,,Arora input contains differential transition polarizabilities only; separate 5S/5P and hyperfine-resolved level polarizabilities are absent
+17,excited,3,-3,False,,Arora input contains differential transition polarizabilities only; separate 5S/5P and hyperfine-resolved level polarizabilities are absent
+18,excited,3,-2,False,,Arora input contains differential transition polarizabilities only; separate 5S/5P and hyperfine-resolved level polarizabilities are absent
+19,excited,3,-1,False,,Arora input contains differential transition polarizabilities only; separate 5S/5P and hyperfine-resolved level polarizabilities are absent
+20,excited,3,0,False,,Arora input contains differential transition polarizabilities only; separate 5S/5P and hyperfine-resolved level polarizabilities are absent
+21,excited,3,1,False,,Arora input contains differential transition polarizabilities only; separate 5S/5P and hyperfine-resolved level polarizabilities are absent
+22,excited,3,2,False,,Arora input contains differential transition polarizabilities only; separate 5S/5P and hyperfine-resolved level polarizabilities are absent
+23,excited,3,3,False,,Arora input contains differential transition polarizabilities only; separate 5S/5P and hyperfine-resolved level polarizabilities are absent

@@ -1,0 +1,8 @@
+test_number,test_name,status,reason
+3,Static restoring force,NOT_RUN,ordered plan stopped after Test 2 failed
+4,Transition-resolved scattering audit,NOT_RUN,ordered plan stopped after Test 2 failed
+5,Central detuning and power scan,NOT_RUN,ordered plan stopped after Test 2 failed
+6,Internal-state population dynamics,NOT_RUN,ordered plan stopped after Test 2 failed
+7,Handedness and polarization conventions,NOT_RUN,ordered plan stopped after Test 2 failed
+8,Deterministic trajectories and capture map,NOT_RUN,ordered plan stopped after Test 2 failed
+9,Three-dimensional stability,NOT_RUN,ordered plan stopped after Test 2 failed

@@ -1,0 +1,71 @@
+{
+  "test_number": 2,
+  "name": "Signed 1529-nm vector-shift profile",
+  "status": "FAIL",
+  "criteria": {
+    "central_signed_vector_profile_zero": true,
+    "optical_signed_profile_is_odd": true,
+    "separate_ground_and_excited_level_shifts_available": false,
+    "opposite_mf_level_shifts_are_opposite": false,
+    "opposite_mf_transition_proxies_are_opposite": true,
+    "named_transition_shift_is_odd_in_fixed_state_labels": false,
+    "differential_transition_proxy_is_passed_to_cooling_kernel": true,
+    "single_component_polarization_flip_reverses_gradient": false,
+    "refinement_repeats_same_failure": true
+  },
+  "first_blocking_causes": [
+    "The differential-only Arora table cannot determine individual ground- and excited-level shifts U_g/h and U_e/h for all 24 states.",
+    "The local quantization axis flips with the optical-spin vector. The code projects onto that axis and applies the nonnegative vector magnitude to fixed transition indices, making a named transition's shift even rather than odd across the origin."
+  ],
+  "specification_inconsistency": "Reversing only one traveling component does not reverse the balanced odd gradient. It converts the difference of symmetric intensities into an even, center-biased sum. Reversing both path components, alpha1, or the focus order reverses the gradient; two global reversals recover it.",
+  "primary_profile_points": 401,
+  "repeat_profile_points": 801,
+  "fixed_basis_even_over_odd_ratio": 1.0731884654128406e-15,
+  "applied_named_transition_odd_over_even_ratio": 1.0731884654128406e-15,
+  "repeat_applied_named_transition_odd_over_even_ratio": 1.0731884654128406e-15,
+  "numerical_tolerances": {
+    "central_signed_shift_hz": 1e-09,
+    "fixed_basis_even_over_odd_ratio": 1e-10,
+    "named_transition_odd_over_even_ratio_required": 1000000.0,
+    "mirror_pair_relative": 1e-13,
+    "mirror_pair_absolute_hz": 1e-09
+  },
+  "production_shift_handoff_checks": {
+    "nonzero_shift_was_applied": true,
+    "production_rates_match_explicit_shifted_lorentzian": true,
+    "nonzero_shift_changes_production_rate": true,
+    "wrapper_passes_vector_shift_array_exactly": true,
+    "wrapper_matches_direct_shifted_kernel_call": true,
+    "shift_changes_at_least_one_full_model_beam_rate": true
+  },
+  "probe_z_m": 0.0001,
+  "probe_applied_named_cycling_shift_hz": {
+    "minus_z": 279976.5285932679,
+    "plus_z": 279976.5285932679
+  },
+  "repeat_probe_applied_named_cycling_shift_hz": {
+    "minus_z": 279976.5285932679,
+    "plus_z": 279976.5285932679
+  },
+  "probe_fixed_basis_signed_reference_shift_hz": {
+    "minus_z": 279976.5285932679,
+    "plus_z": -279976.5285932679
+  },
+  "outputs": [
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\diagnostics\\pmot\\initial_construction_qa_20260903\\test_02_signed_vector_shift\\README.md",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\diagnostics\\pmot\\initial_construction_qa_20260903\\test_02_signed_vector_shift\\result.json",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\diagnostics\\pmot\\initial_construction_qa_20260903\\test_02_signed_vector_shift\\signed_vector_profile.csv",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\diagnostics\\pmot\\initial_construction_qa_20260903\\test_02_signed_vector_shift\\all_component_vector_profiles.csv",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\diagnostics\\pmot\\initial_construction_qa_20260903\\test_02_signed_vector_shift\\signed_vector_profile_repeat_refined.csv",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\diagnostics\\pmot\\initial_construction_qa_20260903\\test_02_signed_vector_shift\\all_transition_vector_shift_proxies.csv",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\diagnostics\\pmot\\initial_construction_qa_20260903\\test_02_signed_vector_shift\\mirror_mf_transition_proxy_pairs.csv",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\diagnostics\\pmot\\initial_construction_qa_20260903\\test_02_signed_vector_shift\\production_kernel_shift_probe.csv",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\diagnostics\\pmot\\initial_construction_qa_20260903\\test_02_signed_vector_shift\\wrapper_shift_handoff_beam_rates.csv",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\diagnostics\\pmot\\initial_construction_qa_20260903\\test_02_signed_vector_shift\\missing_level_resolved_shifts.csv",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\diagnostics\\pmot\\initial_construction_qa_20260903\\test_02_signed_vector_shift\\missing_level_resolved_inputs.json",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\diagnostics\\pmot\\initial_construction_qa_20260903\\test_02_signed_vector_shift\\controlled_sign_reversals.csv",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\diagnostics\\pmot\\initial_construction_qa_20260903\\test_02_signed_vector_shift\\gradient_step_convergence.csv",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\diagnostics\\pmot\\initial_construction_qa_20260903\\test_02_signed_vector_shift\\figures\\signed_vector_shift_profile.png",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\diagnostics\\pmot\\initial_construction_qa_20260903\\test_02_signed_vector_shift\\figures\\controlled_sign_reversals.png"
+  ]
+}

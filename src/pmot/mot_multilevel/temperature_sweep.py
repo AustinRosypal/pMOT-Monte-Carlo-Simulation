@@ -1906,7 +1906,7 @@ def plot_temperature_vs_detuning(
         va="top",
     )
     temperature_axis.set(
-        ylabel="final plateau temperature [µK]",
+        ylabel="finite-time final-window temperature estimate [µK]",
         title=(
             "24-state repumper-enabled multilevel MOT: ensemble temperature "
             "versus cooling detuning"
@@ -1944,10 +1944,37 @@ def plot_temperature_vs_detuning(
         )
         survivor_axis.grid(alpha=0.22)
         survivor_axis.legend(loc="best", fontsize=8.5)
+        survivor_axis.text(
+            0.99,
+            0.10,
+            (
+                f"All {ensemble_realization_count * atoms_per_ensemble} preloaded atoms "
+                "remain in the final 2 mm core at every detuning;\n"
+                "this is a survivor fraction, not an incident capture fraction."
+            ),
+            transform=survivor_axis.transAxes,
+            ha="right",
+            va="bottom",
+            fontsize=7.5,
+            color="#334155",
+        )
+
+    # Keep both requested detuning endpoints explicit.  Matplotlib's default
+    # integer locator otherwise leaves the -0.5 endpoint visible but unlabeled
+    # on the refined -0.5 ... -6 campaign.
+    lower = float(np.min(n_values))
+    upper = float(np.max(n_values))
+    if not np.isclose(lower, upper):
+        display_axis = survivor_axis if survivor_axis is not None else temperature_axis
+        ticks = np.asarray(display_axis.get_xticks(), dtype=float)
+        ticks = ticks[(ticks >= lower) & (ticks <= upper)]
+        display_axis.set_xticks(np.unique(np.concatenate((ticks, (lower, upper)))))
+        margin = 0.02 * (upper - lower)
+        display_axis.set_xlim(lower - margin, upper + margin)
 
     destination = Path(output_path)
     destination.parent.mkdir(parents=True, exist_ok=True)
-    figure.savefig(destination, dpi=190)
+    figure.savefig(destination, dpi=190, bbox_inches="tight", pad_inches=0.08)
     plt.close(figure)
     return destination
 
