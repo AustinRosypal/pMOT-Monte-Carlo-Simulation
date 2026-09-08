@@ -1,7 +1,5 @@
 {
-  "adaptively_extended_audit_ray_count": 0,
-  "adaptively_extended_positive_boundary_ray_count": 0,
-  "adaptively_extended_velocity_grid_ray_count": 0,
+  "analysis_only_invocation": true,
   "apparatus_config": {
     "axes": [
       {
@@ -57,7 +55,6 @@
     "samples_per_axis": 201,
     "volume_extent_m": 0.05
   },
-  "automatically_extended_timeout_ray_count": 595,
   "built_cooling_beam_count": 6,
   "built_cooling_beam_detunings_hz": [
     -4548750.0,
@@ -105,7 +102,6 @@
     "radius_m": 0.04,
     "turns_per_coil": 50
   },
-  "complete_longer_boundary_fallback_ray_count": 0,
   "completed_sample_count": 625,
   "completion_fraction": 1.0,
   "cross_section_convention": "direction-disc average of projected capture areas; no octant or 4pi multiplicity factor",
@@ -141,13 +137,13 @@
     "base_max_time_s": 0.05,
     "fine_time_step_s": 2.5e-06
   },
-  "eta_s": 0.0,
+  "eta_s": null,
   "execution_batching_interpretation": "independent ray-velocity states share vectorized array calls only; statistics and terminal histories remain per ray",
   "expected_sample_count": 625,
   "geometry_sha256": "02509217f582bc1619712cd31de3fcb34aac11b208c54a4cb228694f36603e17",
   "git": {
     "branch": "main",
-    "commit": "db10cba0ba21d346983e5986c50de6f0d65419eb",
+    "commit": "45801d557c271f916fd2f62df28b449513163934",
     "worktree_dirty": true
   },
   "loading_rate": {
@@ -193,8 +189,6 @@
     "statistics_directory": "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\statistics\\mot_simple\\refined_relationships_full_sphere_25x25_r15mm_27mW_reference_optimized_v3_20260906\\03_detuning\\points\\001_detuning_n_m0p75"
   },
   "phase_space": "full_sphere",
-  "positive_boundary_grid_override_count": 0,
-  "pre_adaptive_positive_research_timeout_ray_count": 0,
   "relationship_point": {
     "cooling_detuning_hz": -4548750.0,
     "cooling_detuning_n": -0.75,
@@ -409,7 +403,7 @@
   "study_name": "refined_relationships_full_sphere_25x25_r15mm_27mW_reference_optimized_v3_20260906/03_detuning/001_detuning_n_m0p75",
   "trapped_definition": "inside the 2 mm core continuously for 5 ms OR 2 entries with an intervening exit",
   "uncertainty": "two-sided 95% Student-t interval across 25 independent direction-disc clusters (df=24); the 625 individual rays are not treated as independent replicates",
-  "updated_utc": "2026-09-06T18:08:24.156605+00:00",
+  "updated_utc": "2026-09-08T06:08:01.889484+00:00",
   "velocity_resolved_override_count": 90,
   "worker_count": 24,
   "zero_grid_ray_batch_size": 5

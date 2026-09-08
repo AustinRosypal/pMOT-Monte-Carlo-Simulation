@@ -18,6 +18,7 @@ from pmot.mot_simple.power_loading_study import (
 )
 from pmot.mot_simple.timeout_audit import (
     AdaptiveAuditLevel,
+    DEFAULT_ADAPTIVE_AUDIT_LEVELS,
     TimeoutAuditCase,
     VelocityResolvedCaptureOverride,
     adaptive_audit_evidence_to_payload,
@@ -28,6 +29,7 @@ from pmot.mot_simple.timeout_audit import (
     calculate_clustered_cross_section_with_overrides,
     calculate_disc_clustered_loading_with_overrides,
     capture_predicate_with_overrides,
+    validate_velocity_overrides,
     velocity_overrides_from_payload,
     velocity_overrides_to_payload,
 )
@@ -485,6 +487,93 @@ def test_batched_zero_audit_uses_second_level_only_when_needed() -> None:
     assert calls[-1][2] == pytest.approx(1.25e-6)
 
 
+def test_batched_zero_audit_uses_one_second_level_only_when_needed() -> None:
+    sample = _sample(capture=0.0, lower_reason="timeout", upper_reason="timeout")
+    case = _case(
+        sample,
+        analysis_velocity_step_m_per_s=0.25,
+        analysis_velocity_max_m_per_s=1.0,
+    )
+    calls: list[tuple[tuple[float, ...], float, float]] = []
+
+    def classifier(*args, **kwargs):
+        raise AssertionError("successful batched audit must not use scalar fallback")
+
+    def batch_classifier(beams, point, speeds, coil, simple, search):
+        calls.append((tuple(speeds), search.max_simulation_time_s, search.time_step_s))
+        return tuple(
+            _classification(
+                speed <= 0.5,
+                "two_core_entries"
+                if speed <= 0.5
+                else (
+                    "timeout"
+                    if speed == pytest.approx(0.75)
+                    and search.max_simulation_time_s < 1.0
+                    else "escaped"
+                ),
+            )
+            for speed in speeds
+        )
+
+    outcome = audit_capture_boundary(
+        case,
+        classifier=classifier,
+        batch_classifier=batch_classifier,
+    )
+
+    assert outcome.status == "grid_resolved_capture"
+    assert [item.level_index for item in outcome.adaptive_evidence] == [1, 2, 3]
+    assert [item.resolved for item in outcome.adaptive_evidence] == [False, False, True]
+    assert len(calls) == 8
+    assert calls[-2] == ((0.75,), pytest.approx(1.0), pytest.approx(1.25e-6))
+    assert calls[-1] == ((0.75,), pytest.approx(1.0), pytest.approx(0.625e-6))
+
+
+def test_batched_zero_audit_rejects_final_level_timestep_disagreement() -> None:
+    sample = _sample(capture=0.0, lower_reason="timeout", upper_reason="timeout")
+    case = _case(
+        sample,
+        analysis_velocity_step_m_per_s=0.25,
+        analysis_velocity_max_m_per_s=1.0,
+    )
+
+    def classifier(*args, **kwargs):
+        raise AssertionError("batched audit must not use scalar fallback")
+
+    def batch_classifier(beams, point, speeds, coil, simple, search):
+        results = []
+        for speed in speeds:
+            if speed <= 0.5:
+                results.append(_classification(True, "two_core_entries"))
+            elif speed == pytest.approx(0.75) and search.max_simulation_time_s < 1.0:
+                results.append(_classification(False, "timeout"))
+            elif speed == pytest.approx(0.75):
+                coarse = search.time_step_s == pytest.approx(1.25e-6)
+                results.append(
+                    _classification(
+                        coarse,
+                        "two_core_entries" if coarse else "escaped",
+                    )
+                )
+            else:
+                results.append(_classification(False, "escaped"))
+        return tuple(results)
+
+    outcome = audit_capture_boundary(
+        case,
+        classifier=classifier,
+        batch_classifier=batch_classifier,
+    )
+
+    assert outcome.status == "unresolved"
+    assert not outcome.resolved
+    assert outcome.replacement_sample is None
+    assert [item.level_index for item in outcome.adaptive_evidence] == [1, 2, 3, 4]
+    assert not outcome.adaptive_evidence[-1].resolved
+    assert "timestep-dependent" in outcome.reason
+
+
 def test_batched_zero_audit_exhausts_hierarchy_fail_closed() -> None:
     sample = _sample(capture=0.0, lower_reason="timeout", upper_reason="timeout")
     case = _case(
@@ -773,7 +862,7 @@ def test_generic_grid_audit_exhausts_adaptive_nodes_fail_closed() -> None:
     assert outcome.replacement_sample is None
     assert outcome.velocity_override is None
     assert "after all adaptive levels" in outcome.reason
-    assert [item.level_index for item in outcome.adaptive_evidence] == [1, 2]
+    assert [item.level_index for item in outcome.adaptive_evidence] == [1, 2, 3, 4]
     assert all(not item.resolved for item in outcome.adaptive_evidence)
     assert outcome.velocity_grid_m_per_s == (0.0, 0.25, 0.5, 0.75, 1.0)
     unresolved_index = outcome.velocity_grid_m_per_s.index(0.75)
@@ -785,6 +874,100 @@ def test_generic_grid_audit_exhausts_adaptive_nodes_fail_closed() -> None:
         outcome.fine_velocity_grid_results[unresolved_index].termination_reason
         == "timeout"
     )
+
+
+def test_generic_grid_admits_only_indeterminate_zero_flux_after_full_ladder() -> None:
+    sample = replace(
+        _sample(capture=0.5, upper_reason="escaped"),
+        velocity_resolution_m_per_s=0.25,
+        untrapped_velocity_upper_m_per_s=0.75,
+    )
+    case = _case(
+        sample,
+        analysis_velocity_step_m_per_s=0.25,
+        analysis_velocity_max_m_per_s=1.0,
+    )
+
+    def initial_classifier(beams, positions, velocities, coil, simple, search):
+        speeds = np.linalg.norm(np.asarray(velocities), axis=1)
+        return tuple(
+            (
+                _classification(False, "timeout")
+                if speed == pytest.approx(0.0)
+                else _classification(
+                    speed <= 0.5,
+                    "two_core_entries" if speed <= 0.5 else "escaped",
+                )
+            )
+            for speed in speeds
+        )
+
+    (outcome,) = audit_capture_boundaries_on_velocity_grid_batched(
+        (case,),
+        always_override=True,
+        initial_conditions_classifier=initial_classifier,
+    )
+
+    assert len(DEFAULT_ADAPTIVE_AUDIT_LEVELS) == 4
+    assert DEFAULT_ADAPTIVE_AUDIT_LEVELS[-1] == AdaptiveAuditLevel(
+        2.0, 1.25e-6, 0.625e-6
+    )
+    assert outcome.status == "velocity_resolved_capture_with_indeterminate_zero_flux"
+    assert not outcome.resolved
+    assert outcome.loading_admissible
+    assert outcome.replacement_sample is not None
+    assert outcome.replacement_sample.lower_classification == "indeterminate_zero_flux"
+    assert outcome.velocity_override is not None
+    assert outcome.velocity_override.captured == (None, True, True, False, False)
+    assert [item.level_index for item in outcome.adaptive_evidence] == [1, 2, 3, 4]
+    assert all(not item.resolved for item in outcome.adaptive_evidence)
+    assert outcome.coarse_velocity_grid_results[0].termination_reason == "timeout"
+    assert outcome.fine_velocity_grid_results[0].termination_reason == "timeout"
+
+
+@pytest.mark.parametrize(
+    ("unresolved_speed", "reason"),
+    [(0.25, "timeout"), (0.25, "non_finite"), (0.0, "non_finite")],
+)
+def test_generic_grid_never_admits_positive_or_nonfinite_indeterminacy(
+    unresolved_speed, reason
+) -> None:
+    sample = replace(
+        _sample(capture=0.5, upper_reason="escaped"),
+        velocity_resolution_m_per_s=0.25,
+        untrapped_velocity_upper_m_per_s=0.75,
+    )
+    case = _case(
+        sample,
+        analysis_velocity_step_m_per_s=0.25,
+        analysis_velocity_max_m_per_s=1.0,
+    )
+
+    def initial_classifier(beams, positions, velocities, coil, simple, search):
+        speeds = np.linalg.norm(np.asarray(velocities), axis=1)
+        return tuple(
+            (
+                _classification(False, reason)
+                if speed == pytest.approx(unresolved_speed)
+                else _classification(
+                    speed <= 0.5,
+                    "two_core_entries" if speed <= 0.5 else "escaped",
+                )
+            )
+            for speed in speeds
+        )
+
+    (outcome,) = audit_capture_boundaries_on_velocity_grid_batched(
+        (case,),
+        always_override=True,
+        initial_conditions_classifier=initial_classifier,
+    )
+
+    assert outcome.status == "unresolved"
+    assert not outcome.resolved
+    assert not outcome.loading_admissible
+    assert outcome.replacement_sample is None
+    assert outcome.velocity_override is None
 
 
 def test_generic_grid_audit_rejects_captured_high_speed_endpoint() -> None:
@@ -933,15 +1116,64 @@ def test_direct_mask_overrides_zero_scalar_threshold() -> None:
 
 def test_velocity_override_json_round_trip_is_exact_and_sorted() -> None:
     velocity = (0.0, 0.25, 0.5, 0.75, 1.0)
-    first = VelocityResolvedCaptureOverride(2, 3, velocity, (False, False, True, False, False))
+    first = VelocityResolvedCaptureOverride(2, 3, velocity, (None, False, True, False, False))
     second = VelocityResolvedCaptureOverride(0, 1, velocity, (False, True, True, False, False))
 
     payload = velocity_overrides_to_payload([first, second])
     restored = velocity_overrides_from_payload(payload)
 
     assert restored == [second, first]
-    assert payload["representation"] == "direct_boolean_capture_mask"
+    assert payload["schema_version"] == 2
+    assert payload["representation"] == "direct_tristate_capture_mask"
     assert payload["override_count"] == 2
+    assert payload["overrides"][1]["captured_mask"][0] is None
+
+
+def test_velocity_override_reader_retains_legacy_schema_one_boolean_ledgers() -> None:
+    payload = {
+        "schema_version": 1,
+        "representation": "direct_boolean_capture_mask",
+        "override_count": 1,
+        "overrides": [
+            {
+                "disc_index": 2,
+                "point_index": 3,
+                "velocity_grid_m_per_s": [0.0, 0.25, 0.5],
+                "captured_mask": [True, True, False],
+            }
+        ],
+    }
+
+    assert velocity_overrides_from_payload(payload) == [
+        VelocityResolvedCaptureOverride(
+            2,
+            3,
+            (0.0, 0.25, 0.5),
+            (True, True, False),
+        )
+    ]
+
+
+@pytest.mark.parametrize(
+    ("velocity", "captured"),
+    [
+        ((0.0, 0.25, 0.5), (False, None, False)),
+        ((1.0e-15, 0.25, 0.5), (None, False, False)),
+    ],
+)
+def test_tristate_override_rejects_indeterminate_anywhere_except_exact_zero(
+    velocity, captured
+) -> None:
+    sample = _sample(capture=0.0, lower_reason="indeterminate_zero_flux", upper_reason="escaped")
+    override = VelocityResolvedCaptureOverride(
+        sample.disc_index,
+        sample.point_index,
+        velocity,
+        captured,
+    )
+
+    with pytest.raises(ValueError, match="indeterminate.*zero|zero.*indeterminate"):
+        validate_velocity_overrides([sample], velocity, [override])
 
 
 def test_override_aggregation_changes_spectrum_and_preserves_disc_cluster_math() -> None:
@@ -990,6 +1222,90 @@ def test_override_aggregation_changes_spectrum_and_preserves_disc_cluster_math()
         disc_mean
     )
     assert loading["disc_count"] == 2
+
+
+def test_indeterminate_zero_flux_omits_sigma_zero_and_leaves_loading_invariant() -> None:
+    velocity = (0.0, 0.25, 0.5, 0.75, 1.0)
+    sample = replace(
+        _sample(
+            capture=0.0,
+            lower_reason="indeterminate_zero_flux",
+            upper_reason="escaped",
+        ),
+        disc_index=0,
+        point_index=0,
+        lower_entered_trap_core=False,
+        lower_core_entry_count=0,
+    )
+    search = replace(
+        CaptureSearchConfig(),
+        disc_count=1,
+        points_per_disc=1,
+        disc_radius_m=1.0,
+        analysis_velocity_min_m_per_s=0.0,
+        analysis_velocity_step_m_per_s=0.25,
+        analysis_velocity_max_m_per_s=1.0,
+    )
+    common_positive_mask = (True, True, False, False)
+    tristate = VelocityResolvedCaptureOverride(
+        0,
+        0,
+        velocity,
+        (None, *common_positive_mask),
+    )
+    assume_escaped = VelocityResolvedCaptureOverride(
+        0,
+        0,
+        velocity,
+        (False, *common_positive_mask),
+    )
+    assume_trapped = VelocityResolvedCaptureOverride(
+        0,
+        0,
+        velocity,
+        (True, *common_positive_mask),
+    )
+
+    captured_at = capture_predicate_with_overrides([sample], velocity, [tristate])
+    assert captured_at(sample, 0.0) is None
+    tristate_spectrum = calculate_clustered_cross_section_with_overrides(
+        [sample], search, [tristate], velocity
+    )
+    assert [row["velocity_m_per_s"] for row in tristate_spectrum] == [
+        0.25,
+        0.5,
+        0.75,
+        1.0,
+    ]
+    assert all(float(row["velocity_m_per_s"]) > 0.0 for row in tristate_spectrum)
+    _, tristate_loading = calculate_disc_clustered_loading_with_overrides(
+        [sample], search, tristate_spectrum, [tristate]
+    )
+
+    comparison_loadings = []
+    for override in (assume_escaped, assume_trapped):
+        spectrum = calculate_clustered_cross_section_with_overrides(
+            [sample], search, [override], velocity
+        )
+        _, loading = calculate_disc_clustered_loading_with_overrides(
+            [sample], search, spectrum, [override]
+        )
+        comparison_loadings.append(loading)
+
+    assert tristate_loading["indeterminate_zero_flux_ray_count"] == 1
+    assert tristate_loading["zero_flux_quadrature_anchor_used"] is True
+    assert tristate_loading["zero_speed_cross_section_imputed"] is False
+    invariant_fields = (
+        "loading_rate_mean_atoms_per_s",
+        "loading_rate_from_mean_spectrum_atoms_per_s",
+        "loading_integral_mean_m6_per_s4",
+        "loading_integral_from_mean_spectrum_m6_per_s4",
+    )
+    for comparison in comparison_loadings:
+        for field in invariant_fields:
+            assert tristate_loading[field] == pytest.approx(
+                comparison[field], rel=1.0e-14, abs=0.0
+            )
 
 
 def test_no_override_loading_path_is_exactly_legacy() -> None:

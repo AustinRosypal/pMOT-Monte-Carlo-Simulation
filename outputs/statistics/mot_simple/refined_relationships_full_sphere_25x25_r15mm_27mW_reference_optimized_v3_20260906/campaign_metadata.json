@@ -12,6 +12,7 @@
     "03_detuning"
   ],
   "figures_directory": "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\figures\\mot_simple\\refined_relationships_full_sphere_25x25_r15mm_27mW_reference_optimized_v3_20260906",
+  "last_error": "RuntimeError: zero-threshold direct velocity audit failed for (23, 15): velocity-grid evidence remains non-definitive or timestep-dependent after all adaptive levels at 0 m/s",
   "loading_point_count": 67,
   "model": "mot_simple deterministic effective two-level mean-force MOT",
   "phase_space": "full_sphere",
@@ -117,12 +118,12 @@
   "stage_status": {
     "01_raw_saturation": "completed",
     "02_effective_saturation": "completed",
-    "03_detuning": "running"
+    "03_detuning": "failed"
   },
   "state_model": "effective two-level Rb-87 D2 atom; no repumper",
   "statistics_directory": "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\statistics\\mot_simple\\refined_relationships_full_sphere_25x25_r15mm_27mW_reference_optimized_v3_20260906",
-  "status": "running",
+  "status": "failed",
   "temperature_stage": "omitted: deterministic mot_simple has no recoil diffusion",
-  "updated_utc": "2026-09-06T17:24:33.700797+00:00",
+  "updated_utc": "2026-09-08T07:50:11.502957+00:00",
   "zero_grid_ray_batch_size": 5
 }

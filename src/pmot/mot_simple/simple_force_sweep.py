@@ -460,7 +460,7 @@ def _style_summary_axis(axis) -> None:
 def _force_plot_caption() -> str:
     return (
         "Effective two-level deterministic radiation pressure; six 27 mW cooling beams, "
-        "12.7 mm diameter, 10 G/cm axial quadrupole. Gravity excluded. Whiskers are "
+        "12.7 mm diameter, 10 G/cm axial quadrupole. Gravity excluded.\nWhiskers are "
         "|fine - coarse| numerical-resolution estimates (not statistical error bars)."
     )
 
@@ -529,7 +529,7 @@ def plot_simple_restoring_slopes_vs_detuning(
             )
     if overlap:
         plot_axis.text(
-            0.0,
+            0.08,
             1.055,
             r"$x=y$ to numerical precision; distinct dashes and staggered markers expose both traces",
             transform=plot_axis.transAxes,

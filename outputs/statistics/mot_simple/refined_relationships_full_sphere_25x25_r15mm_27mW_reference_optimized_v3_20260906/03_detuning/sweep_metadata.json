@@ -259,7 +259,7 @@
     }
   ],
   "phase_space": "full_sphere",
-  "point_count_completed": 4,
+  "point_count_completed": 13,
   "point_count_requested": 23,
   "relationship_plot": "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\figures\\mot_simple\\refined_relationships_full_sphere_25x25_r15mm_27mW_reference_optimized_v3_20260906\\03_detuning\\loading_rate_vs_detuning.png",
   "schema_version": 4,
@@ -289,6 +289,6 @@
   "status": "running",
   "study_key": "03_detuning",
   "uncertainty": "Each point is the mean of 25 direction-disc loading estimates. Error bars are 95% Student-t intervals across those clusters (df=24), not across individual rays.",
-  "updated_utc": "2026-09-06T18:51:42.517945+00:00",
+  "updated_utc": "2026-09-08T07:29:16.383462+00:00",
   "zero_grid_ray_batch_size": 5
 }

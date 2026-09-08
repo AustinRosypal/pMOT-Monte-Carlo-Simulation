@@ -78,6 +78,8 @@ from .timeout_audit import (
     COARSE_TIME_STEP_S,
     DEFAULT_ADAPTIVE_AUDIT_LEVELS,
     FINE_TIME_STEP_S,
+    INDETERMINATE_ZERO_FLUX_CLASSIFICATION,
+    INDETERMINATE_ZERO_FLUX_STATUS,
     TimeoutAuditCase,
     TimeoutAuditOutcome,
     VelocityResolvedCaptureOverride,
@@ -88,6 +90,7 @@ from .timeout_audit import (
     audit_zero_capture_boundaries_batched,
     calculate_clustered_cross_section_with_overrides,
     calculate_disc_clustered_loading_with_overrides,
+    validate_velocity_overrides,
     velocity_overrides_from_payload,
     velocity_overrides_to_payload,
 )
@@ -128,7 +131,7 @@ DETUNING_N_VALUES: tuple[float, ...] = tuple(
 
 CAMPAIGN_NAME = (
     "refined_relationships_full_sphere_25x25_r15mm_"
-    "27mW_reference_optimized_v3_20260906"
+    "27mW_reference_optimized_v5_20260908"
 )
 RAW_STUDY_KEY = "01_raw_saturation"
 EFFECTIVE_STUDY_KEY = "02_effective_saturation"
@@ -144,9 +147,15 @@ DEFAULT_WORKER_COUNT = min(24, os.cpu_count() or 1)
 ZERO_GRID_RAY_BATCH_SIZE = 5
 PROGRESS_EVERY = 10
 CHECKPOINT_EVERY = 25
-CAMPAIGN_SCHEMA_VERSION = 4
-POINT_SCHEMA_VERSION = 4
+CAMPAIGN_SCHEMA_VERSION = 6
+POINT_SCHEMA_VERSION = 6
 TRAPPED_TERMINATION_REASONS = {"two_core_entries", "bounded_core_residence"}
+
+# Complete scalar re-searches remain bounded at 250 and 400 ms.  The final
+# 1 s and 2 s levels are deliberately node-only: they resolve or bound rare,
+# long-period direct-grid trajectories without multiplying an entire scalar
+# boundary search by the longest horizon.
+COMPLETE_BOUNDARY_SEARCH_LEVELS = DEFAULT_ADAPTIVE_AUDIT_LEVELS[:2]
 
 AGGREGATE_FIELDNAMES: tuple[str, ...] = (
     "point_index",
@@ -180,6 +189,7 @@ AGGREGATE_FIELDNAMES: tuple[str, ...] = (
     "base_timeout_ray_count",
     "zero_capture_velocity_count",
     "velocity_resolved_override_count",
+    "indeterminate_zero_flux_ray_count",
     "unresolved_timeout_count",
     "lower_classification_counts_json",
     "upper_classification_counts_json",
@@ -677,17 +687,23 @@ def _point_signature_payload(
                 ),
             },
             "adaptive_node_levels": [
-                {
-                    "duration_s": 0.25,
-                    "coarse_time_step_s": 5.0e-6,
-                    "fine_time_step_s": 2.5e-6,
-                },
-                {
-                    "duration_s": 0.4,
-                    "coarse_time_step_s": 2.5e-6,
-                    "fine_time_step_s": 1.25e-6,
-                },
+                asdict(level) for level in DEFAULT_ADAPTIVE_AUDIT_LEVELS
             ],
+            "complete_positive_boundary_search_levels": [
+                asdict(level) for level in COMPLETE_BOUNDARY_SEARCH_LEVELS
+            ],
+            "indeterminate_zero_flux_policy": {
+                "eligible_velocity_m_per_s": 0.0,
+                "requires_complete_adaptive_ladder": True,
+                "requires_all_positive_speeds_definitive_and_timestep_agreed": True,
+                "non_finite_is_admissible": False,
+                "capture_state": "indeterminate; neither trapped nor escaped",
+                "spectrum_treatment": "omit sigma_capture(0)",
+                "loading_treatment": (
+                    "prepend only the exact weighted-integrand anchor g(0)=0; "
+                    "do not impute sigma_capture(0)"
+                ),
+            },
             "acceptance": (
                 "Every actual timeout-contaminated speed in the base search and both "
                 "saved endpoints are classified at 200 ms with 5 and 2.5 microsecond "
@@ -706,8 +722,17 @@ def _point_signature_payload(
                 "Only non-definitive or timestep-disagreeing grid or positive-boundary "
                 "nodes escalate to "
                 "250 ms at 5/2.5 microseconds and then, only if still required, to "
-                "400 ms at 2.5/1.25 microseconds. A node is accepted only when both "
-                "timesteps give the same definitive trapped/escaped classification."
+                "400 ms at 2.5/1.25 microseconds and finally 1 s at "
+                "1.25/0.625 microseconds and 2 s at the same timestep pair. The "
+                "1 s and 2 s levels are node-only, not complete positive-boundary "
+                "re-searches. A positive-speed node is accepted only when both "
+                "timesteps give the same definitive trapped/escaped classification. "
+                "After the complete ladder, an otherwise valid direct grid may retain "
+                "only its exact v=0 node as explicitly indeterminate, never escaped, "
+                "provided neither trajectory is non-finite and every v>0 node is "
+                "definitive and timestep-agreed. sigma_capture(0) is omitted from "
+                "the spectrum; loading prepends only the exact integrand anchor "
+                "g(0)=sigma(0)*0^3=0, without imputing a cross section."
             ),
         },
     }
@@ -974,7 +999,7 @@ def _apply_zero_threshold_audit(
         )
     elif outcome.case.sample != sample:
         raise RuntimeError("precomputed zero-grid audit belongs to a different ray")
-    if not outcome.resolved or outcome.replacement_sample is None:
+    if not outcome.loading_admissible or outcome.replacement_sample is None:
         raise RuntimeError(
             "zero-threshold direct velocity audit failed for "
             f"{(sample.disc_index, sample.point_index)}: {outcome.reason}"
@@ -1022,6 +1047,7 @@ def _apply_zero_threshold_audit(
             "confirmed_zero_capture",
             "grid_resolved_capture",
             "velocity_resolved_capture",
+            INDETERMINATE_ZERO_FLUX_STATUS,
         }
         else []
     )
@@ -1449,7 +1475,7 @@ def _recover_positive_boundary_with_complete_search_and_grid(
     diagnostic_scalar_boundary_level_index = -1
     diagnostic_scalar_boundary_converged = False
 
-    for level_index, level in enumerate(DEFAULT_ADAPTIVE_AUDIT_LEVELS, start=1):
+    for level_index, level in enumerate(COMPLETE_BOUNDARY_SEARCH_LEVELS, start=1):
         coarse_search, fine_search = audit_searches(
             _WORKER_SEARCH,
             duration_s=level.duration_s,
@@ -1519,7 +1545,7 @@ def _recover_positive_boundary_with_complete_search_and_grid(
         adaptive_levels=remaining_grid_levels,
     )
     if (
-        not grid_outcome.resolved
+        not grid_outcome.loading_admissible
         or grid_outcome.velocity_override is None
         or grid_outcome.coarse_boundary_sample is None
         or grid_outcome.fine_boundary_sample is None
@@ -1620,8 +1646,9 @@ def _recover_positive_boundary_with_complete_search_and_grid(
             "timeout_resolution_reason": (
                 "the 200 ms scalar search was censored or incompatible; bounded "
                 "longer-duration scalar searches were retained as diagnostics and "
-                "an independent exact loading-grid scan supplied the authoritative "
-                "per-velocity capture mask"
+                "an independent exact loading-grid scan supplied authoritative "
+                "capture states at every positive-flux velocity; only an exact "
+                "zero-speed node may remain explicitly indeterminate"
             ),
             "zero_threshold_audit_status": "not_applicable",
             "zero_threshold_audit_reason": "positive scalar capture threshold",
@@ -2174,6 +2201,7 @@ def _audit_classification_state(
     *,
     key: tuple[int, int],
     field: str,
+    require_terminal_details: bool = False,
 ) -> str:
     """Recompute trapped/escaped/unresolved from serialized trajectory evidence."""
 
@@ -2202,13 +2230,124 @@ def _audit_classification_state(
                 f"endpoint-audit classification {field} has inconsistent trapped "
                 f"state for {key}"
             )
-        return "trapped"
-    if reason in TRAPPED_TERMINATION_REASONS:
+        state = "trapped"
+    elif reason in TRAPPED_TERMINATION_REASONS:
         raise ValueError(
             f"endpoint-audit classification {field} has inconsistent trapped "
             f"reason for {key}"
         )
-    return "escaped" if reason == "escaped" else "unresolved"
+    else:
+        state = "escaped" if reason == "escaped" else "unresolved"
+
+    if not require_terminal_details:
+        return state
+
+    entered = payload.get("entered_trap_core")
+    if type(entered) is not bool:
+        raise ValueError(
+            f"endpoint-audit classification {field}.entered_trap_core is not "
+            f"boolean for {key}"
+        )
+    core_entries = payload.get("core_entry_count")
+    if type(core_entries) is not int or core_entries < 0:
+        raise ValueError(
+            f"endpoint-audit classification {field}.core_entry_count is invalid "
+            f"for {key}"
+        )
+    if entered != (core_entries > 0):
+        raise ValueError(
+            f"endpoint-audit classification {field} has inconsistent core-entry "
+            f"evidence for {key}"
+        )
+    if reason == "two_core_entries" and core_entries < 2:
+        raise ValueError(
+            f"endpoint-audit classification {field} lacks two core entries for {key}"
+        )
+    if reason == "bounded_core_residence" and core_entries < 1:
+        raise ValueError(
+            f"endpoint-audit classification {field} lacks a core entry for {key}"
+        )
+
+    scalar_fields = ("elapsed_time_s", "minimum_radius_m", "final_radius_m")
+    scalars: dict[str, float] = {}
+    for scalar_field in scalar_fields:
+        raw_value = payload.get(scalar_field)
+        if isinstance(raw_value, bool):
+            raise ValueError(
+                f"endpoint-audit classification {field}.{scalar_field} is invalid "
+                f"for {key}"
+            )
+        try:
+            value = float(raw_value)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(
+                f"endpoint-audit classification {field}.{scalar_field} is invalid "
+                f"for {key}"
+            ) from exc
+        scalars[scalar_field] = value
+    if not np.isfinite(scalars["elapsed_time_s"]) or scalars["elapsed_time_s"] < 0.0:
+        raise ValueError(
+            f"endpoint-audit classification {field}.elapsed_time_s is invalid for {key}"
+        )
+    if not np.isfinite(scalars["minimum_radius_m"]) or scalars["minimum_radius_m"] < 0.0:
+        raise ValueError(
+            f"endpoint-audit classification {field}.minimum_radius_m is invalid for {key}"
+        )
+
+    vectors: dict[str, np.ndarray] = {}
+    for vector_field in ("final_position_m", "final_velocity_m_per_s"):
+        raw_vector = payload.get(vector_field)
+        if (
+            not isinstance(raw_vector, Sequence)
+            or isinstance(raw_vector, (str, bytes))
+            or len(raw_vector) != 3
+        ):
+            raise ValueError(
+                f"endpoint-audit classification {field}.{vector_field} is invalid "
+                f"for {key}"
+            )
+        try:
+            vector = np.asarray(raw_vector, dtype=float)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(
+                f"endpoint-audit classification {field}.{vector_field} is invalid "
+                f"for {key}"
+            ) from exc
+        vectors[vector_field] = vector
+
+    terminal_values = np.concatenate(
+        (
+            np.asarray([scalars["final_radius_m"]]),
+            vectors["final_position_m"],
+            vectors["final_velocity_m_per_s"],
+        )
+    )
+    if reason == "non_finite":
+        if np.all(np.isfinite(terminal_values)):
+            raise ValueError(
+                f"endpoint-audit classification {field} claims non_finite with "
+                f"finite terminal state for {key}"
+            )
+        return state
+    if not np.all(np.isfinite(terminal_values)) or scalars["final_radius_m"] < 0.0:
+        raise ValueError(
+            f"endpoint-audit classification {field} has nonfinite terminal state "
+            f"for {key}"
+        )
+    position_radius = float(np.linalg.norm(vectors["final_position_m"]))
+    if not np.isclose(
+        scalars["final_radius_m"], position_radius, rtol=1.0e-10, atol=1.0e-12
+    ):
+        raise ValueError(
+            f"endpoint-audit classification {field} final radius disagrees with "
+            f"position for {key}"
+        )
+    if scalars["minimum_radius_m"] > scalars["final_radius_m"] + 1.0e-12:
+        raise ValueError(
+            f"endpoint-audit classification {field} minimum radius exceeds final "
+            f"radius for {key}"
+        )
+    return state
 
 
 def _audit_classification_records(
@@ -2265,12 +2404,25 @@ def _validate_completed_audit_ledger(
     if not set(overrides).issubset(samples):
         raise ValueError("velocity-override keys do not match capture-sample keys")
     bracket_search = search if search is not None else default_search_config()
+    expected_analysis_grid = np.arange(
+        bracket_search.analysis_velocity_min_m_per_s,
+        bracket_search.analysis_velocity_max_m_per_s
+        + 0.5 * bracket_search.analysis_velocity_step_m_per_s,
+        bracket_search.analysis_velocity_step_m_per_s,
+        dtype=float,
+    )
+    validate_velocity_overrides(
+        list(samples.values()),
+        expected_analysis_grid,
+        list(overrides.values()),
+    )
     allowed_zero_statuses = {
         "not_applicable",
         "confirmed_zero_capture",
         "grid_resolved_capture",
         "rebisected",
         "velocity_resolved_capture",
+        INDETERMINATE_ZERO_FLUX_STATUS,
     }
     positive_timeout_statuses = {
         "targeted_timeout_nodes_confirmed_escaped",
@@ -2308,6 +2460,7 @@ def _validate_completed_audit_ledger(
 
         timeout_status = str(row.get("timeout_resolution_status", "")).strip()
         zero_status = str(row.get("zero_threshold_audit_status", "")).strip()
+        zero_indeterminate_status = zero_status == INDETERMINATE_ZERO_FLUX_STATUS
         positive_grid_status = str(
             row.get("positive_boundary_grid_audit_status", "not_applicable")
             or "not_applicable"
@@ -2315,9 +2468,20 @@ def _validate_completed_audit_ledger(
         if positive_grid_status not in {
             "not_applicable",
             "velocity_resolved_capture",
+            INDETERMINATE_ZERO_FLUX_STATUS,
         }:
             raise ValueError(
                 f"endpoint-audit positive-boundary grid status is invalid for {key}"
+            )
+        positive_indeterminate_status = (
+            positive_grid_status == INDETERMINATE_ZERO_FLUX_STATUS
+        )
+        indeterminate_zero_status = bool(
+            zero_indeterminate_status or positive_indeterminate_status
+        )
+        if zero_indeterminate_status and positive_indeterminate_status:
+            raise ValueError(
+                f"endpoint-audit has duplicate indeterminate-zero statuses for {key}"
             )
         positive_grid_fallback = timeout_status == (
             "complete_scalar_diagnostics_and_velocity_grid_recovered_capture"
@@ -2425,6 +2589,29 @@ def _validate_completed_audit_ledger(
             raise ValueError(
                 f"endpoint-audit zero-threshold status is invalid for {key}"
             )
+        sample_is_indeterminate_zero = (
+            sample.lower_classification
+            == INDETERMINATE_ZERO_FLUX_CLASSIFICATION
+        )
+        if sample_is_indeterminate_zero != indeterminate_zero_status:
+            raise ValueError(
+                f"endpoint-audit indeterminate-zero sample/status mismatch for {key}"
+            )
+        if indeterminate_zero_status and (
+            sample.capture_velocity_m_per_s != 0.0
+            or sample.trapped_velocity_lower_m_per_s != 0.0
+            or coarse_bracket.capture_velocity_m_per_s != 0.0
+            or fine_bracket.capture_velocity_m_per_s != 0.0
+            or
+            coarse_bracket.lower_classification
+            != INDETERMINATE_ZERO_FLUX_CLASSIFICATION
+            or fine_bracket.lower_classification
+            != INDETERMINATE_ZERO_FLUX_CLASSIFICATION
+        ):
+            raise ValueError(
+                f"endpoint-audit indeterminate-zero compatibility brackets are "
+                f"not explicitly labelled for {key}"
+            )
         allowed_timeout_statuses = {
             "not_required",
             *positive_timeout_statuses,
@@ -2442,7 +2629,7 @@ def _validate_completed_audit_ledger(
                 f"endpoint-audit timeout-free base has a resolution status for {key}"
             )
         if zero_status == "not_applicable":
-            if np.isclose(base_capture_velocity, 0.0, rtol=0.0, atol=1.0e-15):
+            if base_capture_velocity == 0.0:
                 raise ValueError(
                     f"endpoint-audit zero base threshold was not grid-audited for {key}"
                 )
@@ -2450,9 +2637,7 @@ def _validate_completed_audit_ledger(
                 raise ValueError(
                     f"endpoint-audit zero/timeout status combination is invalid for {key}"
                 )
-        elif not np.isclose(
-            base_capture_velocity, 0.0, rtol=0.0, atol=1.0e-15
-        ):
+        elif base_capture_velocity != 0.0:
             raise ValueError(
                 f"endpoint-audit zero-grid result has a nonzero base threshold for {key}"
             )
@@ -2555,7 +2740,7 @@ def _validate_completed_audit_ledger(
                     f"endpoint-audit complete-boundary level is malformed for {key}"
                 ) from exc
             if level_index != evidence_index or level_index > len(
-                DEFAULT_ADAPTIVE_AUDIT_LEVELS
+                COMPLETE_BOUNDARY_SEARCH_LEVELS
             ):
                 raise ValueError(
                     f"endpoint-audit complete-boundary levels are not contiguous for {key}"
@@ -2563,7 +2748,7 @@ def _validate_completed_audit_ledger(
             expected_level = (
                 AdaptiveAuditLevel(AUDIT_DURATION_S, COARSE_TIME_STEP_S, FINE_TIME_STEP_S)
                 if level_index == 0
-                else DEFAULT_ADAPTIVE_AUDIT_LEVELS[level_index - 1]
+                else COMPLETE_BOUNDARY_SEARCH_LEVELS[level_index - 1]
             )
             for field, expected in (
                 ("duration_s", expected_level.duration_s),
@@ -2613,6 +2798,25 @@ def _validate_completed_audit_ledger(
                     raise ValueError(
                         f"endpoint-audit complete-boundary {name} bounds are invalid for {key}"
                     )
+                entered_fields: dict[str, bool] = {}
+                count_fields: dict[str, int] = {}
+                for endpoint in ("lower", "upper"):
+                    entered_field = f"{endpoint}_entered_trap_core"
+                    entered_fields[entered_field] = _audit_bool(
+                        payload.get(entered_field),
+                        field=(
+                            f"complete_boundary_evidence[{evidence_index}]."
+                            f"{name}.{entered_field}"
+                        ),
+                    )
+                    count_field = f"{endpoint}_core_entry_count"
+                    raw_count = payload.get(count_field)
+                    if type(raw_count) is not int or raw_count < 0:
+                        raise ValueError(
+                            f"endpoint-audit complete-boundary {name} {count_field} "
+                            f"is invalid for {key}"
+                        )
+                    count_fields[count_field] = raw_count
                 return replace(
                     sample,
                     capture_velocity_m_per_s=capture,
@@ -2621,6 +2825,8 @@ def _validate_completed_audit_ledger(
                     untrapped_velocity_upper_m_per_s=upper,
                     lower_classification=str(payload.get("lower_classification", "")),
                     upper_classification=str(payload.get("upper_classification", "")),
+                    **entered_fields,
+                    **count_fields,
                 )
 
             evidence_coarse = evidence_sample("coarse_sample")
@@ -2644,6 +2850,7 @@ def _validate_completed_audit_ledger(
                 evaluation_speeds: set[float] = set()
                 derived_timeouts: set[float] = set()
                 evaluation_reasons: dict[float, str] = {}
+                evaluation_classifications: dict[float, Mapping[str, object]] = {}
                 for evaluation_index, evaluation in enumerate(evaluations):
                     if not isinstance(evaluation, Mapping):
                         raise ValueError(
@@ -2674,6 +2881,7 @@ def _validate_completed_audit_ledger(
                             f"complete_boundary_evidence[{evidence_index}]."
                             f"{prefix}_evaluations[{evaluation_index}].classification"
                         ),
+                        require_terminal_details=True,
                     )
                     if isinstance(classification, Mapping) and (
                         classification.get("termination_reason") == "timeout"
@@ -2683,6 +2891,7 @@ def _validate_completed_audit_ledger(
                         evaluation_reasons[speed] = str(
                             classification.get("termination_reason")
                         )
+                        evaluation_classifications[speed] = classification
                 if derived_timeouts != timeout_set:
                     raise ValueError(
                         f"endpoint-audit complete-boundary timeout evidence disagrees with its evaluations for {key}"
@@ -2717,6 +2926,29 @@ def _validate_completed_audit_ledger(
                     raise ValueError(
                         f"endpoint-audit complete-boundary endpoint classifications disagree with their evaluations for {key}"
                     )
+                for endpoint, endpoint_speed in (
+                    ("lower", prefix_sample.trapped_velocity_lower_m_per_s),
+                    ("upper", prefix_sample.untrapped_velocity_upper_m_per_s),
+                ):
+                    endpoint_payload = evaluation_classifications[
+                        round(endpoint_speed, 12)
+                    ]
+                    if (
+                        _audit_bool(
+                            endpoint_payload.get("entered_trap_core"),
+                            field=(
+                                f"complete_boundary_evidence[{evidence_index}]."
+                                f"{prefix}_evaluations.{endpoint}.entered_trap_core"
+                            ),
+                        )
+                        != getattr(prefix_sample, f"{endpoint}_entered_trap_core")
+                        or endpoint_payload.get("core_entry_count")
+                        != getattr(prefix_sample, f"{endpoint}_core_entry_count")
+                    ):
+                        raise ValueError(
+                            "endpoint-audit complete-boundary endpoint core-entry "
+                            f"evidence disagrees with its evaluation for {key}"
+                        )
                 timeout_sets.append(timeout_set)
             recomputed_compatible = _compatible_capture_brackets(
                 evidence_coarse, evidence_fine, bracket_search
@@ -2755,6 +2987,28 @@ def _validate_completed_audit_ledger(
                 raise ValueError(
                     f"endpoint-audit positive-grid fallback boundary levels are incomplete for {key}"
                 )
+            clean_boundary_levels = [
+                level_index
+                for level_index, _coarse, _fine, compatible, timeout_free in (
+                    parsed_boundary_levels
+                )
+                if compatible and timeout_free
+            ]
+            if clean_boundary_levels and clean_boundary_levels[0] == 0:
+                raise ValueError(
+                    f"endpoint-audit positive-grid fallback lacks a failed 200 ms "
+                    f"scalar-search premise for {key}"
+                )
+            expected_grid_base_level = (
+                clean_boundary_levels[0]
+                if clean_boundary_levels
+                else len(COMPLETE_BOUNDARY_SEARCH_LEVELS)
+            )
+            if positive_grid_base_level != expected_grid_base_level:
+                raise ValueError(
+                    f"endpoint-audit positive-grid fallback did not stop at the "
+                    f"first clean scalar-search level for {key}"
+                )
             _, _, diagnostic_fine, final_compatible, final_timeout_free = (
                 parsed_boundary_levels[-1]
             )
@@ -2784,7 +3038,7 @@ def _validate_completed_audit_ledger(
                     f"endpoint-audit diagnostic scalar level is invalid for {key}"
                 )
             if not recomputed_scalar_converged and positive_grid_base_level != len(
-                DEFAULT_ADAPTIVE_AUDIT_LEVELS
+                COMPLETE_BOUNDARY_SEARCH_LEVELS
             ):
                 raise ValueError(
                     f"endpoint-audit unconverged scalar hierarchy stopped early for {key}"
@@ -2813,15 +3067,68 @@ def _validate_completed_audit_ledger(
             _, evidence_coarse, evidence_fine, compatible, timeout_free = (
                 parsed_boundary_levels[0]
             )
+
+            def matches_persisted_bracket(
+                evidence: CaptureVelocitySample,
+                persisted: CaptureVelocitySample,
+            ) -> bool:
+                """Compare only fields actually persisted for each timestep.
+
+                The samples CSV stores one accepted (fine-step) set of core-entry
+                details, not separate coarse/fine core-entry fields.  Complete
+                evidence validates each timestep's core details against its own
+                trajectory ledger above, so copying accepted details into the
+                synthetic coarse bracket must not make otherwise sound evidence
+                fail equality.
+                """
+
+                return bool(
+                    np.isclose(
+                        evidence.capture_velocity_m_per_s,
+                        persisted.capture_velocity_m_per_s,
+                        rtol=0.0,
+                        atol=1.0e-12,
+                    )
+                    and np.isclose(
+                        evidence.velocity_resolution_m_per_s,
+                        persisted.velocity_resolution_m_per_s,
+                        rtol=0.0,
+                        atol=1.0e-12,
+                    )
+                    and np.isclose(
+                        evidence.trapped_velocity_lower_m_per_s,
+                        persisted.trapped_velocity_lower_m_per_s,
+                        rtol=0.0,
+                        atol=1.0e-12,
+                    )
+                    and np.isclose(
+                        evidence.untrapped_velocity_upper_m_per_s,
+                        persisted.untrapped_velocity_upper_m_per_s,
+                        rtol=0.0,
+                        atol=1.0e-12,
+                    )
+                    and evidence.lower_classification
+                    == persisted.lower_classification
+                    and evidence.upper_classification
+                    == persisted.upper_classification
+                )
+
             if (
                 not compatible
                 or not timeout_free
-                or evidence_coarse != coarse_bracket
-                or evidence_fine != fine_bracket
+                or not matches_persisted_bracket(evidence_coarse, coarse_bracket)
+                or not matches_persisted_bracket(evidence_fine, fine_bracket)
             ):
                 raise ValueError(
                     f"endpoint-audit 200 ms recovered boundary evidence is inconsistent for {key}"
                 )
+        elif (
+            timeout_status != "adaptive_dual_step_research_recovered_boundary"
+            and complete_boundary_evidence
+        ):
+            raise ValueError(
+                f"endpoint-audit unused complete-boundary evidence is nonempty for {key}"
+            )
         elif positive_grid_base_level != 0:
             raise ValueError(
                 f"endpoint-audit unused longer boundary level is nonzero for {key}"
@@ -2848,6 +3155,7 @@ def _validate_completed_audit_ledger(
 
         evidence_by_speed: dict[float, list[tuple[int, str]]] = {}
         seen_level_speed: set[tuple[int, float]] = set()
+        nonfinite_adaptive_speeds: set[float] = set()
         for index, item in enumerate(adaptive_evidence):
             if not isinstance(item, Mapping):
                 raise ValueError(
@@ -2902,12 +3210,19 @@ def _validate_completed_audit_ledger(
                 item.get("coarse_result"),
                 key=key,
                 field=f"adaptive_evidence[{index}].coarse_result",
+                require_terminal_details=True,
             )
             fine_state = _audit_classification_state(
                 item.get("fine_result"),
                 key=key,
                 field=f"adaptive_evidence[{index}].fine_result",
+                require_terminal_details=True,
             )
+            for result_payload in (item.get("coarse_result"), item.get("fine_result")):
+                if isinstance(result_payload, Mapping) and (
+                    result_payload.get("termination_reason") == "non_finite"
+                ):
+                    nonfinite_adaptive_speeds.add(speed)
             computed_resolved = bool(
                 coarse_state in {"trapped", "escaped"}
                 and coarse_state == fine_state
@@ -2940,10 +3255,30 @@ def _validate_completed_audit_ledger(
                     raise ValueError(
                         f"endpoint-audit re-evaluated an already resolved node for {key}"
                     )
-                if ordered[-1][1] not in {"trapped", "escaped"}:
+                final_state_is_indeterminate_zero = bool(
+                    indeterminate_zero_status
+                    and speed == 0.0
+                    and ordered[-1][0] == len(adaptive_schedule)
+                    and ordered[-1][1] == "unresolved"
+                    and speed not in nonfinite_adaptive_speeds
+                )
+                if (
+                    ordered[-1][1] not in {"trapped", "escaped"}
+                    and not final_state_is_indeterminate_zero
+                ):
                     raise ValueError(
                         f"endpoint-audit retained unresolved adaptive evidence for {key}"
                     )
+            if indeterminate_zero_status and (
+                adaptive_level_count != len(adaptive_schedule)
+                or 0.0 not in evidence_by_speed
+                or sorted(evidence_by_speed[0.0])[-1][1] != "unresolved"
+                or nonfinite_adaptive_speeds
+            ):
+                raise ValueError(
+                    f"endpoint-audit indeterminate zero lacks a complete finite "
+                    f"adaptive ladder for {key}"
+                )
             expected_final = adaptive_schedule[adaptive_level_count - 1]
             for field, expected in (
                 ("adaptive_max_duration_s", expected_final.duration_s),
@@ -2961,6 +3296,10 @@ def _validate_completed_audit_ledger(
                         f"does not match its final level for {key}"
                     )
         else:
+            if indeterminate_zero_status:
+                raise ValueError(
+                    f"endpoint-audit indeterminate zero lacks adaptive evidence for {key}"
+                )
             if adaptive_level_count:
                 raise ValueError(f"endpoint-audit adaptive evidence is missing for {key}")
             for field in (
@@ -3023,7 +3362,10 @@ def _validate_completed_audit_ledger(
                 )
 
         if positive_grid_fallback:
-            if positive_grid_status != "velocity_resolved_capture":
+            if positive_grid_status not in {
+                "velocity_resolved_capture",
+                INDETERMINATE_ZERO_FLUX_STATUS,
+            }:
                 raise ValueError(
                     f"endpoint-audit positive-grid fallback lacks a resolved mask for {key}"
                 )
@@ -3121,6 +3463,22 @@ def _validate_completed_audit_ledger(
                         f"endpoint-audit accepted primary integration field {field} "
                         f"is invalid for {key}"
                     )
+        else:
+            for field, expected in (
+                ("accepted_max_simulation_time_s", bracket_search.max_simulation_time_s),
+                ("accepted_coarse_time_step_s", bracket_search.time_step_s),
+                ("accepted_time_step_s", bracket_search.time_step_s),
+            ):
+                if not np.isclose(
+                    float(row.get(field, np.nan)),
+                    expected,
+                    rtol=0.0,
+                    atol=1.0e-15,
+                ):
+                    raise ValueError(
+                        f"endpoint-audit unaudited integration field {field} is "
+                        f"invalid for {key}"
+                    )
 
         # Re-evaluate the latest adaptive state against the direct mask or both
         # persisted brackets. Runtime positive-boundary QA applies each bracket
@@ -3144,8 +3502,11 @@ def _validate_completed_audit_ledger(
                         f"endpoint-audit adaptive node is absent from its velocity "
                         f"override for {key}"
                     )
+                capture_state = override.captured[int(matches[0])]
                 expected_state = (
-                    "trapped" if override.captured[int(matches[0])] else "escaped"
+                    "unresolved"
+                    if capture_state is None
+                    else ("trapped" if capture_state else "escaped")
                 )
                 if latest_state != expected_state:
                     raise ValueError(
@@ -3221,7 +3582,7 @@ def _validate_completed_audit_ledger(
                 )
             coarse_grid_reasons: list[str] = []
             fine_grid_reasons: list[str] = []
-            captured_mask: list[bool] = []
+            captured_mask: list[bool | None] = []
             for grid_index, (expected_speed, item) in enumerate(
                 zip(expected_grid, positive_grid_evidence, strict=True)
             ):
@@ -3250,15 +3611,29 @@ def _validate_completed_audit_ledger(
                     coarse_payload,
                     key=key,
                     field=f"positive_grid_evidence[{grid_index}].coarse_result",
+                    require_terminal_details=True,
                 )
                 fine_state = _audit_classification_state(
                     fine_payload,
                     key=key,
                     field=f"positive_grid_evidence[{grid_index}].fine_result",
+                    require_terminal_details=True,
                 )
-                if coarse_state not in {"trapped", "escaped"} or (
-                    coarse_state != fine_state
-                ):
+                resolved_pair = bool(
+                    coarse_state in {"trapped", "escaped"}
+                    and coarse_state == fine_state
+                )
+                allowed_indeterminate_zero = bool(
+                    positive_indeterminate_status
+                    and grid_index == 0
+                    and expected_speed == 0.0
+                    and not resolved_pair
+                    and isinstance(coarse_payload, Mapping)
+                    and isinstance(fine_payload, Mapping)
+                    and coarse_payload.get("termination_reason") != "non_finite"
+                    and fine_payload.get("termination_reason") != "non_finite"
+                )
+                if not resolved_pair and not allowed_indeterminate_zero:
                     raise ValueError(
                         f"endpoint-audit positive-grid node is unresolved or timestep-dependent for {key}"
                     )
@@ -3272,8 +3647,10 @@ def _validate_completed_audit_ledger(
                     str(coarse_payload.get("termination_reason"))
                 )
                 fine_grid_reasons.append(str(fine_payload.get("termination_reason")))
-                captured_mask.append(fine_state == "trapped")
-            if captured_mask[-1]:
+                captured_mask.append(
+                    None if allowed_indeterminate_zero else fine_state == "trapped"
+                )
+            if captured_mask[-1] is not False:
                 raise ValueError(
                     f"endpoint-audit positive-grid evidence lacks an escaped high-speed endpoint for {key}"
                 )
@@ -3282,6 +3659,18 @@ def _validate_completed_audit_ledger(
             def expected_grid_bracket(
                 reasons: Sequence[str],
             ) -> tuple[float, float, str, str]:
+                if captured_mask[0] is None:
+                    upper_index = next(
+                        index
+                        for index in range(1, len(expected_grid))
+                        if captured_mask[index] is False
+                    )
+                    return (
+                        float(expected_grid[0]),
+                        float(expected_grid[upper_index]),
+                        INDETERMINATE_ZERO_FLUX_CLASSIFICATION,
+                        reasons[upper_index],
+                    )
                 if captured_mask[0]:
                     upper_index = next(
                         index for index, value in enumerate(captured_mask) if not value
@@ -3331,6 +3720,19 @@ def _validate_completed_audit_ledger(
                     raise ValueError(
                         f"endpoint-audit persisted {bracket_name} bracket does not match its positive-grid evidence for {key}"
                     )
+            if positive_indeterminate_status:
+                if (
+                    captured_mask[0] is not None
+                    or any(value is None for value in captured_mask[1:])
+                ):
+                    raise ValueError(
+                        "endpoint-audit positive-grid indeterminate-zero status "
+                        f"does not match its evidence for {key}"
+                    )
+            elif any(value is None for value in captured_mask):
+                raise ValueError(
+                    f"endpoint-audit positive-grid null state lacks status for {key}"
+                )
         elif positive_grid_evidence:
             raise ValueError(
                 f"endpoint-audit unused positive-grid evidence is nonempty for {key}"
@@ -3353,6 +3755,7 @@ def _validate_completed_audit_ledger(
             "confirmed_zero_capture",
             "grid_resolved_capture",
             "velocity_resolved_capture",
+            INDETERMINATE_ZERO_FLUX_STATUS,
         }:
             expected_zero_grid = np.arange(
                 bracket_search.analysis_velocity_min_m_per_s,
@@ -3368,7 +3771,7 @@ def _validate_completed_audit_ledger(
                 )
             zero_coarse_reasons: list[str] = []
             zero_fine_reasons: list[str] = []
-            zero_captured_mask: list[bool] = []
+            zero_captured_mask: list[bool | None] = []
             for grid_index, (expected_speed, item) in enumerate(
                 zip(expected_zero_grid, zero_grid_evidence, strict=True)
             ):
@@ -3397,15 +3800,29 @@ def _validate_completed_audit_ledger(
                     coarse_payload,
                     key=key,
                     field=f"zero_grid_evidence[{grid_index}].coarse_result",
+                    require_terminal_details=True,
                 )
                 fine_state = _audit_classification_state(
                     fine_payload,
                     key=key,
                     field=f"zero_grid_evidence[{grid_index}].fine_result",
+                    require_terminal_details=True,
                 )
-                if coarse_state not in {"trapped", "escaped"} or (
-                    coarse_state != fine_state
-                ):
+                resolved_pair = bool(
+                    coarse_state in {"trapped", "escaped"}
+                    and coarse_state == fine_state
+                )
+                allowed_indeterminate_zero = bool(
+                    zero_indeterminate_status
+                    and grid_index == 0
+                    and expected_speed == 0.0
+                    and not resolved_pair
+                    and isinstance(coarse_payload, Mapping)
+                    and isinstance(fine_payload, Mapping)
+                    and coarse_payload.get("termination_reason") != "non_finite"
+                    and fine_payload.get("termination_reason") != "non_finite"
+                )
+                if not resolved_pair and not allowed_indeterminate_zero:
                     raise ValueError(
                         "endpoint-audit zero-grid node is unresolved or "
                         f"timestep-dependent for {key}"
@@ -3422,8 +3839,10 @@ def _validate_completed_audit_ledger(
                 zero_fine_reasons.append(
                     str(fine_payload.get("termination_reason"))
                 )
-                zero_captured_mask.append(fine_state == "trapped")
-            if zero_captured_mask[-1]:
+                zero_captured_mask.append(
+                    None if allowed_indeterminate_zero else fine_state == "trapped"
+                )
+            if zero_captured_mask[-1] is not False:
                 raise ValueError(
                     "endpoint-audit zero-grid evidence lacks an escaped "
                     f"high-speed endpoint for {key}"
@@ -3433,6 +3852,18 @@ def _validate_completed_audit_ledger(
             def expected_zero_grid_bracket(
                 reasons: Sequence[str],
             ) -> tuple[float, float, str, str]:
+                if zero_captured_mask[0] is None:
+                    upper_index = next(
+                        index
+                        for index in range(1, len(expected_zero_grid))
+                        if zero_captured_mask[index] is False
+                    )
+                    return (
+                        float(expected_zero_grid[0]),
+                        float(expected_zero_grid[upper_index]),
+                        INDETERMINATE_ZERO_FLUX_CLASSIFICATION,
+                        reasons[upper_index],
+                    )
                 if zero_captured_mask[0]:
                     upper_index = next(
                         index
@@ -3514,6 +3945,16 @@ def _validate_completed_audit_ledger(
                     raise ValueError(
                         f"endpoint-audit zero-grid mask/status is invalid for {key}"
                     )
+            elif zero_status == INDETERMINATE_ZERO_FLUX_STATUS:
+                if (
+                    zero_captured_mask[0] is not None
+                    or any(value is None for value in zero_captured_mask[1:])
+                    or override is None
+                ):
+                    raise ValueError(
+                        f"endpoint-audit indeterminate-zero grid/status is invalid "
+                        f"for {key}"
+                    )
         elif zero_status == "rebisected":
             if zero_grid_evidence:
                 raise ValueError(
@@ -3531,7 +3972,9 @@ def _validate_completed_audit_ledger(
             raise ValueError(f"endpoint-audit velocity-override flag mismatch for {key}")
         expected_override = bool(
             zero_status == "velocity_resolved_capture"
+            or zero_status == INDETERMINATE_ZERO_FLUX_STATUS
             or positive_grid_status == "velocity_resolved_capture"
+            or positive_grid_status == INDETERMINATE_ZERO_FLUX_STATUS
         )
         if expected_override != override_flag:
             raise ValueError(
@@ -3551,15 +3994,14 @@ def _validate_completed_audit_ledger(
                 raise ValueError(
                     f"endpoint-audit velocity override does not cover the exact analysis grid for {key}"
                 )
-            if len(override.captured) != len(expected_grid) or bool(
-                override.captured[-1]
+            if (
+                len(override.captured) != len(expected_grid)
+                or override.captured[-1] is not False
             ):
                 raise ValueError(
                     f"endpoint-audit velocity override lacks an escaped high-speed endpoint for {key}"
                 )
-            if positive_grid_fallback and tuple(override.captured) != (
-                recomputed_grid_mask
-            ):
+            if positive_grid_fallback and tuple(override.captured) != recomputed_grid_mask:
                 raise ValueError(
                     f"endpoint-audit positive-grid override disagrees with dual-step evidence for {key}"
                 )
@@ -3568,6 +4010,20 @@ def _validate_completed_audit_ledger(
             ) != recomputed_zero_grid_mask:
                 raise ValueError(
                     f"endpoint-audit zero-grid override disagrees with dual-step evidence for {key}"
+                )
+            if zero_status == INDETERMINATE_ZERO_FLUX_STATUS and tuple(
+                override.captured
+            ) != recomputed_zero_grid_mask:
+                raise ValueError(
+                    "endpoint-audit indeterminate-zero override disagrees with "
+                    f"dual-step evidence for {key}"
+                )
+            if not indeterminate_zero_status and any(
+                value is None for value in override.captured
+            ):
+                raise ValueError(
+                    "endpoint-audit null capture state lacks the authenticated "
+                    f"indeterminate-zero status for {key}"
                 )
         if not np.isclose(
             float(row["accepted_trapped_velocity_lower_m_per_s"]),
@@ -3586,6 +4042,66 @@ def _validate_completed_audit_ledger(
             or str(row["accepted_upper_classification"]) != sample.upper_classification
         ):
             raise ValueError(f"endpoint-audit accepted classification mismatch for {key}")
+
+
+def _audit_count_summary(
+    audit_rows: Mapping[tuple[int, int], Mapping[str, object]],
+    overrides: Mapping[tuple[int, int], VelocityResolvedCaptureOverride],
+) -> dict[str, int]:
+    """Reconstruct point-level audit counters from authoritative ledgers."""
+
+    return {
+        "automatically_extended_timeout_ray_count": sum(
+            str(row["base_timeout_detected"]).lower() == "true"
+            for row in audit_rows.values()
+        ),
+        "adaptively_extended_velocity_grid_ray_count": sum(
+            int(row.get("adaptive_audit_level_count", 0) or 0) > 0
+            and str(row.get("zero_threshold_audit_status", "")) != "not_applicable"
+            for row in audit_rows.values()
+        ),
+        "adaptively_extended_audit_ray_count": sum(
+            int(row.get("adaptive_audit_level_count", 0) or 0) > 0
+            for row in audit_rows.values()
+        ),
+        "adaptively_extended_positive_boundary_ray_count": sum(
+            str(row.get("timeout_resolution_status", ""))
+            == "adaptive_dual_step_research_recovered_boundary"
+            for row in audit_rows.values()
+        ),
+        "complete_longer_boundary_fallback_ray_count": sum(
+            str(row.get("timeout_resolution_status", ""))
+            == "complete_scalar_diagnostics_and_velocity_grid_recovered_capture"
+            for row in audit_rows.values()
+        ),
+        "positive_boundary_grid_override_count": sum(
+            str(row.get("positive_boundary_grid_audit_status", ""))
+            in {"velocity_resolved_capture", INDETERMINATE_ZERO_FLUX_STATUS}
+            for row in audit_rows.values()
+        ),
+        "pre_adaptive_positive_research_timeout_ray_count": sum(
+            (
+                int(
+                    row.get("pre_adaptive_coarse_evaluation_timeout_count", 0)
+                    or 0
+                )
+                + int(
+                    row.get("pre_adaptive_fine_evaluation_timeout_count", 0)
+                    or 0
+                )
+            )
+            > 0
+            for row in audit_rows.values()
+        ),
+        "velocity_resolved_override_count": len(overrides),
+        "indeterminate_zero_flux_ray_count": sum(
+            str(row.get("zero_threshold_audit_status", ""))
+            == INDETERMINATE_ZERO_FLUX_STATUS
+            or str(row.get("positive_boundary_grid_audit_status", ""))
+            == INDETERMINATE_ZERO_FLUX_STATUS
+            for row in audit_rows.values()
+        ),
+    }
 
 
 def _save_checkpoint(
@@ -3616,52 +4132,7 @@ def _save_checkpoint(
             "completion_fraction": len(samples) / int(metadata["expected_sample_count"]),
             "elapsed_wall_time_s": elapsed_wall_time_s,
             "eta_s": eta_s,
-            "automatically_extended_timeout_ray_count": sum(
-                str(row["base_timeout_detected"]).lower() == "true"
-                for row in audit_rows.values()
-            ),
-            "adaptively_extended_velocity_grid_ray_count": sum(
-                int(row.get("adaptive_audit_level_count", 0) or 0) > 0
-                and str(row.get("zero_threshold_audit_status", ""))
-                != "not_applicable"
-                for row in audit_rows.values()
-            ),
-            "adaptively_extended_audit_ray_count": sum(
-                int(row.get("adaptive_audit_level_count", 0) or 0) > 0
-                for row in audit_rows.values()
-            ),
-            "adaptively_extended_positive_boundary_ray_count": sum(
-                str(row.get("timeout_resolution_status", ""))
-                == "adaptive_dual_step_research_recovered_boundary"
-                for row in audit_rows.values()
-            ),
-            "complete_longer_boundary_fallback_ray_count": sum(
-                str(row.get("timeout_resolution_status", ""))
-                == "complete_scalar_diagnostics_and_velocity_grid_recovered_capture"
-                for row in audit_rows.values()
-            ),
-            "positive_boundary_grid_override_count": sum(
-                str(row.get("positive_boundary_grid_audit_status", ""))
-                == "velocity_resolved_capture"
-                for row in audit_rows.values()
-            ),
-            "pre_adaptive_positive_research_timeout_ray_count": sum(
-                (
-                    int(
-                        row.get(
-                            "pre_adaptive_coarse_evaluation_timeout_count", 0
-                        )
-                        or 0
-                    )
-                    + int(
-                        row.get("pre_adaptive_fine_evaluation_timeout_count", 0)
-                        or 0
-                    )
-                )
-                > 0
-                for row in audit_rows.values()
-            ),
-            "velocity_resolved_override_count": len(overrides),
+            **_audit_count_summary(audit_rows, overrides),
         }
     )
     if error is not None:
@@ -3727,6 +4198,258 @@ def _clamp_spectrum_roundoff(
         row["capture_cross_section_t95_upper_m2"] = upper
 
 
+def _plot_clustered_cross_section_for_campaign(
+    spectrum_rows: Sequence[dict[str, int | float]],
+    path: Path,
+    *,
+    power_w_per_beam: float,
+    indeterminate_zero_flux_ray_count: int,
+) -> Path:
+    """Plot a spectrum while making an omitted zero-speed ordinate explicit."""
+
+    if indeterminate_zero_flux_ray_count == 0:
+        return plot_clustered_cross_section(
+            spectrum_rows,
+            path,
+            power_w_per_beam=power_w_per_beam,
+        )
+    if indeterminate_zero_flux_ray_count < 0:
+        raise ValueError("indeterminate zero-flux ray count cannot be negative")
+    velocity = np.asarray(
+        [row["velocity_m_per_s"] for row in spectrum_rows], dtype=float
+    )
+    if len(velocity) == 0 or np.any(velocity <= 0.0):
+        raise ValueError(
+            "an indeterminate-zero spectrum must contain positive speeds only"
+        )
+    mean_mm2 = 1.0e6 * np.asarray(
+        [row["capture_cross_section_m2"] for row in spectrum_rows], dtype=float
+    )
+    lower_mm2 = 1.0e6 * np.asarray(
+        [row["capture_cross_section_t95_lower_m2"] for row in spectrum_rows],
+        dtype=float,
+    )
+    upper_mm2 = 1.0e6 * np.asarray(
+        [row["capture_cross_section_t95_upper_m2"] for row in spectrum_rows],
+        dtype=float,
+    )
+    figure, axis = plt.subplots(figsize=(8.2, 5.6), constrained_layout=True)
+    axis.fill_between(
+        velocity,
+        lower_mm2,
+        upper_mm2,
+        color="#99c8c2",
+        alpha=0.5,
+        linewidth=0.0,
+        label="95% t interval across direction discs",
+    )
+    axis.plot(
+        velocity,
+        mean_mm2,
+        color="#0f766e",
+        linewidth=2.2,
+        label="Mean cross section",
+    )
+    axis.axvline(
+        0.0,
+        color="#c2410c",
+        linestyle=":",
+        linewidth=1.8,
+        label=(
+            rf"$\sigma_{{capture}}(0)$ omitted: {indeterminate_zero_flux_ray_count} "
+            "ray(s) indeterminate"
+        ),
+    )
+    axis.set_xlim(left=0.0)
+    axis.set_title(
+        f"Two-Level MOT Capture Cross Section ({1e3 * power_w_per_beam:g} mW/beam)"
+    )
+    axis.set_xlabel("Launch speed [m/s]")
+    axis.set_ylabel(r"Capture cross section [mm$^2$]")
+    axis.grid(True, alpha=0.25)
+    axis.legend(frameon=False)
+    axis.text(
+        0.985,
+        0.02,
+        r"Loading uses the exact flux-integrand anchor $g(0)=0$; "
+        r"no value of $\sigma_{capture}(0)$ is imputed.",
+        transform=axis.transAxes,
+        ha="right",
+        va="bottom",
+        fontsize=7.5,
+        color="#7c2d12",
+    )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    figure.savefig(path, dpi=180)
+    plt.close(figure)
+    return path
+
+
+def _plot_capture_velocity_for_campaign(
+    samples: Sequence[CaptureVelocitySample],
+    path: Path,
+    *,
+    power_w_per_beam: float,
+    velocity_resolved_override_count: int,
+    indeterminate_zero_flux_ray_count: int,
+) -> Path:
+    """Plot scalar thresholds without treating an indeterminate sentinel as data."""
+
+    if indeterminate_zero_flux_ray_count == 0:
+        return plot_capture_velocity_vs_impact_parameter(
+            samples,
+            path,
+            power_w_per_beam=power_w_per_beam,
+            velocity_resolved_override_count=velocity_resolved_override_count,
+        )
+    indeterminate = np.asarray(
+        [
+            sample.lower_classification
+            == INDETERMINATE_ZERO_FLUX_CLASSIFICATION
+            for sample in samples
+        ],
+        dtype=bool,
+    )
+    if int(np.count_nonzero(indeterminate)) != indeterminate_zero_flux_ray_count:
+        raise ValueError("indeterminate sample/count mismatch while plotting")
+    s_mm = 1.0e3 * np.asarray([sample.s_m for sample in samples], dtype=float)
+    capture = np.asarray(
+        [sample.capture_velocity_m_per_s for sample in samples], dtype=float
+    )
+    definitive = ~indeterminate
+    figure, axis = plt.subplots(figsize=(8.2, 5.6), constrained_layout=True)
+    axis.scatter(
+        s_mm[definitive],
+        capture[definitive],
+        s=12,
+        alpha=0.25,
+        color="#0f766e",
+        edgecolors="none",
+        label="Definitive scalar capture thresholds",
+    )
+    axis.scatter(
+        s_mm[indeterminate],
+        np.zeros(np.count_nonzero(indeterminate)),
+        s=38,
+        color="#c2410c",
+        marker="x",
+        linewidths=1.6,
+        label="v=0 indeterminate (compatibility sentinel; excluded from bin means)",
+    )
+    if np.count_nonzero(definitive) >= 10:
+        edges = np.linspace(0.0, float(np.max(s_mm)), 13)
+        centers: list[float] = []
+        means: list[float] = []
+        sems: list[float] = []
+        for index in range(len(edges) - 1):
+            in_bin = definitive & (s_mm >= edges[index]) & (
+                s_mm <= edges[index + 1]
+                if index == len(edges) - 2
+                else s_mm < edges[index + 1]
+            )
+            values = capture[in_bin]
+            if len(values) == 0:
+                continue
+            centers.append(0.5 * (edges[index] + edges[index + 1]))
+            means.append(float(np.mean(values)))
+            sems.append(
+                float(np.std(values, ddof=1) / np.sqrt(len(values)))
+                if len(values) > 1
+                else 0.0
+            )
+        axis.errorbar(
+            centers,
+            means,
+            yerr=sems,
+            color="#9f4a13",
+            marker="o",
+            markersize=4,
+            linewidth=1.7,
+            capsize=2,
+            label="Definitive impact-parameter-bin mean +/- SEM",
+        )
+    axis.set_title(
+        f"Capture Velocity vs Impact Parameter ({1e3 * power_w_per_beam:g} mW/beam)"
+    )
+    axis.set_xlabel("Impact parameter [mm]")
+    axis.set_ylabel("Capture velocity [m/s]")
+    axis.grid(True, alpha=0.25)
+    axis.legend(frameon=False, fontsize=8)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    figure.savefig(path, dpi=180)
+    plt.close(figure)
+    return path
+
+
+def _plot_loading_rate_by_disc_for_campaign(
+    by_disc: Sequence[dict[str, int | float]],
+    summary: Mapping[str, object],
+    path: Path,
+    *,
+    power_w_per_beam: float,
+    indeterminate_zero_flux_ray_count: int,
+) -> Path:
+    """Plot clustered loading with the zero-flux treatment stated in-panel."""
+
+    if indeterminate_zero_flux_ray_count == 0:
+        return plot_loading_rate_by_disc(
+            by_disc,
+            dict(summary),
+            path,
+            power_w_per_beam=power_w_per_beam,
+        )
+    disc_number = 1 + np.asarray(
+        [row["disc_index"] for row in by_disc], dtype=int
+    )
+    rate = np.asarray(
+        [row["loading_rate_atoms_per_s"] for row in by_disc], dtype=float
+    )
+    mean = float(summary["loading_rate_mean_atoms_per_s"])
+    lower = float(summary["loading_rate_t95_lower_atoms_per_s"])
+    upper = float(summary["loading_rate_t95_upper_atoms_per_s"])
+    figure, axis = plt.subplots(figsize=(8.2, 5.6), constrained_layout=True)
+    axis.axhspan(
+        lower,
+        upper,
+        color="#99c8c2",
+        alpha=0.5,
+        linewidth=0.0,
+        label="95% t interval for the mean",
+    )
+    axis.axhline(mean, color="#0f766e", linewidth=2.2, label="Mean loading rate")
+    axis.scatter(
+        disc_number,
+        rate,
+        color="#9f4a13",
+        marker="o",
+        s=22,
+        alpha=0.75,
+        label="Direction-disc estimates",
+    )
+    axis.set_title(
+        f"Two-Level MOT Loading Rate by Direction ({1e3 * power_w_per_beam:g} mW/beam)"
+    )
+    axis.set_xlabel("Random incident-direction disc")
+    axis.set_ylabel("Loading rate [atoms/s]")
+    axis.grid(True, alpha=0.25)
+    axis.legend(frameon=False)
+    axis.text(
+        0.985,
+        0.02,
+        rf"{indeterminate_zero_flux_ray_count} exact-zero ray(s) indeterminate; "
+        r"quadrature uses $g(0)=0$ without imputing $\sigma_{capture}(0)$.",
+        transform=axis.transAxes,
+        ha="right",
+        va="bottom",
+        fontsize=7.5,
+        color="#7c2d12",
+    )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    figure.savefig(path, dpi=180)
+    plt.close(figure)
+    return path
+
+
 def _analyze_point(
     samples: Sequence[CaptureVelocitySample],
     search: CaptureSearchConfig,
@@ -3749,6 +4472,23 @@ def _analyze_point(
         raise ValueError("point samples contain an unresolved or invalid endpoint")
 
     velocity_grid = _velocity_grid(samples, search)
+    keyed_overrides = validate_velocity_overrides(samples, velocity_grid, overrides)
+    indeterminate_override_keys = {
+        key
+        for key, override in keyed_overrides.items()
+        if any(value is None for value in override.captured)
+    }
+    indeterminate_sample_keys = {
+        (sample.disc_index, sample.point_index)
+        for sample in samples
+        if sample.lower_classification
+        == INDETERMINATE_ZERO_FLUX_CLASSIFICATION
+    }
+    if indeterminate_override_keys != indeterminate_sample_keys:
+        raise ValueError(
+            "indeterminate zero-flux samples and authenticated masks do not match"
+        )
+    indeterminate_zero_flux_ray_count = len(indeterminate_override_keys)
     if overrides:
         override_grid = np.asarray(overrides[0].velocity_m_per_s, dtype=float)
         if any(
@@ -3770,6 +4510,16 @@ def _analyze_point(
     by_disc, loading = calculate_disc_clustered_loading_with_overrides(
         samples, search, spectrum, overrides
     )
+    loading.update(
+        {
+            "capture_spectrum_row_count": len(spectrum),
+            "indeterminate_zero_flux_ray_count": indeterminate_zero_flux_ray_count,
+            "zero_flux_quadrature_anchor_used": bool(
+                indeterminate_zero_flux_ray_count
+            ),
+            "zero_speed_cross_section_imputed": False,
+        }
+    )
     _atomic_write_csv(paths.spectrum_csv, spectrum, SPECTRUM_FIELDNAMES)
     _atomic_write_csv(paths.loading_by_disc_csv, by_disc, LOADING_BY_DISC_FIELDNAMES)
     loading_payload = {
@@ -3781,32 +4531,40 @@ def _analyze_point(
         "samples_csv": str(paths.final_samples_csv.resolve()),
         "loading_rate_by_disc_csv": str(paths.loading_by_disc_csv.resolve()),
         "velocity_resolved_override_count": len(overrides),
+        "indeterminate_zero_flux_ray_count": indeterminate_zero_flux_ray_count,
         "velocity_resolved_overrides_json": str(_overrides_path(paths).resolve()),
         "velocity_override_interpretation": (
-            "Cross-section and loading integrals use every saved direct boolean mask. "
+            "Cross-section and loading integrals use every saved direct tri-state "
+            "mask. "
             "For an overridden ray, the scalar threshold in the samples CSV and "
             "impact-parameter plot represents only the first contiguous low-speed "
             "capture interval (or a zero fallback); the direct mask is authoritative "
-            "for the physical velocity-resolved capture result."
+            "for the physical velocity-resolved capture result. An authenticated "
+            "null may occur only at exact v=0 after the full bounded audit ladder; "
+            "sigma_capture(0) is omitted and loading uses only the algebraic g(0)=0 "
+            "integrand anchor, never an imputed cross section."
         ),
     }
     _atomic_write_json(paths.loading_json, loading_payload)
-    plot_clustered_cross_section(
+    _plot_clustered_cross_section_for_campaign(
         spectrum,
         paths.cross_section_png,
         power_w_per_beam=point.cooling_power_w_per_beam,
+        indeterminate_zero_flux_ray_count=indeterminate_zero_flux_ray_count,
     )
-    plot_capture_velocity_vs_impact_parameter(
+    _plot_capture_velocity_for_campaign(
         samples,
         paths.impact_parameter_png,
         power_w_per_beam=point.cooling_power_w_per_beam,
         velocity_resolved_override_count=len(overrides),
+        indeterminate_zero_flux_ray_count=indeterminate_zero_flux_ray_count,
     )
-    plot_loading_rate_by_disc(
+    _plot_loading_rate_by_disc_for_campaign(
         by_disc,
         loading,
         paths.loading_by_disc_png,
         power_w_per_beam=point.cooling_power_w_per_beam,
+        indeterminate_zero_flux_ray_count=indeterminate_zero_flux_ray_count,
     )
     capture = np.asarray([sample.capture_velocity_m_per_s for sample in samples])
     summary = {
@@ -3832,6 +4590,7 @@ def _analyze_point(
         ),
         "unresolved_timeout_count": sum(_sample_has_timeout(sample) for sample in samples),
         "velocity_resolved_override_count": len(overrides),
+        "indeterminate_zero_flux_ray_count": indeterminate_zero_flux_ray_count,
         "velocity_resolved_overrides_json": str(_overrides_path(paths).resolve()),
         "velocity_override_interpretation": loading_payload[
             "velocity_override_interpretation"
@@ -3913,6 +4672,7 @@ def _new_point_metadata(
         "repumper_included": False,
         "worker_count": worker_count,
         "zero_grid_ray_batch_size": ZERO_GRID_RAY_BATCH_SIZE,
+        "indeterminate_zero_flux_ray_count": 0,
         "execution_batching_interpretation": (
             "independent ray-velocity states share vectorized array calls only; "
             "statistics and terminal histories remain per ray"
@@ -3928,6 +4688,31 @@ def _new_point_metadata(
             "capture_velocity_overrides_json": str(_overrides_path(paths).resolve()),
         },
     }
+
+
+def _preserve_migration_provenance(
+    destination: dict[str, object],
+    prior: Mapping[str, object],
+) -> None:
+    """Copy authenticated migration records through resumable rewrites.
+
+    Point and sweep metadata are reconstructed from the active contract during
+    resume.  Their scientific fields should be refreshed, but an existing
+    migration chain is immutable provenance and must survive verbatim.
+    """
+
+    migration = prior.get("migration")
+    if migration is not None:
+        if not isinstance(migration, Mapping):
+            raise ValueError("persisted migration provenance is malformed")
+        destination["migration"] = dict(migration)
+    history = prior.get("migration_history")
+    if history is not None:
+        if not isinstance(history, list) or any(
+            not isinstance(record, Mapping) for record in history
+        ):
+            raise ValueError("persisted migration history is malformed")
+        destination["migration_history"] = [dict(record) for record in history]
 
 
 def _abort_process_pool(
@@ -4089,6 +4874,8 @@ def run_relationship_point(
         started_utc=str(prior_metadata["started_utc"]) if prior_metadata else None,
         elapsed_wall_time_s=prior_elapsed,
     )
+    if prior_metadata is not None:
+        _preserve_migration_provenance(metadata, prior_metadata)
     _atomic_write_json(paths.metadata_json, metadata)
 
     if analyze_only:
@@ -4115,7 +4902,7 @@ def run_relationship_point(
                 "completed_sample_count": expected,
                 "completion_fraction": 1.0,
                 "analysis_only_invocation": True,
-                "velocity_resolved_override_count": len(overrides),
+                **_audit_count_summary(audit_rows, overrides),
                 "loading_rate": summary["loading_rate"],
             }
         )
@@ -4266,11 +5053,7 @@ def run_relationship_point(
             "completion_fraction": 1.0,
             "elapsed_wall_time_s": elapsed,
             "eta_s": 0.0,
-            "automatically_extended_timeout_ray_count": sum(
-                str(row["base_timeout_detected"]).lower() == "true"
-                for row in audit_rows.values()
-            ),
-            "velocity_resolved_override_count": len(overrides),
+            **_audit_count_summary(audit_rows, overrides),
             "loading_rate": summary["loading_rate"],
         }
     )
@@ -4364,6 +5147,9 @@ def _point_aggregate_row(
         "velocity_resolved_override_count": int(
             summary["velocity_resolved_override_count"]
         ),
+        "indeterminate_zero_flux_ray_count": int(
+            summary["indeterminate_zero_flux_ray_count"]
+        ),
         "unresolved_timeout_count": int(summary["unresolved_timeout_count"]),
         "lower_classification_counts_json": json.dumps(
             summary["lower_classification_counts"], sort_keys=True, separators=(",", ":")
@@ -4445,6 +5231,25 @@ def plot_loading_relationship(
         capsize=3.0,
         label="Mean with 95% direction-cluster t interval",
     )
+    indeterminate = np.asarray(
+        [int(row.get("indeterminate_zero_flux_ray_count", 0)) > 0 for row in ordered],
+        dtype=bool,
+    )
+    if np.any(indeterminate):
+        axis.scatter(
+            x[indeterminate],
+            mean[indeterminate] / 1.0e6,
+            marker="o",
+            s=92,
+            facecolors="none",
+            edgecolors="#c2410c",
+            linewidths=1.8,
+            zorder=4,
+            label=(
+                "Contains indeterminate v=0 ray(s); loading unchanged because "
+                "the flux integrand is exactly zero"
+            ),
+        )
 
     reference_s0 = on_resonance_saturation_parameter(
         DEFAULT_COOLING_POWER_W_PER_BEAM
@@ -4534,6 +5339,9 @@ def _study_metadata(
         "model": "mot_simple deterministic effective two-level mean-force MOT",
         "point_count_requested": len(points),
         "point_count_completed": len(rows),
+        "indeterminate_zero_flux_ray_count": sum(
+            int(row.get("indeterminate_zero_flux_ray_count", 0)) for row in rows
+        ),
         "ordered_point_plan": [asdict(point) for point in points],
         "search_config": asdict(search),
         "zero_grid_ray_batch_size": ZERO_GRID_RAY_BATCH_SIZE,
@@ -4630,17 +5438,25 @@ def run_loading_relationship(
         plot_loading_relationship(
             rows, study_key, campaign_paths.relationship_plot(study_key)
         )
-        _atomic_write_json(
-            campaign_paths.study_metadata_json(study_key),
-            _study_metadata(
-                study_key,
-                points_to_run,
-                rows,
-                search,
-                geometry_hash,
-                campaign_paths,
-            ),
+        study_metadata_path = campaign_paths.study_metadata_json(study_key)
+        study_metadata = _study_metadata(
+            study_key,
+            points_to_run,
+            rows,
+            search,
+            geometry_hash,
+            campaign_paths,
         )
+        if study_metadata_path.is_file():
+            prior_study_metadata = json.loads(
+                study_metadata_path.read_text(encoding="utf-8")
+            )
+            if not isinstance(prior_study_metadata, Mapping):
+                raise ValueError("persisted study metadata is malformed")
+            _preserve_migration_provenance(
+                study_metadata, prior_study_metadata
+            )
+        _atomic_write_json(study_metadata_path, study_metadata)
         print(
             f"[{_utc_now()}] [two-level campaign {overall_offset + local_index}/"
             f"{overall_total}] completed {point.study_key}/{point.slug}; "
@@ -4673,6 +5489,7 @@ def _new_campaign_metadata(
             "detuning_delta_over_gamma": list(DETUNING_N_VALUES),
         },
         "loading_point_count": sum(len(values) for values in point_groups.values()),
+        "indeterminate_zero_flux_ray_count": 0,
         "capture_threshold_search_count": sum(
             len(values) * search.disc_count * search.points_per_disc
             for values in point_groups.values()
@@ -4736,6 +5553,8 @@ def run_campaign(
         if study_key not in selected:
             continue
         metadata["stage_status"][study_key] = "running"
+        metadata["status"] = "running"
+        metadata.pop("last_error", None)
         metadata["current_stage"] = study_key
         metadata["updated_utc"] = _utc_now()
         _atomic_write_json(campaign_paths.metadata_json, metadata)
@@ -4758,12 +5577,20 @@ def run_campaign(
             _atomic_write_json(campaign_paths.metadata_json, metadata)
             raise
         metadata["stage_status"][study_key] = "completed"
+        metadata["indeterminate_zero_flux_ray_count"] = sum(
+            int(row.get("indeterminate_zero_flux_ray_count", 0))
+            for completed_study in STUDY_ORDER
+            for row in _read_aggregate(
+                campaign_paths.aggregate_csv(completed_study)
+            )
+        )
         metadata["updated_utc"] = _utc_now()
         metadata["status"] = (
             "completed"
             if all(metadata["stage_status"].get(key) == "completed" for key in STUDY_ORDER)
             else "running"
         )
+        metadata.pop("last_error", None)
         _atomic_write_json(campaign_paths.metadata_json, metadata)
     return metadata
 

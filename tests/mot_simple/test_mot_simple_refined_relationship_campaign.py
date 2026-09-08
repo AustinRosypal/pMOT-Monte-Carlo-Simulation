@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from dataclasses import replace
+from dataclasses import asdict, replace
 from types import SimpleNamespace
 
 import numpy as np
@@ -34,14 +34,15 @@ def _sample(point, capture_velocity: float = 5.0, *, upper: str = "escaped"):
         lower_classification="bounded_core_residence",
         upper_classification=upper,
         lower_entered_trap_core=True,
-        upper_entered_trap_core=True,
+        upper_entered_trap_core=False,
         lower_core_entry_count=1,
-        upper_core_entry_count=1,
+        upper_core_entry_count=0,
     )
 
 
 def _classification(reason: str, *, elapsed_time_s: float = 0.01):
     trapped = reason in campaign.TRAPPED_TERMINATION_REASONS
+    final_radius_m = 1.0e-3 if trapped else 31.0e-3
     return TrajectoryClassification(
         trapped=trapped,
         termination_reason=reason,
@@ -49,10 +50,34 @@ def _classification(reason: str, *, elapsed_time_s: float = 0.01):
         core_entry_count=2 if reason == "two_core_entries" else int(trapped),
         elapsed_time_s=elapsed_time_s,
         minimum_radius_m=1.0e-3 if trapped else 4.0e-3,
-        final_radius_m=1.0e-3 if trapped else 31.0e-3,
-        final_position_m=(0.0, 0.0, 0.0),
+        final_radius_m=final_radius_m,
+        final_position_m=(final_radius_m, 0.0, 0.0),
         final_velocity_m_per_s=(0.0, 0.0, 0.0),
     )
+
+
+def test_full_audit_classification_rejects_false_core_and_nonfinite_evidence() -> None:
+    key = (3, 7)
+    payload = campaign._classification_payload(_classification("two_core_entries"))
+    payload["core_entry_count"] = 0
+    payload["entered_trap_core"] = False
+    with pytest.raises(ValueError, match="lacks two core entries"):
+        campaign._audit_classification_state(
+            payload,
+            key=key,
+            field="test",
+            require_terminal_details=True,
+        )
+
+    payload = campaign._classification_payload(_classification("two_core_entries"))
+    payload["final_velocity_m_per_s"][1] = float("nan")
+    with pytest.raises(ValueError, match="nonfinite terminal state"):
+        campaign._audit_classification_state(
+            payload,
+            key=key,
+            field="test",
+            require_terminal_details=True,
+        )
 
 
 def _instrumented_evaluations(sample, timeout_speeds=()):
@@ -182,9 +207,10 @@ def _audit(sample, *, timeout: bool = False):
 
 
 def test_requested_grids_and_isolated_default_paths(tmp_path) -> None:
-    assert campaign.CAMPAIGN_SCHEMA_VERSION == 4
-    assert campaign.POINT_SCHEMA_VERSION == 4
-    assert "optimized_v3_20260906" in campaign.CAMPAIGN_NAME
+    assert campaign.CAMPAIGN_SCHEMA_VERSION == 6
+    assert campaign.POINT_SCHEMA_VERSION == 6
+    assert "optimized_v5_20260908" in campaign.CAMPAIGN_NAME
+    assert "indeterminate_zero_flux_ray_count" in campaign.AGGREGATE_FIELDNAMES
     assert len(campaign.RAW_SATURATION_VALUES) == 24
     assert campaign.RAW_SATURATION_VALUES[-8:] == (
         60.0,
@@ -291,6 +317,35 @@ def test_point_policy_records_fixed_audit_timesteps_for_nondefault_search() -> N
     assert policy["audit_coarse_time_step_s"] == pytest.approx(5.0e-6)
     assert policy["fine_time_step_s"] == pytest.approx(2.5e-6)
     assert policy["fine_time_step_s"] != pytest.approx(0.5 * search.time_step_s)
+    assert policy["adaptive_node_levels"] == [
+        asdict(level) for level in campaign.DEFAULT_ADAPTIVE_AUDIT_LEVELS
+    ]
+    assert policy["complete_positive_boundary_search_levels"] == [
+        asdict(level) for level in campaign.COMPLETE_BOUNDARY_SEARCH_LEVELS
+    ]
+    assert policy["adaptive_node_levels"][-1] == {
+        "duration_s": 2.0,
+        "coarse_time_step_s": 1.25e-6,
+        "fine_time_step_s": 0.625e-6,
+    }
+    assert policy["adaptive_node_levels"][-2] == {
+        "duration_s": 1.0,
+        "coarse_time_step_s": 1.25e-6,
+        "fine_time_step_s": 0.625e-6,
+    }
+    assert len(policy["complete_positive_boundary_search_levels"]) == 2
+    assert policy["indeterminate_zero_flux_policy"] == {
+        "eligible_velocity_m_per_s": 0.0,
+        "requires_complete_adaptive_ladder": True,
+        "requires_all_positive_speeds_definitive_and_timestep_agreed": True,
+        "non_finite_is_admissible": False,
+        "capture_state": "indeterminate; neither trapped nor escaped",
+        "spectrum_treatment": "omit sigma_capture(0)",
+        "loading_treatment": (
+            "prepend only the exact weighted-integrand anchor g(0)=0; "
+            "do not impute sigma_capture(0)"
+        ),
+    }
 
 
 def test_capture_bracket_compatibility_rejects_touching_contradiction() -> None:
@@ -406,6 +461,52 @@ def test_timeout_worker_audits_actual_timeout_speed_without_full_research(monkey
         campaign._validate_completed_audit_ledger(
             {key: result.sample}, {key: tampered}, {}
         )
+
+
+def test_recovered_boundary_accepts_distinct_coarse_and_fine_core_evidence() -> None:
+    """The CSV has separate brackets/reasons, but only accepted fine core fields."""
+
+    search = campaign.default_search_config()
+    _, points = campaign.generate_common_geometry(
+        replace(search, disc_count=1, points_per_disc=1)
+    )
+    fine = _sample(points[0], capture_velocity=5.0)
+    coarse = replace(
+        fine,
+        lower_classification="two_core_entries",
+        lower_entered_trap_core=True,
+        lower_core_entry_count=2,
+    )
+    coarse_search, fine_search = campaign.audit_searches(search)
+    complete_evidence = campaign._complete_boundary_level_payload(
+        level_index=0,
+        coarse_search=coarse_search,
+        fine_search=fine_search,
+        coarse_sample=coarse,
+        fine_sample=fine,
+        coarse_timeout_speeds=(),
+        fine_timeout_speeds=(),
+        coarse_evaluations=_instrumented_evaluations(coarse),
+        fine_evaluations=_instrumented_evaluations(fine),
+        production_search=search,
+    )
+    row = _audit(fine, timeout=True)
+    row.update(
+        {
+            "coarse_lower_classification": coarse.lower_classification,
+            "fine_lower_classification": fine.lower_classification,
+            "complete_boundary_audit_evidence_json": json.dumps(
+                [complete_evidence], separators=(",", ":")
+            ),
+            "timeout_resolution_status": "dual_step_research_recovered_boundary",
+            "timeout_resolution_reason": "synthetic complete 200 ms recovery",
+        }
+    )
+    key = (fine.disc_index, fine.point_index)
+
+    campaign._validate_completed_audit_ledger(
+        {key: fine}, {key: row}, {}, search=search
+    )
 
 
 def _configure_positive_boundary_fallback(
@@ -586,7 +687,10 @@ def test_positive_boundary_complete_search_uses_400ms_only_if_needed(
     assert len(grid_calls) == 1
     _, grid_kwargs = grid_calls[0]
     assert grid_kwargs["duration_s"] == pytest.approx(0.4)
-    assert tuple(grid_kwargs["adaptive_levels"]) == ()
+    assert tuple(grid_kwargs["adaptive_levels"]) == (
+        campaign.DEFAULT_ADAPTIVE_AUDIT_LEVELS[2],
+        campaign.DEFAULT_ADAPTIVE_AUDIT_LEVELS[3],
+    )
     assert result.sample == grid_sample
     assert result.audit_row["positive_boundary_grid_base_level_index"] == 2
     assert result.audit_row["diagnostic_scalar_boundary_level_index"] == 2
@@ -676,6 +780,8 @@ def test_positive_boundary_recovery_forces_exact_loading_grid_override(
     assert grid_kwargs["fine_time_step_s"] == pytest.approx(2.5e-6)
     assert tuple(grid_kwargs["adaptive_levels"]) == (
         campaign.DEFAULT_ADAPTIVE_AUDIT_LEVELS[1],
+        campaign.DEFAULT_ADAPTIVE_AUDIT_LEVELS[2],
+        campaign.DEFAULT_ADAPTIVE_AUDIT_LEVELS[3],
     )
     expected_grid = np.arange(
         search.analysis_velocity_min_m_per_s,
@@ -798,6 +904,91 @@ def test_positive_boundary_recovery_rejects_endpoint_evaluation_reason_tamper(
         )
 
 
+def test_positive_boundary_recovery_rejects_endpoint_core_evidence_tamper(
+    monkeypatch,
+) -> None:
+    point, search, _evaluate_calls, _grid_calls, _grid_sample = (
+        _configure_positive_boundary_fallback(monkeypatch, recovery_level=1)
+    )
+    result = campaign._capture_worker(point)
+    key = (result.sample.disc_index, result.sample.point_index)
+    tampered = dict(result.audit_row)
+    evidence = json.loads(tampered["complete_boundary_audit_evidence_json"])
+    evidence[-1]["fine_sample"]["lower_core_entry_count"] = 99
+    tampered["complete_boundary_audit_evidence_json"] = json.dumps(evidence)
+
+    with pytest.raises(ValueError, match="core-entry evidence disagrees"):
+        campaign._validate_completed_audit_ledger(
+            {key: result.sample},
+            {key: tampered},
+            {key: result.velocity_override},
+            search=search,
+        )
+
+
+def test_positive_boundary_recovery_rejects_skipped_first_clean_level(
+    monkeypatch,
+) -> None:
+    point, search, _evaluate_calls, _grid_calls, _grid_sample = (
+        _configure_positive_boundary_fallback(monkeypatch, recovery_level=2)
+    )
+    result = campaign._capture_worker(point)
+    key = (result.sample.disc_index, result.sample.point_index)
+    tampered = dict(result.audit_row)
+    evidence = json.loads(tampered["complete_boundary_audit_evidence_json"])
+    # Make the 250 ms level independently clean while retaining the claimed
+    # 400 ms grid base. A faithful hierarchy must have stopped at 250 ms.
+    evidence[1]["coarse_sample"] = evidence[2]["coarse_sample"]
+    evidence[1]["fine_sample"] = evidence[2]["fine_sample"]
+    evidence[1]["coarse_timeout_speeds_m_per_s"] = []
+    evidence[1]["fine_timeout_speeds_m_per_s"] = []
+    evidence[1]["coarse_evaluations"] = evidence[2]["coarse_evaluations"]
+    evidence[1]["fine_evaluations"] = evidence[2]["fine_evaluations"]
+    evidence[1]["compatible_definitive_brackets"] = True
+    evidence[1]["timeout_free"] = True
+    tampered["complete_boundary_audit_evidence_json"] = json.dumps(evidence)
+
+    with pytest.raises(ValueError, match="first clean scalar-search level"):
+        campaign._validate_completed_audit_ledger(
+            {key: result.sample},
+            {key: tampered},
+            {key: result.velocity_override},
+            search=search,
+        )
+
+
+def test_ledger_rejects_unused_complete_boundary_evidence(monkeypatch) -> None:
+    point, search, _evaluate_calls, _grid_calls, _grid_sample = (
+        _configure_positive_boundary_fallback(monkeypatch, recovery_level=1)
+    )
+    fallback = campaign._capture_worker(point)
+    sample = _sample(point)
+    row = _audit(sample, timeout=True)
+    row["complete_boundary_audit_evidence_json"] = fallback.audit_row[
+        "complete_boundary_audit_evidence_json"
+    ]
+    key = (sample.disc_index, sample.point_index)
+
+    with pytest.raises(ValueError, match="unused complete-boundary evidence"):
+        campaign._validate_completed_audit_ledger(
+            {key: sample}, {key: row}, {}, search=search
+        )
+
+
+def test_ledger_rejects_tampered_unaudited_integration_fields() -> None:
+    search = campaign.default_search_config()
+    _discs, points = campaign.generate_common_geometry(search)
+    sample = _sample(points[0])
+    row = _audit(sample)
+    row["accepted_max_simulation_time_s"] = 0.2
+    key = (sample.disc_index, sample.point_index)
+
+    with pytest.raises(ValueError, match="unaudited integration field"):
+        campaign._validate_completed_audit_ledger(
+            {key: sample}, {key: row}, {}, search=search
+        )
+
+
 def test_zero_worker_persists_adaptive_node_evidence(monkeypatch) -> None:
     search = campaign.default_search_config()
     _, points = campaign.generate_common_geometry(
@@ -839,14 +1030,36 @@ def test_zero_worker_persists_adaptive_node_evidence(monkeypatch) -> None:
 
     escaped_coarse = classification("escaped")
     escaped_fine = classification("escaped")
-    evidence = AdaptiveAuditEvidence(
-        level_index=1,
-        duration_s=0.25,
-        coarse_time_step_s=5.0e-6,
-        fine_time_step_s=2.5e-6,
-        velocity_m_per_s=0.75,
-        coarse_result=escaped_coarse,
-        fine_result=escaped_fine,
+    timeout_coarse = classification("timeout")
+    timeout_fine = classification("timeout")
+    adaptive_evidence = (
+        AdaptiveAuditEvidence(
+            level_index=1,
+            duration_s=0.25,
+            coarse_time_step_s=5.0e-6,
+            fine_time_step_s=2.5e-6,
+            velocity_m_per_s=0.75,
+            coarse_result=timeout_coarse,
+            fine_result=timeout_fine,
+        ),
+        AdaptiveAuditEvidence(
+            level_index=2,
+            duration_s=0.4,
+            coarse_time_step_s=2.5e-6,
+            fine_time_step_s=1.25e-6,
+            velocity_m_per_s=0.75,
+            coarse_result=timeout_coarse,
+            fine_result=timeout_fine,
+        ),
+        AdaptiveAuditEvidence(
+            level_index=3,
+            duration_s=1.0,
+            coarse_time_step_s=1.25e-6,
+            fine_time_step_s=0.625e-6,
+            velocity_m_per_s=0.75,
+            coarse_result=escaped_coarse,
+            fine_result=escaped_fine,
+        ),
     )
     velocity = tuple(
         float(value)
@@ -868,6 +1081,7 @@ def test_zero_worker_persists_adaptive_node_evidence(monkeypatch) -> None:
     )
     outcome = SimpleNamespace(
         resolved=True,
+        loading_admissible=True,
         replacement_sample=accepted,
         coarse_boundary_sample=accepted,
         fine_boundary_sample=accepted,
@@ -878,7 +1092,7 @@ def test_zero_worker_persists_adaptive_node_evidence(monkeypatch) -> None:
         fine_lower_result=classification("two_core_entries"),
         coarse_upper_result=escaped_coarse,
         fine_upper_result=escaped_fine,
-        adaptive_evidence=(evidence,),
+        adaptive_evidence=adaptive_evidence,
         velocity_grid_m_per_s=velocity,
         coarse_velocity_grid_results=coarse_grid_results,
         fine_velocity_grid_results=fine_grid_results,
@@ -896,14 +1110,16 @@ def test_zero_worker_persists_adaptive_node_evidence(monkeypatch) -> None:
     assert result.audit_row["accepted_max_simulation_time_s"] == pytest.approx(0.2)
     assert result.audit_row["accepted_coarse_time_step_s"] == pytest.approx(5.0e-6)
     assert result.audit_row["accepted_time_step_s"] == pytest.approx(2.5e-6)
-    assert result.audit_row["adaptive_max_duration_s"] == pytest.approx(0.25)
-    assert result.audit_row["adaptive_coarse_time_step_s"] == pytest.approx(5.0e-6)
-    assert result.audit_row["adaptive_fine_time_step_s"] == pytest.approx(2.5e-6)
-    assert result.audit_row["adaptive_audit_level_count"] == 1
+    assert result.audit_row["adaptive_max_duration_s"] == pytest.approx(1.0)
+    assert result.audit_row["adaptive_coarse_time_step_s"] == pytest.approx(1.25e-6)
+    assert result.audit_row["adaptive_fine_time_step_s"] == pytest.approx(0.625e-6)
+    assert result.audit_row["adaptive_audit_level_count"] == 3
     payload = json.loads(result.audit_row["adaptive_audit_evidence_json"])
-    assert payload[0]["velocity_m_per_s"] == pytest.approx(0.75)
-    assert payload[0]["coarse_result"]["termination_reason"] == "escaped"
-    assert payload[0]["fine_result"]["termination_reason"] == "escaped"
+    assert [item["level_index"] for item in payload] == [1, 2, 3]
+    assert [item["resolved"] for item in payload] == [False, False, True]
+    assert payload[-1]["velocity_m_per_s"] == pytest.approx(0.75)
+    assert payload[-1]["coarse_result"]["termination_reason"] == "escaped"
+    assert payload[-1]["fine_result"]["termination_reason"] == "escaped"
     zero_grid_payload = json.loads(
         result.audit_row["zero_threshold_grid_evidence_json"]
     )
@@ -912,6 +1128,195 @@ def test_zero_worker_persists_adaptive_node_evidence(monkeypatch) -> None:
     campaign._validate_completed_audit_ledger(
         {key: result.sample}, {key: result.audit_row}, {}
     )
+    tampered = dict(result.audit_row)
+    tampered_payload = json.loads(tampered["adaptive_audit_evidence_json"])
+    tampered_payload[-1]["duration_s"] = 0.999
+    tampered["adaptive_audit_evidence_json"] = json.dumps(tampered_payload)
+    with pytest.raises(ValueError, match="adaptive field duration_s is invalid"):
+        campaign._validate_completed_audit_ledger(
+            {key: result.sample}, {key: tampered}, {}
+        )
+
+
+def _indeterminate_zero_flux_result(monkeypatch):
+    search = replace(
+        campaign.default_search_config(),
+        disc_count=1,
+        points_per_disc=1,
+        analysis_velocity_max_m_per_s=1.0,
+    )
+    _, points = campaign.generate_common_geometry(search)
+    point = points[0]
+    base = replace(
+        _sample(point, capture_velocity=0.0, upper="escaped"),
+        lower_classification="timeout",
+        lower_entered_trap_core=False,
+        lower_core_entry_count=0,
+    )
+    accepted = replace(
+        base,
+        lower_classification="indeterminate_zero_flux",
+        upper_classification="escaped",
+    )
+    velocity = tuple(
+        float(value)
+        for value in np.arange(
+            search.analysis_velocity_min_m_per_s,
+            search.analysis_velocity_max_m_per_s
+            + 0.5 * search.analysis_velocity_step_m_per_s,
+            search.analysis_velocity_step_m_per_s,
+        )
+    )
+    escaped = _classification("escaped")
+    adaptive_evidence = tuple(
+        AdaptiveAuditEvidence(
+            level_index=index,
+            duration_s=level.duration_s,
+            coarse_time_step_s=level.coarse_time_step_s,
+            fine_time_step_s=level.fine_time_step_s,
+            velocity_m_per_s=0.0,
+            coarse_result=_classification(
+                "timeout", elapsed_time_s=level.duration_s
+            ),
+            fine_result=_classification(
+                "timeout", elapsed_time_s=level.duration_s
+            ),
+        )
+        for index, level in enumerate(
+            campaign.DEFAULT_ADAPTIVE_AUDIT_LEVELS, start=1
+        )
+    )
+    final_timeout = adaptive_evidence[-1].fine_result
+    coarse_grid = (final_timeout, *(escaped for _ in velocity[1:]))
+    fine_grid = (final_timeout, *(escaped for _ in velocity[1:]))
+    override = campaign.VelocityResolvedCaptureOverride(
+        disc_index=base.disc_index,
+        point_index=base.point_index,
+        velocity_m_per_s=velocity,
+        captured=(None, *(False for _ in velocity[1:])),
+    )
+    case = campaign.TimeoutAuditCase(
+        sample=base,
+        apparatus=object(),
+        simple_config=object(),
+        coil_config=object(),
+        search_config=search,
+    )
+    outcome = TimeoutAuditOutcome(
+        case=case,
+        status="velocity_resolved_capture_with_indeterminate_zero_flux",
+        reason="sole exact-zero node remains timeout after the full ladder",
+        replacement_sample=accepted,
+        velocity_override=override,
+        coarse_lower_result=final_timeout,
+        fine_lower_result=final_timeout,
+        coarse_upper_result=escaped,
+        fine_upper_result=escaped,
+        adaptive_evidence=adaptive_evidence,
+        coarse_boundary_sample=accepted,
+        fine_boundary_sample=accepted,
+        velocity_grid_m_per_s=velocity,
+        coarse_velocity_grid_results=coarse_grid,
+        fine_velocity_grid_results=fine_grid,
+    )
+    monkeypatch.setattr(campaign, "_WORKER_SEARCH", search)
+    monkeypatch.setattr(campaign, "_WORKER_APPARATUS", case.apparatus)
+    monkeypatch.setattr(campaign, "_WORKER_COIL", case.coil_config)
+    monkeypatch.setattr(campaign, "_WORKER_SIMPLE", case.simple_config)
+    audit_row = campaign._base_audit_row(point, base, (0.0,), search)
+    result = campaign._apply_zero_threshold_audit(
+        base, audit_row, precomputed_outcome=outcome
+    )
+    return result, search
+
+
+def test_zero_worker_and_ledger_accept_only_full_provenance_zero_flux(
+    monkeypatch,
+) -> None:
+    result, search = _indeterminate_zero_flux_result(monkeypatch)
+    key = (result.sample.disc_index, result.sample.point_index)
+
+    assert result.sample.lower_classification == "indeterminate_zero_flux"
+    assert result.velocity_override is not None
+    assert result.velocity_override.captured[0] is None
+    assert result.audit_row["zero_threshold_audit_status"] == (
+        "velocity_resolved_capture_with_indeterminate_zero_flux"
+    )
+    assert result.audit_row["adaptive_audit_level_count"] == len(
+        campaign.DEFAULT_ADAPTIVE_AUDIT_LEVELS
+    )
+    assert result.audit_row["adaptive_max_duration_s"] == pytest.approx(2.0)
+    campaign._validate_completed_audit_ledger(
+        {key: result.sample},
+        {key: result.audit_row},
+        {key: result.velocity_override},
+        search=search,
+    )
+
+    truncated = dict(result.audit_row)
+    evidence = json.loads(truncated["adaptive_audit_evidence_json"])
+    truncated["adaptive_audit_evidence_json"] = json.dumps(evidence[:-1])
+    truncated["adaptive_audit_level_count"] = len(evidence) - 1
+    truncated["adaptive_max_duration_s"] = evidence[-2]["duration_s"]
+    truncated["adaptive_coarse_time_step_s"] = evidence[-2][
+        "coarse_time_step_s"
+    ]
+    truncated["adaptive_fine_time_step_s"] = evidence[-2]["fine_time_step_s"]
+    with pytest.raises(ValueError):
+        campaign._validate_completed_audit_ledger(
+            {key: result.sample},
+            {key: truncated},
+            {key: result.velocity_override},
+            search=search,
+        )
+
+
+def test_indeterminate_zero_flux_propagates_through_point_outputs_and_aggregate(
+    tmp_path, monkeypatch
+) -> None:
+    result, search = _indeterminate_zero_flux_result(monkeypatch)
+    assert result.velocity_override is not None
+    point = campaign.build_relationship_points(campaign.RAW_STUDY_KEY, [1.0])[0]
+    paths = campaign.StudyPaths(tmp_path / "statistics", tmp_path / "figures")
+    signature_payload = campaign._point_signature_payload(
+        point, search, "geometry-hash"
+    )
+    signature = campaign._signature(signature_payload)
+
+    summary = campaign._analyze_point(
+        [result.sample],
+        search,
+        point,
+        paths,
+        signature=signature,
+        geometry_hash="geometry-hash",
+        overrides=[result.velocity_override],
+    )
+
+    assert summary["indeterminate_zero_flux_ray_count"] == 1
+    assert summary["loading_rate"]["indeterminate_zero_flux_ray_count"] == 1
+    assert summary["loading_rate"]["zero_flux_quadrature_anchor_used"] is True
+    assert summary["loading_rate"]["zero_speed_cross_section_imputed"] is False
+    spectrum = np.genfromtxt(paths.spectrum_csv, delimiter=",", names=True)
+    assert np.atleast_1d(spectrum)[0]["velocity_m_per_s"] == pytest.approx(0.25)
+    assert not np.any(np.isclose(np.atleast_1d(spectrum)["velocity_m_per_s"], 0.0))
+    assert paths.cross_section_png.is_file()
+    assert paths.impact_parameter_png.is_file()
+
+    metadata = campaign._new_point_metadata(
+        point,
+        search,
+        signature_payload,
+        signature,
+        "geometry-hash",
+        paths,
+        worker_count=1,
+        completed_sample_count=1,
+    )
+    metadata.update(status="completed", elapsed_wall_time_s=1.0)
+    campaign._atomic_write_json(paths.metadata_json, metadata)
+    aggregate = campaign._point_aggregate_row(point, search, paths, summary)
+    assert aggregate["indeterminate_zero_flux_ray_count"] == 1
 
 
 def _zero_velocity_resolved_result(monkeypatch, *, topology="island"):
@@ -1284,7 +1689,9 @@ def test_relationship_point_writes_resumable_complete_products(tmp_path, monkeyp
 
     def fake_worker(point):
         sample = _sample(point, capture_velocity=4.0 + 0.25 * point.point_index)
-        return campaign.CaptureWorkerResult(sample, _audit(sample))
+        return campaign.CaptureWorkerResult(
+            sample, _audit(sample, timeout=point.point_index == 0)
+        )
 
     monkeypatch.setattr(
         campaign,
@@ -1315,8 +1722,17 @@ def test_relationship_point_writes_resumable_complete_products(tmp_path, monkeyp
     metadata = json.loads(paths.metadata_json.read_text(encoding="utf-8"))
     assert metadata["status"] == "completed"
     assert metadata["completed_sample_count"] == 4
+    assert metadata["automatically_extended_timeout_ray_count"] == 2
     assert metadata["phase_space"] == "full_sphere"
     assert metadata["repumper_included"] is False
+
+    metadata["automatically_extended_timeout_ray_count"] = 999
+    metadata["migration"] = {"source_campaign_name": "synthetic-v3"}
+    metadata["migration_history"] = [
+        {"source_campaign_name": "synthetic-v2"},
+        {"source_campaign_name": "synthetic-v3"},
+    ]
+    campaign._atomic_write_json(paths.metadata_json, metadata)
 
     resumed = campaign.run_relationship_point(
         relationship_point,
@@ -1331,6 +1747,62 @@ def test_relationship_point_writes_resumable_complete_products(tmp_path, monkeyp
         analyze_only=True,
     )
     assert resumed["loading_rate"] == summary["loading_rate"]
+    resumed_metadata = json.loads(paths.metadata_json.read_text(encoding="utf-8"))
+    assert resumed_metadata["automatically_extended_timeout_ray_count"] == 2
+    assert resumed_metadata["migration"] == {
+        "source_campaign_name": "synthetic-v3"
+    }
+    assert resumed_metadata["migration_history"] == [
+        {"source_campaign_name": "synthetic-v2"},
+        {"source_campaign_name": "synthetic-v3"},
+    ]
+
+
+def test_audit_count_summary_reconstructs_every_counter() -> None:
+    point = campaign.build_relationship_points(campaign.RAW_STUDY_KEY, [1.0])[0]
+    search = replace(
+        campaign.default_search_config(), disc_count=1, points_per_disc=4
+    )
+    _, points = campaign.generate_common_geometry(search)
+    rows = {}
+    for index, launch_point in enumerate(points):
+        sample = _sample(launch_point)
+        row = _audit(sample, timeout=index in {0, 1, 2})
+        row["adaptive_audit_level_count"] = 1 if index in {0, 1} else 0
+        row["zero_threshold_audit_status"] = (
+            "velocity_resolved_capture_with_indeterminate_zero_flux"
+            if index == 0
+            else "not_applicable"
+        )
+        row["timeout_resolution_status"] = {
+            0: "adaptive_dual_step_research_recovered_boundary",
+            1: "complete_scalar_diagnostics_and_velocity_grid_recovered_capture",
+        }.get(index, row["timeout_resolution_status"])
+        row["positive_boundary_grid_audit_status"] = (
+            "velocity_resolved_capture" if index == 1 else "not_applicable"
+        )
+        row["pre_adaptive_coarse_evaluation_timeout_count"] = int(index == 1)
+        rows[(sample.disc_index, sample.point_index)] = row
+    override = campaign.VelocityResolvedCaptureOverride(
+        disc_index=0,
+        point_index=0,
+        velocity_m_per_s=(0.0, 0.25),
+        captured=(None, False),
+    )
+
+    counts = campaign._audit_count_summary(rows, {(0, 0): override})
+
+    assert counts == {
+        "automatically_extended_timeout_ray_count": 3,
+        "adaptively_extended_velocity_grid_ray_count": 1,
+        "adaptively_extended_audit_ray_count": 2,
+        "adaptively_extended_positive_boundary_ray_count": 1,
+        "complete_longer_boundary_fallback_ray_count": 1,
+        "positive_boundary_grid_override_count": 1,
+        "pre_adaptive_positive_research_timeout_ray_count": 1,
+        "velocity_resolved_override_count": 1,
+        "indeterminate_zero_flux_ray_count": 1,
+    }
 
 
 def test_parallel_worker_failure_aborts_pool_before_saving_checkpoint(
@@ -1665,6 +2137,125 @@ def test_point_resume_rejects_any_scientific_signature_change(tmp_path, monkeypa
         )
 
 
+def test_campaign_resume_clears_stale_failure_after_success(
+    tmp_path, monkeypatch
+) -> None:
+    search = campaign.default_search_config()
+    discs, points = campaign.generate_common_geometry(search)
+    geometry_text = geometry_csv_text(geometry_rows(discs, points))
+    geometry_hash = hashlib.sha256(geometry_text.encode("utf-8")).hexdigest()
+    paths = campaign.CampaignPaths(
+        statistics=tmp_path / "statistics" / campaign.CAMPAIGN_NAME,
+        figures=tmp_path / "figures" / campaign.CAMPAIGN_NAME,
+    )
+    paths.statistics.mkdir(parents=True)
+    paths.figures.mkdir(parents=True)
+    metadata = campaign._new_campaign_metadata(paths, search, geometry_hash)
+    metadata.update(
+        {
+            "status": "failed",
+            "last_error": "RuntimeError: prior resumable failure",
+            "migration": {"source_campaign_name": "synthetic-v4"},
+            "migration_history": [
+                {"source_campaign_name": "synthetic-v3"},
+                {"source_campaign_name": "synthetic-v4"},
+            ],
+            "stage_status": {
+                campaign.RAW_STUDY_KEY: "failed",
+                campaign.EFFECTIVE_STUDY_KEY: "completed",
+                campaign.DETUNING_STUDY_KEY: "completed",
+            },
+        }
+    )
+    campaign._atomic_write_text(paths.geometry_csv, geometry_text)
+    campaign._atomic_write_json(paths.metadata_json, metadata)
+    monkeypatch.setattr(campaign, "run_loading_relationship", lambda *args, **kwargs: [])
+
+    result = campaign.run_campaign(
+        paths=paths,
+        search=search,
+        worker_count=1,
+        resume=True,
+        selected_studies=(campaign.RAW_STUDY_KEY,),
+    )
+
+    saved = json.loads(paths.metadata_json.read_text(encoding="utf-8"))
+    assert result["status"] == "completed"
+    assert saved["status"] == "completed"
+    assert saved["stage_status"][campaign.RAW_STUDY_KEY] == "completed"
+    assert "last_error" not in result
+    assert "last_error" not in saved
+    assert saved["migration"] == {"source_campaign_name": "synthetic-v4"}
+    assert saved["migration_history"] == [
+        {"source_campaign_name": "synthetic-v3"},
+        {"source_campaign_name": "synthetic-v4"},
+    ]
+
+
+def test_study_metadata_regeneration_preserves_migration_history(
+    tmp_path, monkeypatch
+) -> None:
+    search = campaign.default_search_config()
+    paths = campaign.CampaignPaths(
+        statistics=tmp_path / "statistics" / campaign.CAMPAIGN_NAME,
+        figures=tmp_path / "figures" / campaign.CAMPAIGN_NAME,
+    )
+    study_metadata_path = paths.study_metadata_json(campaign.RAW_STUDY_KEY)
+    study_metadata_path.parent.mkdir(parents=True)
+    paths.figures.mkdir(parents=True)
+    migration_record = {"source_campaign_name": "synthetic-v4"}
+    migration_history = [
+        {"source_campaign_name": "synthetic-v3"},
+        migration_record,
+    ]
+    campaign._atomic_write_json(
+        study_metadata_path,
+        {
+            "schema_version": campaign.CAMPAIGN_SCHEMA_VERSION,
+            "migration": migration_record,
+            "migration_history": migration_history,
+        },
+    )
+    point = campaign.build_relationship_points(campaign.RAW_STUDY_KEY, [1.0])[0]
+
+    def fake_point(*_args, **kwargs):
+        return {"geometry_sha256": kwargs["geometry_hash"]}
+
+    monkeypatch.setattr(campaign, "run_relationship_point", fake_point)
+    monkeypatch.setattr(
+        campaign,
+        "_point_aggregate_row",
+        lambda *_args, **_kwargs: {
+            "point_index": 0,
+            "loading_rate_mean_atoms_per_s": 1.0,
+            "indeterminate_zero_flux_ray_count": 0,
+        },
+    )
+    monkeypatch.setattr(
+        campaign, "plot_loading_relationship", lambda *_args, **_kwargs: None
+    )
+
+    campaign.run_loading_relationship(
+        campaign.RAW_STUDY_KEY,
+        [point],
+        search=search,
+        campaign_paths=paths,
+        worker_count=1,
+        resume=True,
+    )
+
+    regenerated = json.loads(study_metadata_path.read_text(encoding="utf-8"))
+    assert regenerated["migration"] == migration_record
+    assert regenerated["migration_history"] == migration_history
+
+
+def test_malformed_migration_history_fails_closed() -> None:
+    with pytest.raises(ValueError, match="migration history"):
+        campaign._preserve_migration_provenance(
+            {}, {"migration_history": [{"valid": True}, "invalid"]}
+        )
+
+
 def test_relationship_plot_writes_requested_full_range_and_inset(tmp_path, monkeypatch) -> None:
     rows = []
     for index, value in enumerate(campaign.RAW_SATURATION_VALUES):
@@ -1676,6 +2267,7 @@ def test_relationship_plot_writes_requested_full_range_and_inset(tmp_path, monke
                 "loading_rate_mean_atoms_per_s": (index + 1) * 1.0e6,
                 "loading_rate_t95_lower_atoms_per_s": (index + 0.8) * 1.0e6,
                 "loading_rate_t95_upper_atoms_per_s": (index + 1.2) * 1.0e6,
+                "indeterminate_zero_flux_ray_count": int(index == 2),
             }
         )
     captured = {}
@@ -1695,6 +2287,10 @@ def test_relationship_plot_writes_requested_full_range_and_inset(tmp_path, monke
         assert len(figure.axes) == 1
         assert len(figure.axes[0].child_axes) == 1
         assert figure.axes[0].get_legend()._loc == 2
+        assert any(
+            "indeterminate" in text.get_text().lower()
+            for text in figure.axes[0].get_legend().get_texts()
+        )
         assert figure.axes[0].get_xlim()[1] > 125.0
         assert 125.0 in figure.axes[0].get_xticks()
     finally:

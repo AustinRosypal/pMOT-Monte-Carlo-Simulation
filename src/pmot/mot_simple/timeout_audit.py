@@ -10,11 +10,14 @@ products are described as final:
 * repeat saved endpoints with a longer duration at two timesteps;
 * re-bisect a boundary when a formerly timed-out endpoint later traps;
 * scan zero-threshold rays directly on the analysis-velocity grid; and
-* retain a boolean velocity mask when capture is nonmonotone.
+* retain a velocity-resolved mask when capture is nonmonotone.
 
 The module deliberately performs no filesystem mutation.  A caller must only
-replace production products after every outcome is resolved and any direct
-velocity masks are incorporated into the spectrum and loading integrals.
+replace production products after every positive-flux outcome is resolved and
+any direct velocity masks are incorporated into the spectrum and loading
+integrals.  A bounded, explicitly indeterminate zero-speed node may be retained
+because it has exactly zero weight in the loading integral; it is never
+relabelled as escaped.
 """
 
 from __future__ import annotations
@@ -36,7 +39,9 @@ from .configuration import SimpleMOTConfig
 from .loading import (
     LOADING_RATE_PREFACTOR,
     THERMAL_SCALE_M2_PER_S2,
+    LoadingRateResult,
     calculate_loading_rate_from_spectrum,
+    loading_integrand,
 )
 from .power_loading_study import (
     _student_t_critical_95,
@@ -52,6 +57,10 @@ COARSE_TIME_STEP_S = 5.0e-6
 FINE_TIME_STEP_S = 2.5e-6
 AUDIT_VELOCITY_TOLERANCE_M_PER_S = 0.249
 TRAPPED_TERMINATION_REASONS = {"two_core_entries", "bounded_core_residence"}
+INDETERMINATE_ZERO_FLUX_CLASSIFICATION = "indeterminate_zero_flux"
+INDETERMINATE_ZERO_FLUX_STATUS = (
+    "velocity_resolved_capture_with_indeterminate_zero_flux"
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -66,6 +75,19 @@ class AdaptiveAuditLevel:
 DEFAULT_ADAPTIVE_AUDIT_LEVELS: tuple[AdaptiveAuditLevel, ...] = (
     AdaptiveAuditLevel(250.0e-3, 5.0e-6, 2.5e-6),
     AdaptiveAuditLevel(400.0e-3, 2.5e-6, 1.25e-6),
+    # A production zero-speed ray at Delta/Gamma=-3.75 first satisfied the
+    # two-entry trapping criterion at about 806.452 ms at both 1.25 and
+    # 0.625 microsecond timesteps.  The 1 s horizon is therefore a bounded,
+    # dual-timestep terminal check, not permission to treat a shorter timeout
+    # as escape.
+    AdaptiveAuditLevel(1.0, 1.25e-6, 0.625e-6),
+    # At Delta/Gamma=-4.25, production ray (disc 7, point 20) remained finite
+    # and outside the core through 2 s at both timesteps.  The terminal states
+    # agreed to 4.5e-14 m in position norm and 1.9e-12 m/s in velocity norm,
+    # but neither satisfied a trapped or escaped terminal predicate.  This
+    # final node-only level establishes bounded evidence for an explicitly
+    # indeterminate v=0 state; it never converts a timeout into escape.
+    AdaptiveAuditLevel(2.0, 1.25e-6, 0.625e-6),
 )
 
 Classifier = Callable[
@@ -115,17 +137,19 @@ Rebisector = Callable[
 
 @dataclass(frozen=True, slots=True)
 class VelocityResolvedCaptureOverride:
-    """Direct capture evidence for one exceptional, nonmonotone launch ray.
+    """Direct capture evidence for one exceptional launch ray.
 
-    The mask may begin captured when a 50 ms zero-speed timeout becomes a
-    trapped trajectory in the authoritative 200 ms audit.  It must end
-    escaped so the recorded analysis domain still brackets capture.
+    Boolean elements are definitive capture decisions.  ``None`` is permitted
+    only at exactly zero speed after the complete bounded audit ladder has been
+    exhausted; it means indeterminate with zero loading flux, not escaped.  The
+    mask must end escaped so the recorded analysis domain still brackets
+    capture.
     """
 
     disc_index: int
     point_index: int
     velocity_m_per_s: tuple[float, ...]
-    captured: tuple[bool, ...]
+    captured: tuple[bool | None, ...]
 
     @property
     def key(self) -> tuple[int, int]:
@@ -207,6 +231,24 @@ class TimeoutAuditOutcome:
             "rebisected",
             "velocity_resolved_capture",
         } and self.replacement_sample is not None
+
+    @property
+    def loading_admissible(self) -> bool:
+        """Whether the result supplies complete positive-flux loading evidence.
+
+        The special zero-flux status deliberately remains absent from
+        :attr:`resolved`: its capture state is unknown even though it cannot
+        affect the loading integral.
+        """
+
+        return bool(
+            self.resolved
+            or (
+                self.status == INDETERMINATE_ZERO_FLUX_STATUS
+                and self.replacement_sample is not None
+                and self.velocity_override is not None
+            )
+        )
 
 
 def point_from_sample(sample: CaptureVelocitySample) -> PointSample:
@@ -384,6 +426,42 @@ def _replacement_from_zero_scan(
         upper_entered_trap_core=fine_results[first_positive].entered_trap_core,
         lower_core_entry_count=fine_results[0].core_entry_count,
         upper_core_entry_count=fine_results[first_positive].core_entry_count,
+    )
+
+
+def _replacement_from_indeterminate_zero_scan(
+    sample: CaptureVelocitySample,
+    velocities: Sequence[float],
+    fine_results: Sequence[TrajectoryClassification],
+) -> CaptureVelocitySample:
+    """Build a scalar compatibility row without deciding capture at ``v=0``."""
+
+    first_positive_escape = next(
+        (
+            index
+            for index in range(1, len(velocities))
+            if _is_escaped(fine_results[index])
+        ),
+        0,
+    )
+    if first_positive_escape == 0:
+        raise ValueError(
+            "indeterminate-zero scan has no positive escaped velocity node"
+        )
+    return replace(
+        sample,
+        capture_velocity_m_per_s=0.0,
+        velocity_resolution_m_per_s=float(velocities[first_positive_escape]),
+        trapped_velocity_lower_m_per_s=0.0,
+        untrapped_velocity_upper_m_per_s=float(velocities[first_positive_escape]),
+        lower_classification=INDETERMINATE_ZERO_FLUX_CLASSIFICATION,
+        upper_classification=fine_results[first_positive_escape].termination_reason,
+        lower_entered_trap_core=fine_results[0].entered_trap_core,
+        upper_entered_trap_core=(
+            fine_results[first_positive_escape].entered_trap_core
+        ),
+        lower_core_entry_count=fine_results[0].core_entry_count,
+        upper_core_entry_count=fine_results[first_positive_escape].core_entry_count,
     )
 
 
@@ -592,6 +670,66 @@ def _audit_zero_grid_batched(
     coarse_upper = grid_endpoint(upper, coarse_scan, last_coarse_search)
     fine_upper = grid_endpoint(upper, fine_scan, last_fine_search)
     if unresolved_indices:
+        zero_level_indices = [
+            item.level_index
+            for item in adaptive_evidence
+            if item.velocity_m_per_s == 0.0
+        ]
+        zero_results = [
+            result
+            for item in adaptive_evidence
+            if item.velocity_m_per_s == 0.0
+            for result in (item.coarse_result, item.fine_result)
+        ]
+        indeterminate_zero_is_loading_admissible = bool(
+            adaptive_levels
+            and unresolved_indices == [0]
+            and velocities[0] == 0.0
+            and zero_level_indices == list(range(1, len(adaptive_levels) + 1))
+            and all(
+                result.termination_reason != "non_finite"
+                for result in zero_results
+            )
+            and coarse_scan[0].termination_reason != "non_finite"
+            and fine_scan[0].termination_reason != "non_finite"
+            and _is_escaped(coarse_scan[-1])
+            and _is_escaped(fine_scan[-1])
+        )
+        if indeterminate_zero_is_loading_admissible:
+            states: tuple[bool | None, ...] = (
+                None,
+                *(bool(result.trapped) for result in fine_scan[1:]),
+            )
+            coarse_replacement = _replacement_from_indeterminate_zero_scan(
+                sample, velocities, coarse_scan
+            )
+            replacement = _replacement_from_indeterminate_zero_scan(
+                sample, velocities, fine_scan
+            )
+            override = VelocityResolvedCaptureOverride(
+                sample.disc_index,
+                sample.point_index,
+                velocities,
+                states,
+            )
+            return TimeoutAuditOutcome(
+                case,
+                INDETERMINATE_ZERO_FLUX_STATUS,
+                "only the exact zero-speed node remains indeterminate after the "
+                "complete bounded dual-timestep ladder; all positive-speed nodes "
+                "are definitive and agreed, so the unknown zero-speed state is "
+                "retained without imputation because its loading flux is exactly zero",
+                replacement,
+                override,
+                coarse_lower,
+                fine_lower,
+                coarse_upper,
+                fine_upper,
+                adaptive_evidence=tuple(adaptive_evidence),
+                coarse_boundary_sample=coarse_replacement,
+                fine_boundary_sample=replacement,
+                **grid_evidence(),
+            )
         unresolved_speeds = ", ".join(
             f"{velocities[index]:g}" for index in unresolved_indices
         )
@@ -1028,8 +1166,11 @@ def audit_capture_boundaries_on_velocity_grid_batched(
 
     Every grid speed is classified independently at the requested coarse and
     fine audit settings. Only nodes that remain non-definitive or disagree are
-    advanced through the bounded adaptive hierarchy. An unresolved node or a
-    captured high-speed endpoint leaves the outcome unresolved. Set
+    advanced through the bounded adaptive hierarchy. An unresolved positive
+    node or a captured high-speed endpoint leaves the outcome unusable.  The
+    sole exception is a finite, literal zero-speed node after the complete
+    hierarchy: it remains explicitly indeterminate but is loading-admissible
+    because its incident-flux weight is exactly zero. Set
     ``always_override`` to retain an agreed direct boolean mask even when the
     mask is a monotone captured prefix; this is appropriate when a prior scalar
     boundary search has already demonstrated timestep sensitivity.
@@ -1401,7 +1542,26 @@ def validate_velocity_overrides(
             velocity, expected, atol=1.0e-12, rtol=0.0
         ):
             raise ValueError(f"velocity override {override.key} does not cover the exact grid")
-        if override.captured[-1]:
+        if any(
+            value is not None and type(value) is not bool
+            for value in override.captured
+        ):
+            raise ValueError(
+                f"velocity override {override.key} contains a non-boolean state"
+            )
+        indeterminate_indices = [
+            index for index, value in enumerate(override.captured) if value is None
+        ]
+        if indeterminate_indices and (
+            indeterminate_indices != [0]
+            or expected[0] != 0.0
+            or velocity[0] != 0.0
+        ):
+            raise ValueError(
+                f"velocity override {override.key} may be indeterminate only at "
+                "the exact zero-speed node"
+            )
+        if override.captured[-1] is not False:
             raise ValueError(
                 f"velocity override {override.key} lacks an escaped high endpoint"
             )
@@ -1413,19 +1573,25 @@ def capture_predicate_with_overrides(
     samples: Sequence[CaptureVelocitySample],
     velocity_grid_m_per_s: Sequence[float],
     overrides: Sequence[VelocityResolvedCaptureOverride],
-) -> Callable[[CaptureVelocitySample, float], bool]:
-    """Return the threshold/direct-mask capture predicate used by reanalysis."""
+) -> Callable[[CaptureVelocitySample, float], bool | None]:
+    """Return the threshold/direct-mask state used by reanalysis.
+
+    ``None`` is returned only for an authenticated exact-zero-speed state.  A
+    caller must never coerce it to ``False``; loading aggregation omits that
+    undefined cross-section node and supplies an algebraic zero-flux integrand
+    anchor separately.
+    """
 
     keyed = validate_velocity_overrides(samples, velocity_grid_m_per_s, overrides)
     grid = np.asarray(velocity_grid_m_per_s, dtype=float)
 
-    def captured(sample: CaptureVelocitySample, speed: float) -> bool:
+    def captured(sample: CaptureVelocitySample, speed: float) -> bool | None:
         override = keyed.get((sample.disc_index, sample.point_index))
         if override is not None:
             matches = np.flatnonzero(np.isclose(grid, speed, atol=1.0e-12, rtol=0.0))
             if len(matches) != 1:
                 raise ValueError(f"speed {speed:g} m/s is absent from the direct mask")
-            return bool(override.captured[int(matches[0])])
+            return override.captured[int(matches[0])]
         return bool(
             sample.lower_classification in TRAPPED_TERMINATION_REASONS
             and sample.capture_velocity_m_per_s >= speed - 1.0e-12
@@ -1443,8 +1609,8 @@ def velocity_overrides_to_payload(
     if len({item.key for item in ordered}) != len(ordered):
         raise ValueError("duplicate velocity-resolved override")
     return {
-        "schema_version": 1,
-        "representation": "direct_boolean_capture_mask",
+        "schema_version": 2,
+        "representation": "direct_tristate_capture_mask",
         "override_count": len(ordered),
         "overrides": [
             {
@@ -1463,9 +1629,15 @@ def velocity_overrides_from_payload(
 ) -> list[VelocityResolvedCaptureOverride]:
     """Deserialize masks, rejecting malformed or duplicate records."""
 
-    if int(payload.get("schema_version", -1)) != 1:
+    schema_version = int(payload.get("schema_version", -1))
+    if schema_version not in {1, 2}:
         raise ValueError("unsupported velocity-override schema")
-    if payload.get("representation") != "direct_boolean_capture_mask":
+    expected_representation = (
+        "direct_boolean_capture_mask"
+        if schema_version == 1
+        else "direct_tristate_capture_mask"
+    )
+    if payload.get("representation") != expected_representation:
         raise ValueError("unsupported velocity-override representation")
     records = payload.get("overrides")
     if not isinstance(records, list):
@@ -1478,8 +1650,13 @@ def velocity_overrides_from_payload(
         raw_captured = record.get("captured_mask")
         if not isinstance(raw_velocity, list) or not isinstance(raw_captured, list):
             raise ValueError("velocity-override arrays are missing")
-        if any(type(value) is not bool for value in raw_captured):
-            raise ValueError("captured_mask must contain JSON booleans")
+        if schema_version == 1 and any(type(value) is not bool for value in raw_captured):
+            raise ValueError("legacy captured_mask must contain JSON booleans")
+        if schema_version == 2 and any(
+            value is not None and type(value) is not bool
+            for value in raw_captured
+        ):
+            raise ValueError("captured_mask must contain JSON booleans or null")
         override = VelocityResolvedCaptureOverride(
             disc_index=int(record["disc_index"]),
             point_index=int(record["point_index"]),
@@ -1552,6 +1729,16 @@ def calculate_clustered_cross_section_with_overrides(
     t_critical = _student_t_critical_95(disc_count)
     rows: list[dict[str, int | float]] = []
     for speed in velocity:
+        states = [captured_at(sample, float(speed)) for sample in samples]
+        if any(state is None for state in states):
+            if speed != 0.0:
+                raise ValueError(
+                    "an indeterminate capture state occurred at positive speed"
+                )
+            # sigma_capture(0) is intentionally absent rather than imputed.
+            # Loading supplies the exact zero-valued *integrand* endpoint
+            # separately, so omitting this row loses no flux contribution.
+            continue
         disc_cross_sections = area * np.asarray(
             [
                 np.mean(
@@ -1588,6 +1775,53 @@ def calculate_clustered_cross_section_with_overrides(
     return rows
 
 
+def _calculate_loading_rate_with_optional_zero_flux_anchor(
+    velocity_m_per_s: np.ndarray,
+    capture_cross_section_m2: np.ndarray,
+    *,
+    use_zero_flux_anchor: bool,
+) -> LoadingRateResult:
+    """Integrate with an algebraic ``g(0)=0`` anchor when sigma(0) is unknown."""
+
+    if not use_zero_flux_anchor:
+        return calculate_loading_rate_from_spectrum(
+            velocity_m_per_s, capture_cross_section_m2
+        )
+    if (
+        velocity_m_per_s.ndim != 1
+        or capture_cross_section_m2.ndim != 1
+        or len(velocity_m_per_s) != len(capture_cross_section_m2)
+        or len(velocity_m_per_s) < 1
+        or velocity_m_per_s[0] <= 0.0
+    ):
+        raise ValueError(
+            "zero-flux anchor requires a nonempty positive-speed spectrum"
+        )
+    positive_integrand = loading_integrand(
+        velocity_m_per_s, capture_cross_section_m2
+    )
+    quadrature_velocity = np.concatenate(
+        (np.asarray([0.0]), velocity_m_per_s)
+    )
+    quadrature_integrand = np.concatenate(
+        (np.asarray([0.0]), positive_integrand)
+    )
+    integral_value = float(
+        np.trapezoid(quadrature_integrand, quadrature_velocity)
+    )
+    return LoadingRateResult(
+        loading_rate_atoms_per_s=LOADING_RATE_PREFACTOR * integral_value,
+        integral_value_m5_per_s4=integral_value,
+        velocity_min_m_per_s=0.0,
+        velocity_max_m_per_s=float(np.max(velocity_m_per_s)),
+        sample_count=int(len(quadrature_velocity)),
+        nonzero_cross_section_count=int(
+            np.count_nonzero(capture_cross_section_m2 > 0.0)
+        ),
+        quadrature_method="trapezoid",
+    )
+
+
 def calculate_disc_clustered_loading_with_overrides(
     samples: Sequence[CaptureVelocitySample],
     search: CaptureSearchConfig,
@@ -1603,7 +1837,15 @@ def calculate_disc_clustered_loading_with_overrides(
     velocity = np.asarray(
         [float(row["velocity_m_per_s"]) for row in spectrum_rows], dtype=float
     )
-    captured_at = capture_predicate_with_overrides(samples, velocity, overrides)
+    override_velocity = np.asarray(overrides[0].velocity_m_per_s, dtype=float)
+    captured_at = capture_predicate_with_overrides(
+        samples, override_velocity, overrides
+    )
+    indeterminate_zero_flux_ray_count = sum(
+        any(value is None for value in override.captured)
+        for override in overrides
+    )
+    use_zero_flux_anchor = indeterminate_zero_flux_ray_count > 0
     grouped: dict[int, list[CaptureVelocitySample]] = {}
     for sample in samples:
         grouped.setdefault(sample.disc_index, []).append(sample)
@@ -1620,7 +1862,11 @@ def calculate_disc_clustered_loading_with_overrides(
             ],
             dtype=float,
         )
-        result = calculate_loading_rate_from_spectrum(velocity, sigma)
+        result = _calculate_loading_rate_with_optional_zero_flux_anchor(
+            velocity,
+            sigma,
+            use_zero_flux_anchor=use_zero_flux_anchor,
+        )
         by_disc.append(
             {
                 "disc_index": disc_index,
@@ -1640,7 +1886,11 @@ def calculate_disc_clustered_loading_with_overrides(
         [float(row["capture_cross_section_m2"]) for row in spectrum_rows],
         dtype=float,
     )
-    mean_spectrum_result = calculate_loading_rate_from_spectrum(velocity, mean_sigma)
+    mean_spectrum_result = _calculate_loading_rate_with_optional_zero_flux_anchor(
+        velocity,
+        mean_sigma,
+        use_zero_flux_anchor=use_zero_flux_anchor,
+    )
     disc_count = len(by_disc)
     sample_std = float(np.std(rates, ddof=1)) if disc_count > 1 else 0.0
     sem = sample_std / np.sqrt(disc_count)
@@ -1664,9 +1914,15 @@ def calculate_disc_clustered_loading_with_overrides(
         "loading_integral_from_mean_spectrum_m6_per_s4": (
             mean_spectrum_result.integral_value_m5_per_s4
         ),
-        "velocity_min_m_per_s": float(np.min(velocity)),
+        "velocity_min_m_per_s": mean_spectrum_result.velocity_min_m_per_s,
         "velocity_max_m_per_s": float(np.max(velocity)),
-        "velocity_grid_sample_count": len(velocity),
+        "velocity_grid_sample_count": mean_spectrum_result.sample_count,
+        "capture_spectrum_row_count": len(velocity),
+        "indeterminate_zero_flux_ray_count": (
+            indeterminate_zero_flux_ray_count
+        ),
+        "zero_flux_quadrature_anchor_used": use_zero_flux_anchor,
+        "zero_speed_cross_section_imputed": False,
         "quadrature_method": "trapezoid",
         "formula": (
             "R = 9.1196e5 * integral sigma_capture(v) * v^3 * "
@@ -1689,6 +1945,8 @@ __all__ = [
     "COARSE_TIME_STEP_S",
     "DEFAULT_ADAPTIVE_AUDIT_LEVELS",
     "FINE_TIME_STEP_S",
+    "INDETERMINATE_ZERO_FLUX_CLASSIFICATION",
+    "INDETERMINATE_ZERO_FLUX_STATUS",
     "TimeoutAuditCase",
     "TimeoutAuditOutcome",
     "VelocityResolvedCaptureOverride",

@@ -1,0 +1,114 @@
+{
+  "diagnostic_date": "2026-09-08",
+  "purpose": "Resolve the zero-speed audit boundary that stopped the two-level detuning campaign at Delta/Gamma=-4.25.",
+  "model": "mot_simple deterministic effective two-level mean-force MOT",
+  "production_failure": {
+    "source_campaign": "refined_relationships_full_sphere_25x25_r15mm_27mW_reference_optimized_v4_20260908",
+    "source_campaign_signature_sha256": "c58cde3796ecb4e51394d84f490051e48b8bab202df831fb73fd905d6db18128",
+    "point_status": "failed",
+    "completed_sample_count": 615,
+    "expected_sample_count": 625,
+    "error": "RuntimeError: zero-threshold direct velocity audit failed for (7, 20): velocity-grid evidence remains non-definitive or timestep-dependent after all adaptive levels at 0 m/s"
+  },
+  "ray": {
+    "disc_index": 7,
+    "point_index": 20,
+    "incident_speed_m_per_s": 0.0,
+    "geometry_seed": 20260903,
+    "geometry_sha256": "02509217f582bc1619712cd31de3fcb34aac11b208c54a4cb228694f36603e17",
+    "initial_radius_m": 0.020282895991916076,
+    "initial_position_m": [
+      0.01156757794647051,
+      -0.008760274051077085,
+      -0.014171965594836862
+    ],
+    "initial_velocity_m_per_s": [0.0, 0.0, 0.0],
+    "incident_unit_vector": [
+      -0.8266121550333054,
+      -0.21834328217713814,
+      0.5186892675574744
+    ]
+  },
+  "physics_configuration": {
+    "cooling_detuning_n": -4.25,
+    "cooling_detuning_hz": -25776250.0,
+    "linewidth_hz": 6065000.0,
+    "cooling_power_w_per_beam": 0.027,
+    "cooling_beam_diameter_m": 0.0127,
+    "cooling_beam_count": 6,
+    "repumper_included": false,
+    "gravity_enabled": true,
+    "anti_helmholtz_axial_gradient_g_per_cm": 10.0,
+    "trap_core_radius_m": 0.002,
+    "escape_radius_m": 0.03,
+    "trapped_criterion": "continuously inside the 2 mm-radius core for at least 5 ms OR two core entries with an intervening exit"
+  },
+  "two_second_convergence_pair": [
+    {
+      "duration_s": 2.0,
+      "time_step_s": 0.00000125,
+      "termination_reason": "timeout",
+      "trapped": false,
+      "entered_trap_core": false,
+      "core_entry_count": 0,
+      "elapsed_time_s": 2.0,
+      "minimum_radius_m": 0.019849307745221548,
+      "final_radius_m": 0.019849307745027106,
+      "final_position_m": [
+        0.01073174842506872,
+        -0.008713783808039742,
+        -0.01424410634067903
+      ],
+      "final_velocity_m_per_s": [
+        -0.0014000070017215894,
+        0.00011063360158151664,
+        0.0038428357415391653
+      ],
+      "wall_time_s": 573.7194555000169
+    },
+    {
+      "duration_s": 2.0,
+      "time_step_s": 0.000000625,
+      "termination_reason": "timeout",
+      "trapped": false,
+      "entered_trap_core": false,
+      "core_entry_count": 0,
+      "elapsed_time_s": 2.0,
+      "minimum_radius_m": 0.019849307745220725,
+      "final_radius_m": 0.01984930774498861,
+      "final_position_m": [
+        0.01073174842505374,
+        -0.008713783808038575,
+        -0.014244106340637388
+      ],
+      "final_velocity_m_per_s": [
+        -0.001400007001775597,
+        0.00011063360158765604,
+        0.0038428357397124646
+      ],
+      "wall_time_s": 1162.2457424000604
+    }
+  ],
+  "convergence": {
+    "same_termination_reason": true,
+    "both_finite": true,
+    "both_timeout": true,
+    "both_zero_core_entries": true,
+    "position_difference_norm_m": 4.427024676876995e-14,
+    "velocity_difference_norm_m_per_s": 1.8275092055823084e-12,
+    "minimum_radius_difference_m": 8.222589276130066e-16,
+    "final_radius_difference_m": 3.849698892999909e-14
+  },
+  "conclusion": {
+    "physical_capture_classification": "indeterminate",
+    "loading_classification": "indeterminate_zero_flux",
+    "reason": "The atom remains finite and outside both terminal regions through 2.0 s at two converged timesteps. At exactly v=0 the effusive loading integrand is identically zero, independent of the bounded capture cross section.",
+    "requirements": [
+      "Do not relabel either timeout as trapped or escaped.",
+      "Permit indeterminate_zero_flux only at exactly 0 m/s after exhausting the full dual-timestep audit ladder.",
+      "Require every positive-speed grid node to be definitive and timestep-agreeing.",
+      "Do not plot the undefined sigma_capture(0) value as zero.",
+      "Retain the quadrature anchor g(0)=0 without imputing sigma_capture(0)."
+    ]
+  }
+}

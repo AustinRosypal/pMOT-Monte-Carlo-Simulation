@@ -75,7 +75,21 @@ live in `src/pmot/magnetic_fields.py` and
   evaluated node.  Once a positive scalar search has failed its premise, use a
   separately converged 0--30 m/s by 0.25 m/s dual-timestep boolean capture mask
   as that ray's authoritative loading evidence even if the mask is monotone;
-  never select or average conflicting scalar thresholds.
+  never select or average conflicting scalar thresholds.  Complete scalar
+  boundary re-searches remain capped at 400 ms.  Only unresolved direct-grid
+  nodes may escalate to a 1.0 s and then a final 2.0 s dual-timestep check at
+  1.25 and 0.625 microseconds.  Both steps must agree on a definitive
+  trapped/escaped result at every positive speed.  If, after that full ladder,
+  only the literal zero-speed node remains finite but non-definitive, retain it
+  as explicitly indeterminate rather than relabelling it escaped.  Omit
+  `sigma_capture(0)` from the reported cross-section spectrum and evaluate the
+  loading quadrature with only the exact weighted-integrand anchor `g(0)=0`;
+  never impute a zero-speed cross section.  This preserves the unchanged
+  core-residence/two-entry trapped definition and is admissible only because
+  the incident flux at exactly zero speed is identically zero.  The 1.0 s
+  level resolves the documented delayed-capture ray at detuning -3.75
+  linewidths; the 2.0 s level documents the converged-but-nonterminal
+  zero-speed ray at detuning -4.25 linewidths.
 
 ## Polarization convention
 

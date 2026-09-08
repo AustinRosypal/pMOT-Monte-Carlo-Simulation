@@ -1,0 +1,191 @@
+{
+  "diagnostic_date": "2026-09-08",
+  "purpose": "Resolve the zero-speed timeout blocking the two-level detuning campaign at Delta/Gamma=-3.75.",
+  "model": "mot_simple deterministic effective two-level mean-force MOT",
+  "ray": {
+    "disc_index": 23,
+    "point_index": 15,
+    "geometry_seed": 20260903,
+    "geometry_sha256": "02509217f582bc1619712cd31de3fcb34aac11b208c54a4cb228694f36603e17",
+    "initial_position_m": [
+      -0.00987154400016843,
+      -0.010858926296946509,
+      -0.014033067808317382
+    ],
+    "initial_velocity_m_per_s": [0.0, 0.0, 0.0],
+    "incident_unit_vector": [
+      -0.05776208923062649,
+      0.913537589898721,
+      0.402632106133812
+    ]
+  },
+  "physics_configuration": {
+    "cooling_detuning_n": -3.75,
+    "cooling_detuning_hz": -22743750.0,
+    "linewidth_hz": 6065000.0,
+    "cooling_power_w_per_beam": 0.027,
+    "cooling_beam_diameter_m": 0.0127,
+    "cooling_beam_count": 6,
+    "repumper_included": false,
+    "gravity_enabled": true,
+    "anti_helmholtz_axial_gradient_g_per_cm": 10.0,
+    "trap_core_radius_m": 0.002,
+    "escape_radius_m": 0.03,
+    "trapped_criterion": "continuously inside the 2 mm-radius core for at least 5 ms OR two core entries with an intervening exit"
+  },
+  "configured_adaptive_levels": [
+    {
+      "duration_s": 0.2,
+      "time_step_s": 0.000005,
+      "termination_reason": "timeout",
+      "core_entry_count": 0,
+      "minimum_radius_m": 0.020244765943738106,
+      "final_position_m": [-0.009862717868664819, -0.010831768337420427, -0.014250350415741868],
+      "final_velocity_m_per_s": [0.00010438006873801046, 0.00031912244499109884, -0.024342765273304947],
+      "wall_time_s": 15.903129499987699
+    },
+    {
+      "duration_s": 0.2,
+      "time_step_s": 0.0000025,
+      "termination_reason": "timeout",
+      "core_entry_count": 0,
+      "minimum_radius_m": 0.02024476594311316,
+      "final_position_m": [-0.009862717868664845, -0.010831768337420312, -0.014250350415752115],
+      "final_velocity_m_per_s": [0.00010438006873843344, 0.00031912244499237647, -0.02434276527363243],
+      "wall_time_s": 35.671922000008635
+    },
+    {
+      "duration_s": 0.25,
+      "time_step_s": 0.000005,
+      "termination_reason": "timeout",
+      "core_entry_count": 0,
+      "minimum_radius_m": 0.020244765943738106,
+      "final_position_m": [-0.00985686787816693, -0.010813913825846977, -0.015187981307165178],
+      "final_velocity_m_per_s": [0.00012427269962632964, 0.00037883938194002644, 0.0015495097787996607],
+      "wall_time_s": 20.570190500002354
+    },
+    {
+      "duration_s": 0.25,
+      "time_step_s": 0.0000025,
+      "termination_reason": "timeout",
+      "core_entry_count": 0,
+      "minimum_radius_m": 0.02024476594311316,
+      "final_position_m": [-0.009856867878166913, -0.01081391382584665, -0.015187981307165855],
+      "final_velocity_m_per_s": [0.0001242726996264978, 0.000378839381940521, 0.0015495097795703854],
+      "wall_time_s": 43.205653800047
+    },
+    {
+      "duration_s": 0.4,
+      "time_step_s": 0.0000025,
+      "termination_reason": "timeout",
+      "core_entry_count": 0,
+      "minimum_radius_m": 0.020073532177387523,
+      "final_position_m": [-0.009828602204275528, -0.010729073900943508, -0.014368437195868078],
+      "final_velocity_m_per_s": [0.00025865069558606073, 0.0007671579096086805, 0.024704576646954884],
+      "wall_time_s": 67.59524809999857
+    },
+    {
+      "duration_s": 0.4,
+      "time_step_s": 0.00000125,
+      "termination_reason": "timeout",
+      "core_entry_count": 0,
+      "minimum_radius_m": 0.02007353217738926,
+      "final_position_m": [-0.009828602204275505, -0.010729073900943712, -0.014368437195879751],
+      "final_velocity_m_per_s": [0.0002586506955855879, 0.0007671579096073258, 0.024704576646365176],
+      "wall_time_s": 138.69983589998446
+    }
+  ],
+  "six_hundred_ms_convergence_pair": [
+    {
+      "duration_s": 0.6,
+      "time_step_s": 0.00000125,
+      "termination_reason": "timeout",
+      "entered_trap_core": false,
+      "core_entry_count": 0,
+      "minimum_radius_m": 0.019428092087317817,
+      "final_radius_m": 0.019577091030967136,
+      "final_position_m": [-0.009726746792757932, -0.01044564000619693, -0.013399309494346543],
+      "final_velocity_m_per_s": [0.0009067871050265135, 0.0023775475841786675, 0.007761892981178371],
+      "wall_time_s": 212.84512890002225
+    },
+    {
+      "duration_s": 0.6,
+      "time_step_s": 0.000000625,
+      "termination_reason": "timeout",
+      "entered_trap_core": false,
+      "core_entry_count": 0,
+      "minimum_radius_m": 0.019428092087316065,
+      "final_radius_m": 0.019577091030900107,
+      "final_position_m": [-0.009726746792749472, -0.010445640006173398, -0.013399309494273095],
+      "final_velocity_m_per_s": [0.0009067871050719692, 0.0023775475842796713, 0.007761892993239624],
+      "wall_time_s": 416.12651779991575
+    }
+  ],
+  "core_crossing_events": {
+    "time_step_1p25_us": [
+      {
+        "kind": "entry",
+        "absolute_time_s": 0.7963675000002279,
+        "radius_m": 0.001999725536284738
+      },
+      {
+        "kind": "exit",
+        "absolute_time_s": 0.7981600000002398,
+        "radius_m": 0.0020013360590891947,
+        "preceding_core_residence_s": 0.001792500000011743
+      },
+      {
+        "kind": "entry",
+        "absolute_time_s": 0.806452500000294,
+        "radius_m": 0.0019994314458684774
+      }
+    ],
+    "time_step_0p625_us": [
+      {
+        "kind": "entry",
+        "absolute_time_s": 0.7963675000007572,
+        "radius_m": 0.0019997255182394504
+      },
+      {
+        "kind": "exit",
+        "absolute_time_s": 0.798159375000769,
+        "radius_m": 0.0020005059505553446,
+        "preceding_core_residence_s": 0.001791875000011739
+      },
+      {
+        "kind": "entry",
+        "absolute_time_s": 0.8064518750008233,
+        "radius_m": 0.001999720862948913
+      }
+    ]
+  },
+  "terminal_pair": [
+    {
+      "time_step_s": 0.00000125,
+      "termination_reason": "two_core_entries",
+      "absolute_elapsed_time_s": 0.806452500000294,
+      "minimum_radius_m": 0.001058272318640715,
+      "final_position_m": [0.0011020639323938003, 0.0011325195879109404, -0.001224981868699475],
+      "final_velocity_m_per_s": [-0.5926981511815506, -0.5862826598459786, -0.3194965853586316]
+    },
+    {
+      "time_step_s": 0.000000625,
+      "termination_reason": "two_core_entries",
+      "absolute_elapsed_time_s": 0.8064518750008233,
+      "minimum_radius_m": 0.0010582723186493988,
+      "final_position_m": [0.0011024343626597761, 0.001132886007938453, -0.0012247821433860608],
+      "final_velocity_m_per_s": [-0.5926974719571507, -0.5862799968307525, -0.31963453958282917]
+    }
+  ],
+  "conclusion": {
+    "classification": "delayed capture",
+    "cause_of_campaign_failure": "All configured audit durations ended before the second core entry, so the fail-closed policy correctly rejected their timeout results.",
+    "minimum_demonstrated_terminal_time_s": 0.806452500000294,
+    "recommended_additional_adaptive_level": {
+      "duration_s": 0.85,
+      "coarse_time_step_s": 0.00000125,
+      "fine_time_step_s": 0.000000625,
+      "rationale": "Both timesteps agree on two-core-entry capture by 0.806453 s; 0.85 s provides about 43.5 ms margin. An 0.8 s cutoff would still be censored."
+    }
+  }
+}
