@@ -1,0 +1,7 @@
+beam_index,beam_label,axis_name,propagation_sense,polarization,projected_speed_m_per_s,cooling_doppler_term_hz,configured_laser_detuning_hz,hyperfine_offset_hz_for_reference,local_stretched_transition_shift_hz,bare_stretched_transition_frequency_hz,shifted_stretched_transition_frequency_hz,fixed_carrier_effective_detuning_hz,center_compensated_effective_detuning_hz
+0,horizontal_x_incident_cooling_780,horizontal_x,incident,sigma+,17.0,21794871.794871792,-15000000.0,0.0,-16051071.412272736,384228115000000.0,384228098948928.56,-20743800.382599056,-37083491.81029302
+1,horizontal_x_retro_cooling_780,horizontal_x,retro,sigma+,-17.0,-21794871.794871792,-15000000.0,0.0,-16051071.412272736,384228115000000.0,384228098948928.56,22845943.20714453,6506251.779450566
+2,horizontal_y_incident_cooling_780,horizontal_y,incident,sigma+,-8.0,-10256410.256410256,-15000000.0,0.0,-16051071.412272736,384228115000000.0,384228098948928.56,11307481.668682992,-5032209.759010971
+3,horizontal_y_retro_cooling_780,horizontal_y,retro,sigma+,8.0,10256410.256410256,-15000000.0,0.0,-16051071.412272736,384228115000000.0,384228098948928.56,-9205338.84413752,-25545030.271831483
+4,vertical_z_incident_cooling_780,vertical_z,incident,sigma-,4.0,5128205.128205128,-15000000.0,0.0,-16051071.412272736,384228115000000.0,384228098948928.56,-4077133.7159323916,-20416825.143626355
+5,vertical_z_retro_cooling_780,vertical_z,retro,sigma-,-4.0,-5128205.128205128,-15000000.0,0.0,-16051071.412272736,384228115000000.0,384228098948928.56,6179276.540477864,-10160414.887216099

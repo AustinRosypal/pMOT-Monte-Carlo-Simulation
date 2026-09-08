@@ -1,0 +1,48 @@
+{
+  "status": "PASS_WITH_QUALIFICATIONS",
+  "checks": {
+    "six_unique_trapping_components": true,
+    "full_3d_doppler_matches_analytic_hz": true,
+    "frequency_times_wavelength_equals_c": true,
+    "component_energy_sum_identity": true,
+    "joule_to_hertz_identity": true,
+    "aligned_magic_residual_small": true,
+    "fixed_axis_vector_profiles_are_odd": true,
+    "fixed_axis_scalar_and_tensor_profiles_are_even": true,
+    "shift_is_linear_in_path_power": true,
+    "global_helicity_reversal_flips_only_vector_term": true,
+    "no_external_magnetic_field": true,
+    "origin_vector_pair_sum_is_zero": true
+  },
+  "numerical_residuals": {
+    "maximum_doppler_formula_error_hz": 0.013138726353645325,
+    "maximum_nu_lambda_over_c_minus_one": 0.0,
+    "component_sum_error_j": 0.0,
+    "joule_to_hertz_error_hz": 0.0,
+    "aligned_magic_scalar_tensor_over_abs_vector": 4.786811522934183e-06,
+    "power_linearity_absolute_ratio_error": 0.0,
+    "parity": {
+      "x": {
+        "vector_even_over_peak": 1.993064292949287e-15,
+        "scalar_odd_over_peak": 4.559804957085002e-16,
+        "tensor_odd_over_peak": 9.067343026255193e-16
+      },
+      "y": {
+        "vector_even_over_peak": 1.993064292949287e-15,
+        "scalar_odd_over_peak": 3.419853717813752e-16,
+        "tensor_odd_over_peak": 7.253874421004154e-16
+      },
+      "z": {
+        "vector_even_over_peak": 1.993064292949287e-15,
+        "scalar_odd_over_peak": 3.419853717813752e-16,
+        "tensor_odd_over_peak": 8.160608723629674e-16
+      }
+    },
+    "helicity_reversal": {
+      "scalar_relative_error": 0.0,
+      "vector_sign_flip_relative_error": 0.0,
+      "tensor_relative_error": 0.0
+    }
+  },
+  "qualification": "Passing means the temporary fixed-transition algebra and units are internally self-consistent. It does not validate a 24-state Stark Hamiltonian or demonstrate pMOT trapping."
+}

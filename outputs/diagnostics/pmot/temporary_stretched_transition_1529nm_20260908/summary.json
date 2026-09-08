@@ -1,0 +1,137 @@
+{
+  "status": "DIAGNOSTIC_COMPLETE_NOT_PRODUCTION_PHYSICS",
+  "qa": {
+    "status": "PASS_WITH_QUALIFICATIONS",
+    "checks": {
+      "six_unique_trapping_components": true,
+      "full_3d_doppler_matches_analytic_hz": true,
+      "frequency_times_wavelength_equals_c": true,
+      "component_energy_sum_identity": true,
+      "joule_to_hertz_identity": true,
+      "aligned_magic_residual_small": true,
+      "fixed_axis_vector_profiles_are_odd": true,
+      "fixed_axis_scalar_and_tensor_profiles_are_even": true,
+      "shift_is_linear_in_path_power": true,
+      "global_helicity_reversal_flips_only_vector_term": true,
+      "no_external_magnetic_field": true,
+      "origin_vector_pair_sum_is_zero": true
+    },
+    "numerical_residuals": {
+      "maximum_doppler_formula_error_hz": 0.013138726353645325,
+      "maximum_nu_lambda_over_c_minus_one": 0.0,
+      "component_sum_error_j": 0.0,
+      "joule_to_hertz_error_hz": 0.0,
+      "aligned_magic_scalar_tensor_over_abs_vector": 4.786811522934183e-06,
+      "power_linearity_absolute_ratio_error": 0.0,
+      "parity": {
+        "x": {
+          "vector_even_over_peak": 1.993064292949287e-15,
+          "scalar_odd_over_peak": 4.559804957085002e-16,
+          "tensor_odd_over_peak": 9.067343026255193e-16
+        },
+        "y": {
+          "vector_even_over_peak": 1.993064292949287e-15,
+          "scalar_odd_over_peak": 3.419853717813752e-16,
+          "tensor_odd_over_peak": 7.253874421004154e-16
+        },
+        "z": {
+          "vector_even_over_peak": 1.993064292949287e-15,
+          "scalar_odd_over_peak": 3.419853717813752e-16,
+          "tensor_odd_over_peak": 8.160608723629674e-16
+        }
+      },
+      "helicity_reversal": {
+        "scalar_relative_error": 0.0,
+        "vector_sign_flip_relative_error": 0.0,
+        "tensor_relative_error": 0.0
+      }
+    },
+    "qualification": "Passing means the temporary fixed-transition algebra and units are internally self-consistent. It does not validate a 24-state Stark Hamiltonian or demonstrate pMOT trapping."
+  },
+  "transition": "5S1/2 F=2, mF=+2 -> 5P3/2 F'=3, mF'=+3",
+  "configuration": {
+    "trapping_wavelength_nm": 1529.268881,
+    "trapping_lab_frequency_hz": 196036460118094.8,
+    "demonstration_power_w_per_path": 0.03829448617292197,
+    "power_source": "historical stretched-reference 20 G/cm vector-gradient proxy; demonstration scale only",
+    "incident_helicities_xyz": [
+      "sigma+",
+      "sigma+",
+      "sigma-"
+    ],
+    "retro_helicities_xyz": [
+      "sigma+",
+      "sigma+",
+      "sigma-"
+    ],
+    "cooling_power_w_per_beam": 0.027,
+    "repump_power_w_per_beam": 0.0001,
+    "cooling_detuning_from_bare_hz": -15000000.0,
+    "external_magnetic_field_t": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "standing_wave_treatment": "incoherent",
+    "position_lineout_extent_m": 0.002,
+    "velocity_lineout_extent_m_per_s": 25.0,
+    "lineout_sample_count": 401
+  },
+  "equations": {
+    "trapping_atom_frame_frequency": "nu_seen_j = nu_lab_j * (1 - dot(khat_j,v)/c)",
+    "trapping_atom_frame_wavelength": "lambda_seen_j = lambda_lab_j / (1 - dot(khat_j,v)/c)",
+    "field_squared": "E_j^2 = 2 I_j/(c epsilon_0)",
+    "scalar_energy": "U0_j = -alpha0_j E_j^2",
+    "vector_energy": "U1_j = -alpha1_j E_j^2 s_j dot(khat_j,n_fixed)",
+    "tensor_energy": "U2_j = -alpha2_j E_j^2 (3|epsilon_j dot n_fixed|^2-1)/2",
+    "shifted_resonance": "nu_res = nu_bare + sum_j(U0_j+U1_j+U2_j)/h",
+    "effective_detuning_hz": "delta_nu_eff[b] = delta_nu_L[b] - delta_nu_HFS - dot(k_hat_b, v)/lambda_b - DeltaE_AC/h",
+    "effective_detuning_rad_per_s": "Delta_eff[b] = Delta_L[b] - delta_HFS - k_b dot v - DeltaE_AC/hbar",
+    "reference_hyperfine_offset_hz": 0.0
+  },
+  "origin": {
+    "fixed_quantization_axis": [
+      0.0,
+      0.0,
+      1.0
+    ],
+    "total_intensity_w_per_m2": 30797.974634914408,
+    "scalar_shift_mhz": -16.339691427693968,
+    "vector_shift_mhz": 0.0,
+    "tensor_shift_mhz": 4.331163404506403e-15,
+    "total_shift_mhz": -16.339691427693964,
+    "bare_transition_frequency_hz": 384228115000000.0,
+    "shifted_transition_frequency_hz": 384228098660308.56,
+    "fixed_carrier_effective_detuning_mhz": 1.339691427693963,
+    "center_compensated_effective_detuning_mhz": -15.0,
+    "per_watt_path": {
+      "total_intensity_m_inv2": 804240.4458919638,
+      "scalar_shift_mhz_per_watt_path": -426.6852244448644,
+      "vector_shift_mhz_per_watt_path": 0.0,
+      "tensor_shift_mhz_per_watt_path": 1.1310148894409159e-13,
+      "total_shift_mhz_per_watt_path": -426.68522444486433
+    }
+  },
+  "magic_point": {
+    "scalar_mhz_per_1e5_w_per_m2": -53.054434984171074,
+    "vector_mhz_per_1e5_w_per_m2": 136.33404483229927,
+    "tensor_mhz_per_1e5_w_per_m2": 53.0537823787943,
+    "scalar_plus_tensor_mhz_per_1e5_w_per_m2": -0.0006526053767714757,
+    "residual_over_abs_vector": -4.786811522934183e-06,
+    "residual_at_minus_17_m_per_s_mhz_per_1e5_w_per_m2": -1.1721205158412076,
+    "residual_at_plus_17_m_per_s_mhz_per_1e5_w_per_m2": 1.1391811327265629
+  },
+  "interpretation": {
+    "restoring_helicity_context": "Matched propagation-frame ++- on x/y/z is restoring only in the ideal vector-only red-detuned diagnostic or after the central common shift is compensated. This run does not calculate a physical net force.",
+    "fixed_basis_scope": "x/y/z lineouts define mF along a different fixed axis in each panel; they are separate diagnostics, not simultaneous eigenenergies.",
+    "scalar_tensor_result": "Near-cancellation holds for an aligned circular component/pair but not for the all-six-beam non-collinear sum with one fixed axis."
+  },
+  "limitations": [
+    "CSV raw polarizability units and provenance are absent; SI is assumed.",
+    "Only a differential stretched-transition triplet is available, not separate 5S and 5P level shifts.",
+    "No 24-state Stark Hamiltonian, local diagonalization, or transformed dipole couplings.",
+    "No conservative 1529-nm force, scattering, heating, loss, or coherent standing wave.",
+    "No physical trapping power/path split has been supplied; demonstration power is only a historical proxy.",
+    "No trajectory or quantitative trapping claim is made."
+  ]
+}

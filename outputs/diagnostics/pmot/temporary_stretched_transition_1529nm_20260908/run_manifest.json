@@ -1,0 +1,102 @@
+{
+  "campaign": "temporary_stretched_transition_1529nm_20260908",
+  "status": "DIAGNOSTIC_COMPLETE_NOT_PRODUCTION_PHYSICS",
+  "project_root": "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation",
+  "git_commit": "5f96ff91343197b010c3bdad5075e421ab610e2b",
+  "git_status_porcelain_at_run": "?? outputs/diagnostics/pmot/temporary_stretched_transition_1529nm_20260908/\n?? src/pmot/pmot/temporary_tests/\n?? tests/pmot/test_pmot_fixed_stretched_shift_temporary.py",
+  "source_module": "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\src\\pmot\\pmot\\temporary_tests\\run_fixed_stretched_shift_diagnostic.py",
+  "source_module_sha256": "492a96dfb567b40ea872d6fecc49bfdbf1ccc5153de5853e5ef4a379c4e513cf",
+  "fixed_shift_module": "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\src\\pmot\\pmot\\temporary_tests\\fixed_stretched_shift.py",
+  "fixed_shift_module_sha256": "8ee0da1a79063ddbef64c060f3a7d20ebfe15c80e244449145d229664efbc784",
+  "polarizability_csv": "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\data\\raw\\pmot\\Arora_CCSD_Differential_Polarizabilities.csv",
+  "polarizability_csv_sha256": "8151336295061c64c6372fb03cab45c395bb5dd7de5375eca1742f7e602fa256",
+  "polarizability_row_count": 70400,
+  "polarizability_wavelength_range_nm": [
+    1529.124,
+    1529.476
+  ],
+  "configuration": {
+    "trapping_wavelength_nm": 1529.268881,
+    "trapping_lab_frequency_hz": 196036460118094.8,
+    "demonstration_power_w_per_path": 0.03829448617292197,
+    "power_source": "historical stretched-reference 20 G/cm vector-gradient proxy; demonstration scale only",
+    "incident_helicities_xyz": [
+      "sigma+",
+      "sigma+",
+      "sigma-"
+    ],
+    "retro_helicities_xyz": [
+      "sigma+",
+      "sigma+",
+      "sigma-"
+    ],
+    "cooling_power_w_per_beam": 0.027,
+    "repump_power_w_per_beam": 0.0001,
+    "cooling_detuning_from_bare_hz": -15000000.0,
+    "external_magnetic_field_t": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "standing_wave_treatment": "incoherent",
+    "position_lineout_extent_m": 0.002,
+    "velocity_lineout_extent_m_per_s": 25.0,
+    "lineout_sample_count": 401
+  },
+  "equations": {
+    "trapping_atom_frame_frequency": "nu_seen_j = nu_lab_j * (1 - dot(khat_j,v)/c)",
+    "trapping_atom_frame_wavelength": "lambda_seen_j = lambda_lab_j / (1 - dot(khat_j,v)/c)",
+    "field_squared": "E_j^2 = 2 I_j/(c epsilon_0)",
+    "scalar_energy": "U0_j = -alpha0_j E_j^2",
+    "vector_energy": "U1_j = -alpha1_j E_j^2 s_j dot(khat_j,n_fixed)",
+    "tensor_energy": "U2_j = -alpha2_j E_j^2 (3|epsilon_j dot n_fixed|^2-1)/2",
+    "shifted_resonance": "nu_res = nu_bare + sum_j(U0_j+U1_j+U2_j)/h",
+    "effective_detuning_hz": "delta_nu_eff[b] = delta_nu_L[b] - delta_nu_HFS - dot(k_hat_b, v)/lambda_b - DeltaE_AC/h",
+    "effective_detuning_rad_per_s": "Delta_eff[b] = Delta_L[b] - delta_HFS - k_b dot v - DeltaE_AC/hbar",
+    "reference_hyperfine_offset_hz": 0.0
+  },
+  "reference_phase_space": {
+    "position_m": [
+      0.00035,
+      -0.0002,
+      0.0001
+    ],
+    "velocity_m_per_s": [
+      17.0,
+      -8.0,
+      4.0
+    ],
+    "fixed_quantization_axis": [
+      0.0,
+      0.0,
+      1.0
+    ]
+  },
+  "units": {
+    "internal_length": "m",
+    "internal_velocity": "m/s",
+    "frequency": "Hz",
+    "angular_frequency": "rad/s",
+    "intensity": "W/m^2",
+    "energy": "J",
+    "raw_polarizability": "assumed SI; source CSV header does not declare units"
+  },
+  "output_files": [
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\diagnostics\\pmot\\temporary_stretched_transition_1529nm_20260908\\data\\six_component_doppler_scan.csv",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\diagnostics\\pmot\\temporary_stretched_transition_1529nm_20260908\\figures\\01_six_component_doppler_shift.png",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\diagnostics\\pmot\\temporary_stretched_transition_1529nm_20260908\\data\\reference_phase_space_component_ledger.csv",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\diagnostics\\pmot\\temporary_stretched_transition_1529nm_20260908\\figures\\02_reference_phase_space_component_budget.png",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\diagnostics\\pmot\\temporary_stretched_transition_1529nm_20260908\\data\\single_component_magic_coefficient_scan.csv",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\diagnostics\\pmot\\temporary_stretched_transition_1529nm_20260908\\figures\\03_single_component_magic_condition.png",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\diagnostics\\pmot\\temporary_stretched_transition_1529nm_20260908\\data\\fixed_axis_position_lineouts.csv",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\diagnostics\\pmot\\temporary_stretched_transition_1529nm_20260908\\figures\\04_fixed_axis_shift_position_lineouts.png",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\diagnostics\\pmot\\temporary_stretched_transition_1529nm_20260908\\figures\\05_shifted_780_resonance_effective_detuning.png",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\diagnostics\\pmot\\temporary_stretched_transition_1529nm_20260908\\data\\aligned_axis_pair_magic_scan.csv",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\diagnostics\\pmot\\temporary_stretched_transition_1529nm_20260908\\figures\\06_aligned_pair_magic_cancellation.png",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\diagnostics\\pmot\\temporary_stretched_transition_1529nm_20260908\\data\\origin_cancellation_budget.csv",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\diagnostics\\pmot\\temporary_stretched_transition_1529nm_20260908\\figures\\07_origin_scalar_tensor_cancellation_budget.png",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\diagnostics\\pmot\\temporary_stretched_transition_1529nm_20260908\\data\\reference_phase_space_cooling_effective_detunings.csv",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\diagnostics\\pmot\\temporary_stretched_transition_1529nm_20260908\\qa_result.json",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\diagnostics\\pmot\\temporary_stretched_transition_1529nm_20260908\\summary.json"
+  ]
+}
