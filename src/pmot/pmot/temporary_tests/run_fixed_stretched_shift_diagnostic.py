@@ -726,6 +726,131 @@ def _origin_budget(context, data_root: Path, figure_root: Path):
     return observable, frame, csv_path, figure_path
 
 
+def _axis_aligned_pair_comparison(context, data_root: Path, figure_root: Path):
+    """Compare each path pair in a quantization basis aligned to that path."""
+
+    coordinates = np.linspace(-0.5e-3, 0.5e-3, 201)
+    power = context["power_w_per_path"]
+    rows = []
+    for label, axis in AXES.items():
+        indices = [
+            index
+            for index, beam in enumerate(context["trapping_beams"])
+            if beam.axis_name == AXIS_NAMES[label]
+        ]
+        for coordinate in coordinates:
+            observable = _evaluate(context, coordinate * axis, np.zeros(3), axis)
+            scalar = float(np.sum(observable.component_scalar_shift_hz[indices]))
+            vector = float(np.sum(observable.component_vector_shift_hz[indices]))
+            tensor = float(np.sum(observable.component_tensor_shift_hz[indices]))
+            rows.append(
+                {
+                    "axis_pair": label,
+                    "quantization_axis": label,
+                    "coordinate_m": coordinate,
+                    "coordinate_mm": 1.0e3 * coordinate,
+                    "scalar_shift_hz": scalar,
+                    "vector_shift_hz": vector,
+                    "tensor_shift_hz": tensor,
+                    "scalar_plus_tensor_shift_hz": scalar + tensor,
+                    "total_shift_hz": scalar + vector + tensor,
+                    "scalar_shift_hz_per_watt_path": scalar / power,
+                    "vector_shift_hz_per_watt_path": vector / power,
+                    "tensor_shift_hz_per_watt_path": tensor / power,
+                    "total_shift_hz_per_watt_path": (scalar + vector + tensor) / power,
+                }
+            )
+    frame = pd.DataFrame(rows)
+    csv_path = data_root / "axis_aligned_pair_cancellation_comparison.csv"
+    frame.to_csv(csv_path, index=False)
+
+    origin_rows = frame[
+        np.isclose(frame["coordinate_m"], 0.0, rtol=0.0, atol=1.0e-15)
+    ]
+    axis_labels = origin_rows["axis_pair"].tolist()
+    x_positions = np.arange(len(axis_labels))
+    width = 0.34
+    figure, axes = plt.subplots(1, 3, figsize=(15.2, 5.0))
+    axes[0].bar(
+        x_positions - width / 2.0,
+        origin_rows["scalar_shift_hz"] / 1.0e6,
+        width=width,
+        color=COLORS["scalar"],
+        label="Scalar",
+    )
+    axes[0].bar(
+        x_positions + width / 2.0,
+        origin_rows["tensor_shift_hz"] / 1.0e6,
+        width=width,
+        color=COLORS["tensor"],
+        label="Tensor",
+    )
+    axes[0].axhline(0.0, color="#64748b", linewidth=0.8)
+    axes[0].set_xticks(
+        x_positions,
+        [f"{label} pair\nn={label}" for label in axis_labels],
+    )
+    axes[0].set_ylabel("Pair contribution at origin [MHz]")
+    axes[0].set_title("Equal and opposite large terms")
+    axes[0].legend(frameon=False, ncol=2)
+
+    axes[1].bar(
+        x_positions,
+        origin_rows["scalar_plus_tensor_shift_hz"],
+        width=0.5,
+        color=COLORS["residual"],
+    )
+    axes[1].axhline(0.0, color="#64748b", linewidth=0.8)
+    axes[1].set_xticks(
+        x_positions,
+        [f"{label} pair\nn={label}" for label in axis_labels],
+    )
+    axes[1].set_ylabel("Scalar + tensor residual [Hz]")
+    axes[1].set_title("Magnified cancellation residual")
+
+    line_styles = {
+        "x": {"color": "#2563eb", "linestyle": "-", "linewidth": 3.0},
+        "y": {"color": "#f97316", "linestyle": "--", "linewidth": 2.0},
+        "z": {"color": "#16a34a", "linestyle": "-", "linewidth": 2.0},
+    }
+    for label in AXES:
+        selected = frame[frame["axis_pair"] == label]
+        axes[2].plot(
+            selected["coordinate_mm"],
+            selected["vector_shift_hz"] / 1.0e6,
+            label=f"{label} pair; n={label}",
+            **line_styles[label],
+        )
+    axes[2].axhline(0.0, color="#64748b", linewidth=0.8)
+    axes[2].axvline(0.0, color="#64748b", linewidth=0.8)
+    axes[2].scatter([0.0], [0.0], color="black", s=22, zorder=5)
+    axes[2].set_xlabel("Coordinate along corresponding beam axis [mm]")
+    axes[2].set_ylabel("Signed vector pair shift [MHz]")
+    axes[2].set_title("Odd vector term from displaced foci")
+    axes[2].text(
+        0.03,
+        0.96,
+        "x and y coincide exactly\n(y shown dashed)",
+        transform=axes[2].transAxes,
+        va="top",
+        color="#475569",
+        fontsize=8,
+    )
+    axes[2].legend(frameon=False, fontsize=8)
+
+    figure.suptitle(
+        "Axis-aligned stretched-state comparison: x, y, and z are equivalent\n"
+        "For each pair separately, the quantization axis is chosen along that pair",
+        fontsize=13,
+    )
+    figure.tight_layout(rect=(0.0, 0.0, 1.0, 0.90))
+    figure_path = _save_figure(
+        figure,
+        figure_root / "08_axis_aligned_pair_cancellation_comparison.png",
+    )
+    return frame, origin_rows, csv_path, figure_path
+
+
 def _cooling_beam_ledger(context, observable, origin_shift_hz: float, data_root: Path):
     bare_resonance_hz = context["apparatus"].mot_light.cooling.resonance_frequency_hz
     fixed = cooling_effective_detunings_hz(
@@ -1004,7 +1129,7 @@ through the fictitious-field zero remain outside this test.
 
 ## Files
 
-- `figures/`: seven rendered diagnostic figures.
+- `figures/`: eight rendered diagnostic figures.
 - `data/`: the underlying beamwise ledgers and lineout tables.
 - `run_manifest.json`: formulas, configuration, hashes, and assumptions.
 - `qa_result.json`: numerical identity, parity, reversal, and unit-chain checks.
@@ -1029,7 +1154,7 @@ def run_diagnostic(
     figure_root.mkdir(parents=True, exist_ok=True)
     _configure_plot_style()
 
-    print("[temporary pMOT] 1/7 building isolated fixed-transition context", flush=True)
+    print("[temporary pMOT] 1/8 building isolated fixed-transition context", flush=True)
     context = _build_context(power_w_per_path)
     print(
         "[temporary pMOT] demonstration power="
@@ -1038,20 +1163,20 @@ def run_diagnostic(
         flush=True,
     )
 
-    print("[temporary pMOT] 2/7 evaluating six-component 3D Doppler scan", flush=True)
+    print("[temporary pMOT] 2/8 evaluating six-component 3D Doppler scan", flush=True)
     doppler_frame, doppler_csv, doppler_figure = _doppler_scan(context, data_root, figure_root)
 
-    print("[temporary pMOT] 3/7 writing beamwise energy and shifted-resonance ledger", flush=True)
+    print("[temporary pMOT] 3/8 writing beamwise energy and shifted-resonance ledger", flush=True)
     reference, reference_frame, reference_csv, reference_figure = _reference_component_ledger(
         context, data_root, figure_root
     )
 
-    print("[temporary pMOT] 4/7 evaluating Doppler sensitivity of magic cancellation", flush=True)
+    print("[temporary pMOT] 4/8 evaluating Doppler sensitivity of magic cancellation", flush=True)
     magic_frame, magic_csv, magic_figure = _magic_coefficient_scan(
         context, data_root, figure_root
     )
 
-    print("[temporary pMOT] 5/7 evaluating fixed-basis x/y/z position lineouts", flush=True)
+    print("[temporary pMOT] 5/8 evaluating fixed-basis x/y/z position lineouts", flush=True)
     (
         position_frame,
         origin_shifts,
@@ -1060,7 +1185,7 @@ def run_diagnostic(
         detuning_figure,
     ) = _position_lineouts(context, data_root, figure_root)
 
-    print("[temporary pMOT] 6/7 evaluating aligned-pair and six-beam cancellation", flush=True)
+    print("[temporary pMOT] 6/8 evaluating aligned-pair and six-beam cancellation", flush=True)
     pair_frame, pair_csv, pair_figure = _pair_magic_scan(context, data_root, figure_root)
     origin, origin_frame, origin_csv, origin_figure = _origin_budget(
         context, data_root, figure_root
@@ -1072,7 +1197,15 @@ def run_diagnostic(
         data_root,
     )
 
-    print("[temporary pMOT] 7/7 running identity, parity, and reversal QA", flush=True)
+    print("[temporary pMOT] 7/8 comparing x/n=x, y/n=y, and z/n=z pairs", flush=True)
+    (
+        axis_aligned_frame,
+        axis_aligned_origin_rows,
+        axis_aligned_csv,
+        axis_aligned_figure,
+    ) = _axis_aligned_pair_comparison(context, data_root, figure_root)
+
+    print("[temporary pMOT] 8/8 running identity, parity, and reversal QA", flush=True)
     qa = _run_qa(context, reference, position_frame, magic_frame, origin)
     qa_path = _write_json(output / "qa_result.json", qa)
 
@@ -1179,6 +1312,18 @@ def run_diagnostic(
                 "Near-cancellation holds for an aligned circular component/pair but not "
                 "for the all-six-beam non-collinear sum with one fixed axis."
             ),
+            "axis_aligned_pair_result": {
+                row["axis_pair"]: {
+                    "quantization_axis": row["quantization_axis"],
+                    "scalar_shift_mhz": row["scalar_shift_hz"] / 1.0e6,
+                    "tensor_shift_mhz": row["tensor_shift_hz"] / 1.0e6,
+                    "scalar_plus_tensor_residual_hz": row[
+                        "scalar_plus_tensor_shift_hz"
+                    ],
+                    "vector_shift_at_origin_hz": row["vector_shift_hz"],
+                }
+                for row in axis_aligned_origin_rows.to_dict(orient="records")
+            },
         },
         "limitations": [
             "CSV raw polarizability units and provenance are absent; SI is assumed.",
@@ -1237,6 +1382,8 @@ def run_diagnostic(
         origin_csv,
         origin_figure,
         cooling_csv,
+        axis_aligned_csv,
+        axis_aligned_figure,
         qa_path,
         summary_path,
     ]
@@ -1260,6 +1407,7 @@ def run_diagnostic(
             pair_csv,
             origin_csv,
             cooling_csv,
+            axis_aligned_csv,
         ],
         "figure_files": [
             doppler_figure,
@@ -1269,6 +1417,7 @@ def run_diagnostic(
             detuning_figure,
             pair_figure,
             origin_figure,
+            axis_aligned_figure,
         ],
         "origin_total_shift_mhz": origin.total_frequency_shift_hz / 1.0e6,
         "origin_fixed_carrier_effective_detuning_mhz": fixed_origin_detuning_hz / 1.0e6,

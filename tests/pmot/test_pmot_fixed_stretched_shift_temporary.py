@@ -322,8 +322,8 @@ def test_lightweight_end_to_end_diagnostic_writes_complete_self_consistent_bundl
 
     assert result["status"] == "DIAGNOSTIC_COMPLETE_NOT_PRODUCTION_PHYSICS"
     assert result["qa_status"] == "PASS_WITH_QUALIFICATIONS"
-    assert len(result["data_files"]) == 7
-    assert len(result["figure_files"]) == 7
+    assert len(result["data_files"]) == 8
+    assert len(result["figure_files"]) == 8
     for path in (
         result["readme"],
         result["summary"],

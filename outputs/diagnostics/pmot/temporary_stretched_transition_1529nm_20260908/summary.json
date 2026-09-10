@@ -124,7 +124,30 @@
   "interpretation": {
     "restoring_helicity_context": "Matched propagation-frame ++- on x/y/z is restoring only in the ideal vector-only red-detuned diagnostic or after the central common shift is compensated. This run does not calculate a physical net force.",
     "fixed_basis_scope": "x/y/z lineouts define mF along a different fixed axis in each panel; they are separate diagnostics, not simultaneous eigenenergies.",
-    "scalar_tensor_result": "Near-cancellation holds for an aligned circular component/pair but not for the all-six-beam non-collinear sum with one fixed axis."
+    "scalar_tensor_result": "Near-cancellation holds for an aligned circular component/pair but not for the all-six-beam non-collinear sum with one fixed axis.",
+    "axis_aligned_pair_result": {
+      "x": {
+        "quantization_axis": "x",
+        "scalar_shift_mhz": -5.446563809231322,
+        "tensor_shift_mhz": 5.4464968131296665,
+        "scalar_plus_tensor_residual_hz": -66.99610165599734,
+        "vector_shift_at_origin_hz": 0.0
+      },
+      "y": {
+        "quantization_axis": "y",
+        "scalar_shift_mhz": -5.446563809231322,
+        "tensor_shift_mhz": 5.4464968131296665,
+        "scalar_plus_tensor_residual_hz": -66.99610165599734,
+        "vector_shift_at_origin_hz": 0.0
+      },
+      "z": {
+        "quantization_axis": "z",
+        "scalar_shift_mhz": -5.446563809231322,
+        "tensor_shift_mhz": 5.4464968131296665,
+        "scalar_plus_tensor_residual_hz": -66.99610165599734,
+        "vector_shift_at_origin_hz": 0.0
+      }
+    }
   },
   "limitations": [
     "CSV raw polarizability units and provenance are absent; SI is assumed.",

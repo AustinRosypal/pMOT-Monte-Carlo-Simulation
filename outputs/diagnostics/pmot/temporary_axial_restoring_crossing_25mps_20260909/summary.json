@@ -1,0 +1,141 @@
+{
+  "status": "PROVISIONAL_VECTOR_ONLY_AXIAL_RESTORATION_DIAGNOSTIC",
+  "launch_speed_m_per_s": 25.0,
+  "launch_position_mm": [
+    15.0,
+    0.0,
+    0.0
+  ],
+  "duration_ms": 10.0,
+  "primary_time_step_us": 1.25,
+  "coarse_time_step_us": 2.5,
+  "trapping_power_mw_per_path": 38.29448617292197,
+  "enabled": {
+    "termination_reason": "duration",
+    "capture": {
+      "trapped": true,
+      "classification": "bounded_core_residence",
+      "entered_core": true,
+      "core_entry_count": 1,
+      "maximum_continuous_core_residence_s": 0.009440000000000002,
+      "required_continuous_core_residence_s": 0.005,
+      "required_core_entries": 2,
+      "core_radius_m": 0.002,
+      "minimum_radius_m": 1.0792294848915917e-06,
+      "final_radius_m": 1.0792819312495268e-06
+    },
+    "sample_count": 8001,
+    "elapsed_time_ms": 10.0,
+    "origin_crossing_count": 2,
+    "origin_crossings": [
+      {
+        "time_ms": 0.7023651227310683,
+        "index_before_crossing": 561,
+        "interpolated_companion": -10.111121142574403
+      },
+      {
+        "time_ms": 2.5069476502410923,
+        "index_before_crossing": 2005,
+        "interpolated_companion": 0.09912455891900475
+      }
+    ],
+    "turning_point_count": 2,
+    "first_turning_point": {
+      "time_ms": 1.0497138112254756,
+      "index_before_crossing": 839,
+      "interpolated_x_mm": -1.3512037050571286,
+      "interpolated_force_n": 1.8171609266071597e-21,
+      "force_times_displacement_j": -2.455354576716639e-24
+    },
+    "minimum_x_mm": -1.3512071949064042,
+    "final_x_mm": 2.9448233127951225e-11,
+    "final_vx_m_per_s": -8.308572111558236e-11,
+    "minimum_radius_mm": 0.0010792294848915918,
+    "restoring_fraction_away_from_axis": 0.45513937282229966,
+    "damping_fraction_while_moving": 0.800464711007842
+  },
+  "zero_trapping_power_control": {
+    "termination_reason": "duration",
+    "capture": {
+      "trapped": false,
+      "classification": "duration_not_trapped",
+      "entered_core": false,
+      "core_entry_count": 0,
+      "maximum_continuous_core_residence_s": 0.0,
+      "required_continuous_core_residence_s": 0.005,
+      "required_core_entries": 2,
+      "core_radius_m": 0.002,
+      "minimum_radius_m": 0.0048130527276557976,
+      "final_radius_m": 0.004813157484389161
+    },
+    "sample_count": 8001,
+    "elapsed_time_ms": 10.0,
+    "origin_crossing_count": 0,
+    "origin_crossings": [],
+    "turning_point_count": 0,
+    "first_turning_point": null,
+    "minimum_x_mm": 4.813047061019926,
+    "final_x_mm": 4.813047061019926,
+    "final_vx_m_per_s": -9.178275789456521e-16,
+    "minimum_radius_mm": 4.813052727655798,
+    "restoring_fraction_away_from_axis": 0.0,
+    "damping_fraction_while_moving": 1.0
+  },
+  "coarse_enabled": {
+    "termination_reason": "duration",
+    "capture": {
+      "trapped": true,
+      "classification": "bounded_core_residence",
+      "entered_core": true,
+      "core_entry_count": 1,
+      "maximum_continuous_core_residence_s": 0.009439999999999999,
+      "required_continuous_core_residence_s": 0.005,
+      "required_core_entries": 2,
+      "core_radius_m": 0.002,
+      "minimum_radius_m": 1.0792367587447795e-06,
+      "final_radius_m": 1.0792819340001746e-06
+    },
+    "sample_count": 4001,
+    "elapsed_time_ms": 10.0,
+    "origin_crossing_count": 2,
+    "origin_crossings": [
+      {
+        "time_ms": 0.7034544200884449,
+        "index_before_crossing": 281,
+        "interpolated_companion": -10.151022294653384
+      },
+      {
+        "time_ms": 2.5111124164787078,
+        "index_before_crossing": 1004,
+        "interpolated_companion": 0.09759073216591496
+      }
+    ],
+    "turning_point_count": 2,
+    "first_turning_point": {
+      "time_ms": 1.0507176723938052,
+      "index_before_crossing": 420,
+      "interpolated_x_mm": -1.3482007737148043,
+      "interpolated_force_n": 1.8128946694674244e-21,
+      "force_times_displacement_j": -2.4441459960394258e-24
+    },
+    "minimum_x_mm": -1.3482168997002477,
+    "final_x_mm": 3.435305204472533e-11,
+    "final_vx_m_per_s": -9.637501763134806e-11,
+    "minimum_radius_mm": 0.0010792367587447794,
+    "restoring_fraction_away_from_axis": 0.44960560911481157,
+    "damping_fraction_while_moving": 0.8019744483159117
+  },
+  "classification_matches_coarse": true,
+  "first_turn_x_difference_primary_vs_coarse_mm": 0.003002931342324322,
+  "zero_velocity_force_is_restoring_at_every_nonzero_lineout_point": true,
+  "central_force_slope_n_per_m": -1.3116953045588061e-18,
+  "interpretation": "The enabled trajectory crosses x=0, reverses at negative x, and returns. The matched zero-power atom stops at positive x. Together with Fx*x<0 on the zero-velocity lineout, this separates position restoration from velocity damping in this provisional model.",
+  "limitations": [
+    "ideal scalar/tensor cancellation is imposed",
+    "stretched-transition differential vector polarizability proxy",
+    "first-order trajectory integrator",
+    "focal peak is not temporally resolved",
+    "recoil diffusion and 1529-nm heating are absent",
+    "one-dimensional restoration is not three-dimensional stability"
+  ]
+}

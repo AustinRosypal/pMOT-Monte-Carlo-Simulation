@@ -2,10 +2,10 @@
   "campaign": "temporary_stretched_transition_1529nm_20260908",
   "status": "DIAGNOSTIC_COMPLETE_NOT_PRODUCTION_PHYSICS",
   "project_root": "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation",
-  "git_commit": "5f96ff91343197b010c3bdad5075e421ab610e2b",
-  "git_status_porcelain_at_run": "?? outputs/diagnostics/pmot/temporary_stretched_transition_1529nm_20260908/\n?? src/pmot/pmot/temporary_tests/\n?? tests/pmot/test_pmot_fixed_stretched_shift_temporary.py",
+  "git_commit": "a71b63f324a67118ba9075ffef81d359871644d7",
+  "git_status_porcelain_at_run": "M outputs/diagnostics/pmot/temporary_stretched_transition_1529nm_20260908/README.md\n M outputs/diagnostics/pmot/temporary_stretched_transition_1529nm_20260908/run_manifest.json\n M outputs/diagnostics/pmot/temporary_stretched_transition_1529nm_20260908/summary.json\n M src/pmot/pmot/temporary_tests/run_fixed_stretched_shift_diagnostic.py\n M tests/pmot/test_pmot_fixed_stretched_shift_temporary.py\n?? outputs/diagnostics/pmot/temporary_stretched_transition_1529nm_20260908/data/axis_aligned_pair_cancellation_comparison.csv\n?? outputs/diagnostics/pmot/temporary_stretched_transition_1529nm_20260908/figures/08_axis_aligned_pair_cancellation_comparison.png",
   "source_module": "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\src\\pmot\\pmot\\temporary_tests\\run_fixed_stretched_shift_diagnostic.py",
-  "source_module_sha256": "492a96dfb567b40ea872d6fecc49bfdbf1ccc5153de5853e5ef4a379c4e513cf",
+  "source_module_sha256": "f7244925fc08daa85f460b264f466af783b06a05a6a73a048c2457e5b7f5d9c2",
   "fixed_shift_module": "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\src\\pmot\\pmot\\temporary_tests\\fixed_stretched_shift.py",
   "fixed_shift_module_sha256": "8ee0da1a79063ddbef64c060f3a7d20ebfe15c80e244449145d229664efbc784",
   "polarizability_csv": "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\data\\raw\\pmot\\Arora_CCSD_Differential_Polarizabilities.csv",
@@ -96,6 +96,8 @@
     "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\diagnostics\\pmot\\temporary_stretched_transition_1529nm_20260908\\data\\origin_cancellation_budget.csv",
     "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\diagnostics\\pmot\\temporary_stretched_transition_1529nm_20260908\\figures\\07_origin_scalar_tensor_cancellation_budget.png",
     "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\diagnostics\\pmot\\temporary_stretched_transition_1529nm_20260908\\data\\reference_phase_space_cooling_effective_detunings.csv",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\diagnostics\\pmot\\temporary_stretched_transition_1529nm_20260908\\data\\axis_aligned_pair_cancellation_comparison.csv",
+    "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\diagnostics\\pmot\\temporary_stretched_transition_1529nm_20260908\\figures\\08_axis_aligned_pair_cancellation_comparison.png",
     "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\diagnostics\\pmot\\temporary_stretched_transition_1529nm_20260908\\qa_result.json",
     "C:\\Users\\imaq\\SynologyDrive\\IMAQ-Storage\\Jupyter\\Notebook\\ARosypal\\pMOT-Monte-Carlo-Simulation\\outputs\\diagnostics\\pmot\\temporary_stretched_transition_1529nm_20260908\\summary.json"
   ]

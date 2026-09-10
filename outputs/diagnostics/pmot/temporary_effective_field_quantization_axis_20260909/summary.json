@@ -1,0 +1,62 @@
+{
+  "status": "PROVISIONAL_DIFFERENTIAL_TRANSITION_DIAGNOSTIC",
+  "point_m": [
+    0.0001,
+    0.0001,
+    0.0001
+  ],
+  "point_mm": [
+    0.1,
+    0.1,
+    0.1
+  ],
+  "velocity_m_per_s": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "trapping_wavelength_nm": 1529.268881,
+  "power_w_per_path": 0.03829448617292197,
+  "power_source": "historical stretched-transition 20 G/cm proxy; demonstration only",
+  "path_helicities_xyz": [
+    "sigma+",
+    "sigma+",
+    "sigma-"
+  ],
+  "reference_transition": "5S1/2 F=2,mF=+2 -> 5P3/2 F'=3,mF'=+3",
+  "ground_lande_g_f2": 0.5005827825,
+  "excited_lande_g_f3": 0.66705,
+  "differential_g_times_m": 0.999984435,
+  "differential_zeeman_angular_coefficient_rad_per_s_per_t": 87939631790.22763,
+  "differential_magnetic_moment_j_per_t": 9.273865734015408e-24,
+  "net_transition_equivalent_field_t": [
+    1.966907418403808e-05,
+    1.966907418403808e-05,
+    -1.966907418403808e-05
+  ],
+  "net_transition_equivalent_field_g": [
+    0.1966907418403808,
+    0.1966907418403808,
+    -0.1966907418403808
+  ],
+  "net_transition_equivalent_field_magnitude_g": 0.3406783582459531,
+  "net_transition_equivalent_field_g_per_watt_path": [
+    5.136267946048609,
+    5.136267946048609,
+    -5.136267946048609
+  ],
+  "net_optical_spin_intensity_factor_w_per_m2": [
+    201.92234119844034,
+    201.92234119844034,
+    -201.92234119844034
+  ],
+  "quantization_axis_from_vector_proxy": [
+    0.5773502691896258,
+    0.5773502691896258,
+    -0.5773502691896258
+  ],
+  "formula_component_vector_energy": "U_vec,j = -alpha_vector(lambda_seen,j) * [2 I_j/(c epsilon_0)] * s_j * k_hat_j",
+  "formula_transition_equivalent_field": "B_eq,j = U_vec,j / [mu_B (g_F'=3*m_F'=3 - g_F=2*m_F=2)]",
+  "formula_axis": "n_hat = sum_j(B_eq,j) / |sum_j(B_eq,j)|",
+  "important_limit": "The CSV is differential for one transition. It cannot determine separate ground/excited effective fields or a full 24-state Stark Hamiltonian."
+}

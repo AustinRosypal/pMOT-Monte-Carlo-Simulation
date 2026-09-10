@@ -76,7 +76,7 @@ through the fictitious-field zero remain outside this test.
 
 ## Files
 
-- `figures/`: seven rendered diagnostic figures.
+- `figures/`: eight rendered diagnostic figures.
 - `data/`: the underlying beamwise ledgers and lineout tables.
 - `run_manifest.json`: formulas, configuration, hashes, and assumptions.
 - `qa_result.json`: numerical identity, parity, reversal, and unit-chain checks.
