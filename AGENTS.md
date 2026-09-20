@@ -20,22 +20,42 @@ Work must proceed in validated stages:
    scattering, and trajectory dynamics. Optimize powers and gradients only
    after those physics layers pass their validation checks.
 
-The obsolete preliminary multilevel attempt has been removed. The replacement
-is isolated in `src/pmot/mot_multilevel`. Its authoritative production model is
-the efficient 24-state, repumper-enabled, adiabatic population-rate-equation
-MOT. `docs/mot_multilevel/EFFICIENT_MOT.md` defines the solver architecture;
-`docs/mot_multilevel/REPUMPER.md`, this file, and the package README define the
-24-state repumper transition graph. Any 23-state basis wording retained in
-`EFFICIENT_MOT.md` is superseded by those sources.
-It contains 8 ground states and 16 excited states; the extra excited state
-relative to the original 23-state cooling-only specification is F'=0, retained
-because the repumper includes every relevant dipole-allowed transition from
-F=1. Long trajectories, capture/loading calculations, force sweeps, and
-temperature calculations must use this rate-equation model. The event-driven
-Gillespie implementation is retained only for short regression, diagnostic,
-and visualization comparisons. Shared anti-Helmholtz calculations and plots
-live in `src/pmot/magnetic_fields.py` and
-`src/pmot/magnetic_field_plotting.py`; there is no generic `mot` package.
+The former 24-state multilevel implementation is archived in
+`src/pmot/mot_error`, with its documentation, notebooks, and regression tests
+under the corresponding `mot_error` directories. It used a saturated
+two-level scattering-rate expression as the elementary bidirectional rate in
+a multilevel population matrix. Because the two-level saturation construction
+already embeds a closed two-state population response, that closure is not a
+valid physical multilevel population-rate model. The archive is retained only
+for provenance and code-comparison purposes. Its forces, trajectories,
+capture/loading results, temperatures, and any pMOT dynamics that inherit its
+dissipative kernel are scientifically invalid and must not be cited as physical
+predictions.
+
+`src/pmot/mot_multilevel` now contains the replacement 24-state
+population-rate kernel specified by Section 12 of
+`PopulationRateEq_Instructions.md`. ARC precomputes the dipole matrix elements,
+transition frequencies, pairwise spontaneous rates, excited-state total decay
+rates, and hyperfine Lande factors once. The local solver uses
+`W = Gamma_e*|Omega|^2/(Gamma_e^2 + 4*Delta^2)`, never the archived saturated
+two-level closure, and calculates force from the beam-resolved net rate
+`W_b*(p_g-p_e)`. Its deterministic trajectory driver recomputes the full local
+problem at every RK4 stage. Core equation and force-symmetry tests pass, but no
+capture/loading or temperature campaign is yet validated for this solver. The
+new `diagnostics.py` and `capture.py` modules and the three ipywidgets notebooks
+under `notebooks/mot_multilevel` provide trajectory, animation,
+capture-velocity, cross-section, and loading-rate scaffolding. Capture
+timeouts fail closed; these interfaces do not waive the convergence policy.
+The seeded ten-atom Section-12 demonstration and its half-step endpoint audit
+live under `scripts/run_ten_atom_population_campaign.py`,
+`scripts/audit_ten_atom_population_campaign.py`, and the
+`ten_atom_section12_probe_20260919` output roots. Its 5 trapped/5 escaped
+result and fixed-vapor loading quadrature are diagnostic only: ten direction
+discs with one point each and scalar capture boundaries do not establish a
+quantitative cross section or loading rate.
+Shared anti-Helmholtz calculations and plots remain in
+`src/pmot/magnetic_fields.py` and `src/pmot/magnetic_field_plotting.py`; there
+is no generic `mot` package.
 
 ## Authoritative two-level MOT assumptions
 
@@ -141,9 +161,12 @@ radiation pressure explicitly and state when gravity is excluded.
 
 - `src/pmot/mot_simple`: authoritative current two-level MOT, sampling, plots,
   and loading-rate analysis.
-- `src/pmot/mot_multilevel`: authoritative 24-state, repumper-enabled
-  population-rate MOT; it also retains isolated Gillespie event/recoil layers
-  for short regression and diagnostic comparisons.
+- `src/pmot/mot_error`: archived, physically invalid 24-state implementation,
+  including its old rate engine and isolated Gillespie/event layers. Use only
+  for provenance and regression against historical artifacts.
+- `src/pmot/mot_multilevel`: replacement physical 24-state population-rate
+  kernel, ARC atomic-data precomputation, cooling/repump beam construction,
+  steady-state force evaluation, and deterministic RK4 trajectories.
 - `src/pmot/pmot`: pMOT branch. Its no-coil apparatus, single-frequency focused
   trapping-light geometry, vectorized polarizability interpolation, and an
   explicitly provisional differential-transition AC-Stark detuning layer are
@@ -158,11 +181,12 @@ radiation pressure explicitly and state when gravity is excluded.
   `launch_geometry.py`, `capture_statistics.py`, `loading.py`, `state.py`, and
   `beam_plotting.py`: model-neutral field, launch, capture-analysis, loading,
   state, and visualization primitives. Model packages normally depend only on
-  these shared modules. The pMOT is the explicit exception: it may call the
-  public explicit-local-environment entry point of the authoritative
-  `mot_multilevel` 24-state rate kernel so cooling/repump physics is reused
-  exactly rather than copied. All pMOT-specific environment, Stark, geometry,
-  trajectory, and output code must remain under `src/pmot/pmot`.
+  these shared modules. Existing provisional pMOT code explicitly imports the
+  archived `mot_error` local-environment kernel only to keep historical
+  diagnostics reproducible. That dependency is invalid for physical pMOT
+  dynamics and must eventually be replaced by a validated public entry point
+  from the new `mot_multilevel` package. All pMOT-specific environment, Stark,
+  geometry, trajectory, and output code must remain under `src/pmot/pmot`.
 - `data/raw/pmot`: differential-polarizability datasets for the later pMOT phase.
 - `notebooks/mot_simple`: current interactive validation and sampling notebooks.
 - `tests`: automated physics and numerical checks.
@@ -170,23 +194,47 @@ radiation pressure explicitly and state when gravity is excluded.
   procedure. Generated campaigns live under `outputs/diagnostics/pmot` and
   must stop at the first failed test, with every later test explicitly marked
   not run.
-- `docs/shared/BFIELD.md`, `docs/mot_multilevel/ZEEMAN.md`, and
+- `docs/shared/BFIELD.md`, `docs/mot_error/ZEEMAN.md`, and
   `docs/mot_simple/SAMPLINGALGORITHM.md`: historical derivations and
-  requirements. `docs/mot_multilevel/MULTILEVEL_MOT.md` is the historical
-  23-state, no-repumper specification. `docs/mot_multilevel/EFFICIENT_MOT.md`
-  defines the production solver architecture, while
-  `docs/mot_multilevel/REPUMPER.md` and
-  `src/pmot/mot_multilevel/README.md` define the production repumper extension;
-  together they supersede the historical specification as described above.
-  This file and explicit user decisions take precedence if documents conflict.
+  requirements. Every file under `docs/mot_error` is an archive of the invalid
+  former solver and is not a specification for the rebuild. New derivations
+  and architecture belong under `docs/mot_multilevel`. The root
+  `PopulationRateEq_Instructions.md`, especially Section 12, governs the new
+  solver. This file and explicit user decisions take precedence if documents
+  conflict.
 
-## Authoritative multilevel MOT assumptions
+## Authoritative replacement multilevel MOT assumptions
+
+The detailed August and September 2026 campaign records below describe
+historical `mot_error` artifacts. Preserve their provenance, but do not use
+their numerical results to validate or characterize the rebuilt MOT.
 
 - Atom: state-resolved Rb-87 D2 system with 8 ground and 16 excited states.
+- The rebuilt multilevel MOT defaults to 27 mW per cooling traveling beam,
+  -15 MHz cooling detuning, 0.1 mW per repump traveling beam, and 12.7 mm
+  Gaussian 1/e^2 beam diameter. The September 19 ten-atom diagnostic is an
+  immutable 20 mW/beam historical run; its scripts pin that power explicitly.
+- The default multilevel trajectory and capture RK4 timestep is 5 microseconds.
+  The first 25-disc by 20-point capture/loading output used 20 microseconds;
+  preserve it as a historical comparison and save 5-microsecond results under
+  a distinct run name.
 - Include cooling light and the repumper; the repumper transition graph must
   retain all relevant F=1 channels, including F=1 -> F'=0.
-- Use the adiabatically eliminated population-rate equations for production
-  mean force, capture/loading, and Langevin temperature trajectories.
+- Precompute all allowed hyperfine-Zeeman dipole matrix elements with ARC and
+  derive pairwise spontaneous rates from them. Sum the pairwise rates to obtain
+  the decay constant of each excited state. No ARC call belongs in the local
+  force or trajectory hot path.
+- Use the Section-12 stimulated coefficient
+  `W_ge^(b) = Gamma_e*|Omega_ge^(b)|^2 /
+  (Gamma_e^2 + 4*Delta_ge^(b)^2)`. Never add a two-level `1+s` saturation term;
+  saturation must emerge from the coupled steady-state populations.
+- Assemble stimulated absorption and emission symmetrically, add spontaneous
+  decay only from excited to ground states, choose diagonals so every column
+  sums to zero, and solve `M p_ss=0` with `sum(p_ss)=1`. Reject nonconserving,
+  non-normalized, materially negative, or high-residual solutions.
+- Calculate each beam force as
+  `hbar*k_b*sum_ge(W_ge^(b)*(p_g-p_e))`; do not use ground-population-only
+  absorption as the force.
 - Use angular-frequency units consistently inside `mot_multilevel`.
 - Recompute local intensities, Doppler and Zeeman shifts, polarization
   decomposition, state populations, scattering, and force at every required
@@ -195,8 +243,9 @@ radiation pressure explicitly and state when gravity is excluded.
   force with recoil diffusion disabled so classifications are reproducible and
   can support the local-monotonicity assumption. Bracket and scan checks must
   still verify that assumption in representative regimes.
-- Production temperature trajectories use the same multilevel rate-equation
-  force with recoil diffusion enabled through the Langevin model.
+- A production temperature trajectory requires a separately derived and
+  validated recoil-diffusion model. The new deterministic kernel currently
+  implements mean force only.
 - For the August 2026 relationship campaign, the completed raw-saturation and
   effective-saturation loading sweeps retain their 30 full-sphere direction
   discs by 30 uniform-area launch points per disc. The restarted detuning
@@ -259,22 +308,25 @@ radiation pressure explicitly and state when gravity is excluded.
 - The retained event-driven photon-jump engine is not the production engine;
   use it for short cross-checks of the rate approximation and internal-state
   dynamics.
-- Quantitative multilevel force, capture/loading, and temperature claims remain
-  provisional until the applicable force-grid or trajectory timestep/duration
-  convergence checks and representative comparisons against the event-driven
-  engine have been documented.
+- The replacement kernel passes its analytic two-level limit,
+  transition-coefficient scaling, population conservation/positivity, and
+  basic three-axis force-symmetry checks. Quantitative capture/loading and
+  temperature claims remain prohibited until trajectory timestep/duration
+  convergence and representative event-engine comparisons are documented.
 
 ## Authoritative pMOT geometry-stage assumptions
 
 - The pMOT has no anti-Helmholtz coils and no applied external magnetic field.
   Its configuration must not contain a coil object or call the conventional
-  quadrupole-field evaluator. Shared magnetic-field code remains available only
-  to `mot_simple` and `mot_multilevel`.
+  quadrupole-field evaluator. Shared magnetic-field code remains available to
+  `mot_simple`, the `mot_error` archive, and the rebuilt `mot_multilevel`
+  model.
 - Retain the six 780 nm cooling and six repump traveling components on the
   Cartesian x, y, and z paths. The first pMOT geometry configuration records
   the current comparison baseline of 27 mW per cooling component and 0.1 mW per
-  repump component. Construct them through the authoritative multilevel beam
-  builder so the repump wavelength remains exactly 780.232684 nm.
+  repump component. The archived diagnostic currently constructs them through
+  `mot_error` to preserve the exact 780.232684 nm repump wavelength. Production
+  pMOT work must instead use the future validated `mot_multilevel` builder.
 - Use one configurable trapping-laser frequency with default wavelength
   1529.268881 nm. "One trapping beam" means one frequency/configuration routed
   into three Cartesian round-trip paths, not one spatial ray: each path has an
@@ -330,10 +382,10 @@ radiation pressure explicitly and state when gravity is excluded.
   The external Zeeman term is exactly zero. The trapping-light Doppler shift
   changes the wavelength used for the polarizability lookup; it is not added
   directly as another 780-nm Doppler term.
-- Keep the validated 780-nm cooling/repump propagation-frame path helicities
+- The archived diagnostic used 780-nm cooling/repump propagation-frame path helicities
   fixed at `(x, y, z) = (sigma+, sigma+, sigma-)` for both incident and retro
-  components. With no trapping-light shift, their local velocity-force
-  Jacobian is negative definite, so they provide damping.
+  components. Its negative velocity-force Jacobian came from the invalid
+  archived rate kernel and must be re-established with the rebuilt solver.
 - For the intended 1529.268881-nm vector-only design point, where the scalar
   and tensor differential shifts cancel, the unique centered matched-path
   helicity tuple that is position restoring on x, y, and z for the current
@@ -342,7 +394,9 @@ radiation pressure explicitly and state when gravity is excluded.
   is position anti-restoring. The other six centered matched tuples are
   saddles; unmatched incident/retro tuples bias the fictitious field at the
   origin. These labels are propagation-frame targets at the atoms, not direct
-  laboratory waveplate settings.
+  laboratory waveplate settings. They are historical `mot_error` diagnostic
+  classifications, not validated design conclusions; repeat the full
+  three-dimensional Jacobian analysis with the rebuilt solver.
 - Do not use the reversed `(sigma-, sigma-, sigma+)` result from the full
   provisional total-shift sweep as a design recommendation. In that diagnostic
   the helicity-independent -16.339691 MHz central shift changed the nominal
@@ -350,9 +404,10 @@ radiation pressure explicitly and state when gravity is excluded.
   every centered configuration was anti-damping. Helicity cannot correct that
   common detuning error: either enforce the intended scalar/tensor cancellation
   or otherwise keep the relevant cooling transitions effectively red.
-- The provisional pMOT may use the `mot_multilevel` explicit-local-environment
-  rate-kernel entry point. Existing MOT callers must retain zero additional
-  transition shift and their anti-Helmholtz behavior bit-for-bit.
+- Existing provisional pMOT diagnostics may import the `mot_error`
+  explicit-local-environment entry point solely for reproducibility. New or
+  production pMOT dynamics must not use it. The rebuilt `mot_multilevel` public
+  entry point will be integrated only after its conventional-MOT validation.
 - Physical pMOT trapping power remains unspecified. The first diagnostic's
   approximately 38.294 mW/path value is only the stretched-reference power
   scale corresponding to a nominal 20 G/cm vector-gradient proxy. It is not an
@@ -368,18 +423,18 @@ radiation pressure explicitly and state when gravity is excluded.
   clean axial launch `r0=(15,0,0) mm`, `v0=(-17,0,0) m/s`, with gravity on,
   recoil diffusion off, 25 ms duration, and 5 microsecond step. It exposes all
   18 cooling, repump, and trapping traveling-component propagation-frame
-  polarizations independently, initialized to the validated matched `++-`
-  tuple for incident and retro paths. Its 3D view must draw the shared 12.7-mm
+  polarizations independently, initialized to the archived candidate `++-`
+  tuple for incident and retro paths. That tuple must be revalidated. Its 3D
+  view must draw the shared 12.7-mm
   cooling/repump volumes and the six 1529-nm Gaussian 1/e^2 envelopes at true
   in-trap scale; the 35-mm trapping diameter is a pre-lens input and must not
   be drawn through the trap.
-- The inherited rate kernel currently combines saturated per-transition rates,
+- The archived inherited rate kernel combines saturated per-transition rates,
   explicit reverse stimulated-population links, and a force based on the
-  ground-population-weighted available absorption rate. Preserve and label
-  that convention for exact comparison with existing multilevel work, but do
-  not call it a validated net scattering force. Resolving it requires a
-  separate solver-wide derivation, two-level-limit tests, and event-engine
-  comparisons before rerunning quantitative multilevel or pMOT campaigns.
+  ground-population-weighted available absorption rate. This closure is now
+  known to be physically invalid for the multilevel MOT. Preserve and label it
+  only for exact comparison with historical work; do not extend it or use it
+  for quantitative multilevel or pMOT campaigns.
 - One-dimensional force zeros do not establish stability. Classify candidate
   pMOT equilibria using the full three-dimensional force Jacobian and
   distinguish position-restoring static zeros from dynamically stable trapping.

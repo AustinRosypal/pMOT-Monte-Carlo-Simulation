@@ -17,10 +17,10 @@ import numpy as np
 import pandas as pd
 
 from ..configuration import RB87_MASS_KG
-from ..mot_multilevel.configuration import default_multilevel_mot_config
-from ..mot_multilevel.rate_equations import RateEquationAtomState
-from ..mot_multilevel.rate_equations import RateEquationTrajectoryConfig
-from ..mot_multilevel.rate_equations import build_rate_equation_model
+from ..mot_error.configuration import default_multilevel_mot_config
+from ..mot_error.rate_equations import RateEquationAtomState
+from ..mot_error.rate_equations import RateEquationTrajectoryConfig
+from ..mot_error.rate_equations import build_rate_equation_model
 from .ac_stark import EFFECTIVE_DETUNING_EQUATION
 from .ac_stark import PROVISIONAL_MODEL_NAME
 from .ac_stark import ProvisionalStarkConfig

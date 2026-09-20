@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from ...mot_multilevel.rate_equations import RateEquationTrajectoryConfig
+from ...mot_error.rate_equations import RateEquationTrajectoryConfig
 from ..trajectory_plotting import plot_pmot_trajectory_diagnostics
 from ..vector_only_trajectories import build_vector_only_trajectory_context
 from ..vector_only_trajectories import inward_launch_state

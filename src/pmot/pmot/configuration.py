@@ -10,9 +10,9 @@ from ..beams import Vec3
 from ..configuration import MOTApparatusConfig
 from ..configuration import default_mot_apparatus_config
 from ..fields import MOTBeam
-from ..mot_multilevel.configuration import MultilevelMOTConfig
-from ..mot_multilevel.configuration import default_multilevel_mot_config
-from ..mot_multilevel.simulation import build_multilevel_mot_beams
+from ..mot_error.configuration import MultilevelMOTConfig
+from ..mot_error.configuration import default_multilevel_mot_config
+from ..mot_error.simulation import build_multilevel_mot_beams
 from .trapping_beams import DEFAULT_TRAPPING_WAVELENGTH_M
 from .trapping_beams import TrappingLaserConfig
 from .trapping_beams import build_trapping_beams

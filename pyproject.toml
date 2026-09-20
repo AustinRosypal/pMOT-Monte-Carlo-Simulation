@@ -12,6 +12,7 @@ authors = [
   { name = "AJ Rosy" }
 ]
 dependencies = [
+  "arc-alkali-rydberg-calculator==3.8.0",
   "matplotlib>=3.8",
   "numpy>=1.26",
   "pandas>=2.2",

@@ -23,10 +23,10 @@ import pandas as pd
 from ...configuration import PLANCK_CONSTANT_J_S
 from ...configuration import SPEED_OF_LIGHT_M_PER_S
 from ...configuration import VACUUM_PERMITTIVITY_F_PER_M
-from ...mot_multilevel.configuration import default_multilevel_mot_config
-from ...mot_multilevel.polarization import polarization_weights
-from ...mot_multilevel.polarization import propagation_frame_polarization
-from ...mot_multilevel.rate_equations import build_rate_equation_model
+from ...mot_error.configuration import default_multilevel_mot_config
+from ...mot_error.polarization import polarization_weights
+from ...mot_error.polarization import propagation_frame_polarization
+from ...mot_error.rate_equations import build_rate_equation_model
 from ..ac_stark import ProvisionalStarkConfig
 from ..ac_stark import build_physics_trapping_beams
 from ..ac_stark import provisional_power_for_target_gradient_w_per_path

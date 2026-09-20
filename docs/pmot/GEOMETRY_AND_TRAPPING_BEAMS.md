@@ -5,10 +5,13 @@
 This document defines the optical geometry starting point for the
 pseudo-magneto-optical trap (pMOT). A provisional differential-transition
 Stark detuning layer is now implemented, but the production pMOT force model is
-not. Its atomic basis and dissipative-light starting point are the
-24-state, repumper-enabled population-rate equations in
-`src/pmot/mot_multilevel`; the exploratory two-level helper in
+not. Its historical atomic basis and dissipative-light starting point are the
+archived, physically invalid 24-state population-rate equations in
+`src/pmot/mot_error`; the exploratory two-level helper in
 `src/pmot/pmot/preliminary_scattering.py` is not a production pMOT engine.
+The replacement pMOT dynamics must wait for the rebuilt and validated
+`src/pmot/mot_multilevel` solver. Geometry-only statements in this document do
+not validate the archived dissipative force.
 The provisional mapping, its equations, first short trajectories, and the data
 missing for a state-resolved Hamiltonian are recorded in
 `docs/pmot/PROVISIONAL_AC_STARK_MODEL.md`.

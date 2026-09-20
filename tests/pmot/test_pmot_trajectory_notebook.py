@@ -17,7 +17,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from pmot.mot_multilevel.rate_equations import RateEquationTrajectoryConfig
+from pmot.mot_error.rate_equations import RateEquationTrajectoryConfig
 from pmot.pmot.trajectory_plotting import plot_pmot_trajectory_diagnostics
 from pmot.pmot.vector_only_trajectories import PMOTBeamHelicities
 from pmot.pmot.vector_only_trajectories import build_vector_only_apparatus

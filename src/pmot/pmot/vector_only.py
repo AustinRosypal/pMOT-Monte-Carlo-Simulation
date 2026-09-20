@@ -12,7 +12,7 @@ from typing import Any
 import numpy as np
 
 from ..configuration import HBAR_J_S
-from ..mot_multilevel.rate_equations import rate_equation_observable_from_local_environment
+from ..mot_error.rate_equations import rate_equation_observable_from_local_environment
 from .ac_stark import ProvisionalStarkConfig
 from .ac_stark import build_physics_trapping_beams
 from .ac_stark import provisional_transition_stark_shifts

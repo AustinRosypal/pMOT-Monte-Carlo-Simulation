@@ -25,11 +25,11 @@ import pandas as pd
 from ...configuration import PLANCK_CONSTANT_J_S
 from ...configuration import SPEED_OF_LIGHT_M_PER_S
 from ...configuration import VACUUM_PERMITTIVITY_F_PER_M
-from ...mot_multilevel.coupling import beam_polarization_vector
-from ...mot_multilevel.polarization import polarization_weights
-from ...mot_multilevel.polarization import propagation_frame_polarization
-from ...mot_multilevel.rate_equations import RateEquationAtomState
-from ...mot_multilevel.rate_equations import RateEquationTrajectoryConfig
+from ...mot_error.coupling import beam_polarization_vector
+from ...mot_error.polarization import polarization_weights
+from ...mot_error.polarization import propagation_frame_polarization
+from ...mot_error.rate_equations import RateEquationAtomState
+from ...mot_error.rate_equations import RateEquationTrajectoryConfig
 from ..polarizability import interpolate_differential_polarizability_arrays
 from ..trajectory_plotting import plot_pmot_trajectory_diagnostics
 from ..trapping_beams import helicity_sign

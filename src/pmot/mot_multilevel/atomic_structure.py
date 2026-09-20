@@ -1,42 +1,47 @@
-"""Precomputed Rb-87 D2 hyperfine/Zeeman states and transition graphs."""
+"""ARC-backed, position-independent atomic data for the Rb-87 D2 MOT.
+
+ARC is invoked only while constructing the cached :class:`AtomicStructure`.
+No trajectory or force evaluation calls ARC.
+"""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from functools import lru_cache
+from importlib.metadata import PackageNotFoundError, version
 from math import pi
 
-from sympy.physics.wigner import wigner_3j
-from sympy.physics.wigner import wigner_6j
+import numpy as np
+
+from ..configuration import (
+    HBAR_J_S,
+    SPEED_OF_LIGHT_M_PER_S,
+    VACUUM_PERMITTIVITY_F_PER_M,
+)
 
 
-RB87_NUCLEAR_SPIN = 1.5
-GROUND_J = 0.5
-EXCITED_J = 1.5
-GROUND_J_LANDE = 2.00233113
-EXCITED_J_LANDE = 1.3341
-
+ELEMENTARY_CHARGE_C = 1.602176634e-19
+BOHR_RADIUS_M = 5.29177210903e-11
 BOHR_MAGNETON_J_PER_T = 9.2740100783e-24
-HBAR_J_S = 1.054571817e-34
 BOHR_MAGNETON_OVER_HBAR_RAD_PER_S_PER_T = BOHR_MAGNETON_J_PER_T / HBAR_J_S
 
-EXCITED_HYPERFINE_OFFSET_RAD_PER_S = {
-    0: -2.0 * pi * 495.815e6,
-    1: -2.0 * pi * 423.597e6,
-    2: -2.0 * pi * 266.650e6,
-    3: 0.0,
-}
+GROUND_N = 5
+GROUND_L = 0
+GROUND_J = 0.5
+EXCITED_N = 5
+EXCITED_L = 1
+EXCITED_J = 1.5
 
 
 @dataclass(frozen=True, slots=True)
 class InternalState:
-    """One indexed hyperfine/Zeeman state."""
+    """One zero-field hyperfine-Zeeman basis state."""
 
     index: int
     manifold: str
     f: int
     m_f: int
-    energy_offset_rad_per_s: float
+    hyperfine_shift_rad_per_s: float
     lande_g: float
 
     @property
@@ -47,14 +52,10 @@ class InternalState:
     def is_excited(self) -> bool:
         return self.manifold == "excited"
 
-    @property
-    def is_dark(self) -> bool:
-        return self.is_ground and self.f == 1
-
 
 @dataclass(frozen=True, slots=True)
 class DipoleTransition:
-    """One directed ground-to-excited electric-dipole transition."""
+    """One allowed ground-to-excited electric-dipole transition."""
 
     ground_state_index: int
     excited_state_index: int
@@ -63,33 +64,26 @@ class DipoleTransition:
     excited_f: int
     excited_m_f: int
     q: int
-    c_squared: float
-    hyperfine_offset_rad_per_s: float
-
-
-@dataclass(frozen=True, slots=True)
-class DecayChannel:
-    """One normalized spontaneous-decay branch."""
-
-    excited_state_index: int
-    ground_state_index: int
-    q: int
-    branch_weight: float
-    branch_probability: float
+    dipole_matrix_element_ea0: float
+    dipole_matrix_element_c_m: float
+    transition_angular_frequency_rad_per_s: float
+    spontaneous_decay_rate_per_s: float
 
 
 @dataclass(frozen=True, slots=True)
 class AtomicStructure:
-    """Immutable state arrays and direct transition adjacency lists."""
+    """Immutable ARC data and adjacency lists for all 24 states."""
 
     states: tuple[InternalState, ...]
     ground_state_indices: tuple[int, ...]
     excited_state_indices: tuple[int, ...]
-    absorption_transitions: tuple[DipoleTransition, ...]
-    decay_channels: tuple[DecayChannel, ...]
-    absorption_by_ground: tuple[tuple[DipoleTransition, ...], ...]
+    transitions: tuple[DipoleTransition, ...]
+    transitions_by_ground: tuple[tuple[DipoleTransition, ...], ...]
     transitions_by_excited: tuple[tuple[DipoleTransition, ...], ...]
-    decay_by_excited: tuple[tuple[DecayChannel, ...], ...]
+    cooling_reference_angular_frequency_rad_per_s: float
+    repump_reference_angular_frequency_rad_per_s: float
+    fine_structure_angular_frequency_rad_per_s: float
+    arc_version: str
 
     def state_index(self, manifold: str, f: int, m_f: int) -> int:
         for state in self.states:
@@ -98,43 +92,91 @@ class AtomicStructure:
         raise KeyError((manifold, f, m_f))
 
 
-def hyperfine_lande_g(f: int, j: float, electronic_g: float) -> float:
-    """Return weak-field hyperfine g_F, neglecting the small nuclear term."""
+def _load_arc_rubidium87():
+    """Load ARC, adapting its legacy SciPy spherical-harmonic import.
 
-    if f <= 0:
-        return 0.0
-    numerator = f * (f + 1.0) + j * (j + 1.0) - RB87_NUCLEAR_SPIN * (RB87_NUCLEAR_SPIN + 1.0)
-    return electronic_g * numerator / (2.0 * f * (f + 1.0))
+    ARC 3.8 imports ``scipy.special.sph_harm`` at module import time. Newer
+    SciPy releases expose the replacement as ``sph_harm_y``. The dipole and
+    hyperfine routines used here do not call spherical harmonics, but ARC still
+    imports the symbol, so provide the argument-order-compatible wrapper when
+    necessary.
+    """
 
+    import scipy.special as special
 
-@lru_cache(maxsize=None)
-def raw_dipole_strength(ground_f: int, ground_m_f: int, excited_f: int, excited_m_f: int) -> float:
-    """Return the unnormalized state-resolved D2 dipole strength."""
+    if not hasattr(special, "sph_harm"):
+        def sph_harm(m, n, theta, phi):
+            return special.sph_harm_y(n, m, phi, theta)
 
-    q = excited_m_f - ground_m_f
-    if q not in (-1, 0, 1):
-        return 0.0
-    if abs(ground_m_f) > ground_f or abs(excited_m_f) > excited_f:
-        return 0.0
-    if abs(excited_f - ground_f) > 1 or (ground_f == 0 and excited_f == 0):
-        return 0.0
-    six_j = float(wigner_6j(EXCITED_J, excited_f, RB87_NUCLEAR_SPIN, ground_f, GROUND_J, 1))
-    three_j = float(wigner_3j(excited_f, 1, ground_f, -excited_m_f, q, ground_m_f))
-    return (2 * excited_f + 1) * (2 * GROUND_J + 1) * six_j**2 * (2 * ground_f + 1) * three_j**2
+        special.sph_harm = sph_harm
+
+    from arc import Rubidium87
+
+    return Rubidium87()
 
 
-CYCLING_RAW_STRENGTH = raw_dipole_strength(2, 2, 3, 3)
+def _arc_version() -> str:
+    try:
+        return version("arc-alkali-rydberg-calculator")
+    except PackageNotFoundError:
+        return "unknown"
 
 
-def normalized_dipole_strength(ground_f: int, ground_m_f: int, excited_f: int, excited_m_f: int) -> float:
-    """Return C^2 normalized to |2,+2> -> |3,+3>."""
+def _hyperfine_shift_hz(atom, *, l: int, j: float, f: int) -> float:
+    a_hz, b_hz = atom.getHFSCoefficients(5, l, j)
+    return float(atom.getHFSEnergyShift(j, f, a_hz, b_hz))
 
-    return raw_dipole_strength(ground_f, ground_m_f, excited_f, excited_m_f) / CYCLING_RAW_STRENGTH
+
+def _lande_g(atom, *, l: int, j: float, f: int) -> float:
+    return 0.0 if f == 0 else float(atom.getLandegfExact(l, j, f))
+
+
+def spontaneous_decay_rate_per_s(
+    transition_angular_frequency_rad_per_s: float,
+    dipole_matrix_element_c_m: float,
+) -> float:
+    """Return Eq. (40)'s pairwise Einstein-A coefficient in s^-1."""
+
+    omega = float(transition_angular_frequency_rad_per_s)
+    dipole = float(dipole_matrix_element_c_m)
+    if omega <= 0.0:
+        raise ValueError("transition angular frequency must be positive")
+    return (
+        omega**3
+        * dipole**2
+        / (
+            3.0
+            * pi
+            * VACUUM_PERMITTIVITY_F_PER_M
+            * HBAR_J_S
+            * SPEED_OF_LIGHT_M_PER_S**3
+        )
+    )
 
 
 @lru_cache(maxsize=1)
 def build_atomic_structure() -> AtomicStructure:
-    """Generate all ground/excited states and precompute allowed transition graphs."""
+    """Precompute the complete 8-ground/16-excited ARC transition graph."""
+
+    atom = _load_arc_rubidium87()
+    fine_frequency_hz = float(
+        atom.getTransitionFrequency(
+            GROUND_N,
+            GROUND_L,
+            GROUND_J,
+            EXCITED_N,
+            EXCITED_L,
+            EXCITED_J,
+        )
+    )
+    ground_shift_hz = {
+        f: _hyperfine_shift_hz(atom, l=GROUND_L, j=GROUND_J, f=f)
+        for f in (1, 2)
+    }
+    excited_shift_hz = {
+        f: _hyperfine_shift_hz(atom, l=EXCITED_L, j=EXCITED_J, f=f)
+        for f in (0, 1, 2, 3)
+    }
 
     states: list[InternalState] = []
     ground_indices: list[int] = []
@@ -144,7 +186,14 @@ def build_atomic_structure() -> AtomicStructure:
             index = len(states)
             ground_indices.append(index)
             states.append(
-                InternalState(index, "ground", f, m_f, 0.0, hyperfine_lande_g(f, GROUND_J, GROUND_J_LANDE))
+                InternalState(
+                    index=index,
+                    manifold="ground",
+                    f=f,
+                    m_f=m_f,
+                    hyperfine_shift_rad_per_s=2.0 * pi * ground_shift_hz[f],
+                    lande_g=_lande_g(atom, l=GROUND_L, j=GROUND_J, f=f),
+                )
             )
     for f in (0, 1, 2, 3):
         for m_f in range(-f, f + 1):
@@ -152,72 +201,102 @@ def build_atomic_structure() -> AtomicStructure:
             excited_indices.append(index)
             states.append(
                 InternalState(
-                    index,
-                    "excited",
-                    f,
-                    m_f,
-                    EXCITED_HYPERFINE_OFFSET_RAD_PER_S[f],
-                    hyperfine_lande_g(f, EXCITED_J, EXCITED_J_LANDE),
+                    index=index,
+                    manifold="excited",
+                    f=f,
+                    m_f=m_f,
+                    hyperfine_shift_rad_per_s=2.0 * pi * excited_shift_hz[f],
+                    lande_g=_lande_g(atom, l=EXCITED_L, j=EXCITED_J, f=f),
                 )
             )
 
     lookup = {(state.manifold, state.f, state.m_f): state.index for state in states}
     transitions: list[DipoleTransition] = []
-    excitation_manifolds_by_ground_f = {1: (0, 1, 2), 2: (1, 2, 3)}
-    for ground_f, excited_manifolds in excitation_manifolds_by_ground_f.items():
+    for ground_f in (1, 2):
         for ground_m_f in range(-ground_f, ground_f + 1):
-            ground_index = lookup[("ground", ground_f, ground_m_f)]
-            for excited_f in excited_manifolds:
+            for excited_f in (0, 1, 2, 3):
+                if abs(excited_f - ground_f) > 1:
+                    continue
                 for q in (-1, 0, 1):
                     excited_m_f = ground_m_f + q
                     if abs(excited_m_f) > excited_f:
                         continue
-                    strength = normalized_dipole_strength(ground_f, ground_m_f, excited_f, excited_m_f)
-                    if strength <= 0.0:
-                        continue
-                    transitions.append(
-                        DipoleTransition(
-                            ground_index,
-                            lookup[("excited", excited_f, excited_m_f)],
+                    dipole_ea0 = float(
+                        atom.getDipoleMatrixElementHFS(
+                            GROUND_N,
+                            GROUND_L,
+                            GROUND_J,
                             ground_f,
                             ground_m_f,
+                            EXCITED_N,
+                            EXCITED_L,
+                            EXCITED_J,
                             excited_f,
                             excited_m_f,
                             q,
-                            strength,
-                            EXCITED_HYPERFINE_OFFSET_RAD_PER_S[excited_f],
+                        )
+                    )
+                    if abs(dipole_ea0) <= 1.0e-15:
+                        continue
+                    transition_frequency_hz = (
+                        fine_frequency_hz
+                        + excited_shift_hz[excited_f]
+                        - ground_shift_hz[ground_f]
+                    )
+                    transition_omega = 2.0 * pi * transition_frequency_hz
+                    dipole_c_m = dipole_ea0 * ELEMENTARY_CHARGE_C * BOHR_RADIUS_M
+                    transitions.append(
+                        DipoleTransition(
+                            ground_state_index=lookup[("ground", ground_f, ground_m_f)],
+                            excited_state_index=lookup[("excited", excited_f, excited_m_f)],
+                            ground_f=ground_f,
+                            ground_m_f=ground_m_f,
+                            excited_f=excited_f,
+                            excited_m_f=excited_m_f,
+                            q=q,
+                            dipole_matrix_element_ea0=dipole_ea0,
+                            dipole_matrix_element_c_m=dipole_c_m,
+                            transition_angular_frequency_rad_per_s=transition_omega,
+                            spontaneous_decay_rate_per_s=spontaneous_decay_rate_per_s(
+                                transition_omega,
+                                dipole_c_m,
+                            ),
                         )
                     )
 
-    decay_channels: list[DecayChannel] = []
-    for excited_index in excited_indices:
-        excited = states[excited_index]
-        raw_channels: list[tuple[int, int, float]] = []
-        for ground_f in (1, 2):
-            for ground_m_f in range(-ground_f, ground_f + 1):
-                weight = raw_dipole_strength(ground_f, ground_m_f, excited.f, excited.m_f)
-                if weight > 0.0:
-                    raw_channels.append((lookup[("ground", ground_f, ground_m_f)], excited.m_f - ground_m_f, weight))
-        normalization = sum(weight for _, _, weight in raw_channels)
-        for ground_index, q, weight in raw_channels:
-            decay_channels.append(DecayChannel(excited_index, ground_index, q, weight, weight / normalization))
-
-    absorption_by_ground: list[list[DipoleTransition]] = [[] for _ in states]
-    transitions_by_excited: list[list[DipoleTransition]] = [[] for _ in states]
-    decay_by_excited: list[list[DecayChannel]] = [[] for _ in states]
+    by_ground: list[list[DipoleTransition]] = [[] for _ in states]
+    by_excited: list[list[DipoleTransition]] = [[] for _ in states]
     for transition in transitions:
-        absorption_by_ground[transition.ground_state_index].append(transition)
-        transitions_by_excited[transition.excited_state_index].append(transition)
-    for channel in decay_channels:
-        decay_by_excited[channel.excited_state_index].append(channel)
+        by_ground[transition.ground_state_index].append(transition)
+        by_excited[transition.excited_state_index].append(transition)
 
-    return AtomicStructure(
-        tuple(states),
-        tuple(ground_indices),
-        tuple(excited_indices),
-        tuple(transitions),
-        tuple(decay_channels),
-        tuple(tuple(items) for items in absorption_by_ground),
-        tuple(tuple(items) for items in transitions_by_excited),
-        tuple(tuple(items) for items in decay_by_excited),
+    cooling_reference = 2.0 * pi * (
+        fine_frequency_hz + excited_shift_hz[3] - ground_shift_hz[2]
     )
+    repump_reference = 2.0 * pi * (
+        fine_frequency_hz + excited_shift_hz[2] - ground_shift_hz[1]
+    )
+    return AtomicStructure(
+        states=tuple(states),
+        ground_state_indices=tuple(ground_indices),
+        excited_state_indices=tuple(excited_indices),
+        transitions=tuple(transitions),
+        transitions_by_ground=tuple(tuple(items) for items in by_ground),
+        transitions_by_excited=tuple(tuple(items) for items in by_excited),
+        cooling_reference_angular_frequency_rad_per_s=cooling_reference,
+        repump_reference_angular_frequency_rad_per_s=repump_reference,
+        fine_structure_angular_frequency_rad_per_s=2.0 * pi * fine_frequency_hz,
+        arc_version=_arc_version(),
+    )
+
+
+__all__ = [
+    "AtomicStructure",
+    "BOHR_MAGNETON_OVER_HBAR_RAD_PER_S_PER_T",
+    "BOHR_RADIUS_M",
+    "DipoleTransition",
+    "ELEMENTARY_CHARGE_C",
+    "InternalState",
+    "build_atomic_structure",
+    "spontaneous_decay_rate_per_s",
+]

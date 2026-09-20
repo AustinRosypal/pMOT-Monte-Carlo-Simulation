@@ -1,4 +1,4 @@
-"""Complex polarization vectors and local spherical-basis projections."""
+"""Propagation-frame polarization and local spherical-basis projections."""
 
 from __future__ import annotations
 
@@ -14,26 +14,24 @@ ComplexVec3 = tuple[complex, complex, complex]
 def normalize(vector: Vec3) -> Vec3:
     array = np.asarray(vector, dtype=float)
     magnitude = float(np.linalg.norm(array))
-    if magnitude <= 0.0:
-        raise ValueError("cannot normalize a zero vector")
-    return tuple((array / magnitude).tolist())
+    if array.shape != (3,) or not np.all(np.isfinite(array)) or magnitude <= 0.0:
+        raise ValueError("a finite nonzero three-vector is required")
+    return tuple(float(value) for value in array / magnitude)
 
 
 def transverse_basis(axis: Vec3) -> tuple[Vec3, Vec3]:
-    """Return a deterministic right-handed basis perpendicular to axis."""
-
     direction = np.asarray(normalize(axis), dtype=float)
-    reference = np.asarray((0.0, 1.0, 0.0) if abs(direction[2]) > 0.9 else (0.0, 0.0, 1.0))
+    reference = np.asarray(
+        (0.0, 1.0, 0.0) if abs(direction[2]) > 0.9 else (0.0, 0.0, 1.0)
+    )
     first = np.cross(reference, direction)
     first /= np.linalg.norm(first)
     second = np.cross(direction, first)
     second /= np.linalg.norm(second)
-    return tuple(first.tolist()), tuple(second.tolist())
+    return tuple(first), tuple(second)
 
 
 def spherical_basis(axis: Vec3) -> dict[int, ComplexVec3]:
-    """Return e_q for q=-1,0,+1 relative to the supplied quantization axis."""
-
     first, second = transverse_basis(axis)
     e_plus = tuple((-first[i] - 1j * second[i]) / sqrt(2.0) for i in range(3))
     e_minus = tuple((first[i] - 1j * second[i]) / sqrt(2.0) for i in range(3))
@@ -45,30 +43,59 @@ def spherical_basis(axis: Vec3) -> dict[int, ComplexVec3]:
 
 
 def propagation_frame_polarization(direction: Vec3, polarization: str) -> ComplexVec3:
-    """Construct pi/sigma polarization defined while looking along propagation."""
-
-    basis = spherical_basis(direction)
     mapping = {"sigma+": +1, "pi": 0, "sigma-": -1}
     if polarization not in mapping:
         raise ValueError("polarization must be 'sigma+', 'pi', or 'sigma-'")
-    return basis[mapping[polarization]]
+    return spherical_basis(direction)[mapping[polarization]]
 
 
-def polarization_weights(polarization_vector: ComplexVec3, quantization_axis: Vec3) -> dict[int, float]:
-    """Project a lab-frame polarization vector onto a local spherical basis."""
+def polarization_amplitudes(
+    polarization_vector: ComplexVec3,
+    quantization_axis: Vec3,
+) -> dict[int, complex]:
+    """Return normalized local amplitudes epsilon_q for q=-1,0,+1."""
 
-    basis = spherical_basis(quantization_axis)
     epsilon = np.asarray(polarization_vector, dtype=complex)
-    weights = {q: float(abs(np.vdot(np.asarray(basis[q]), epsilon)) ** 2) for q in (-1, 0, +1)}
-    total = sum(weights.values())
-    if total <= 0.0:
-        raise ValueError("polarization projection has zero norm")
-    return {q: value / total for q, value in weights.items()}
+    norm = float(np.linalg.norm(epsilon))
+    if epsilon.shape != (3,) or not np.isfinite(epsilon).all() or norm <= 0.0:
+        raise ValueError("polarization vector must be a finite nonzero three-vector")
+    epsilon /= norm
+    basis = spherical_basis(quantization_axis)
+    amplitudes = {
+        q: complex(np.vdot(np.asarray(basis[q], dtype=complex), epsilon))
+        for q in (-1, 0, +1)
+    }
+    normalization = sqrt(sum(abs(value) ** 2 for value in amplitudes.values()))
+    return {q: value / normalization for q, value in amplitudes.items()}
+
+
+def polarization_weights(
+    polarization_vector: ComplexVec3,
+    quantization_axis: Vec3,
+) -> dict[int, float]:
+    return {
+        q: float(abs(value) ** 2)
+        for q, value in polarization_amplitudes(
+            polarization_vector,
+            quantization_axis,
+        ).items()
+    }
 
 
 def quantization_axis(field_t: Vec3, previous_axis: Vec3, epsilon_t: float) -> Vec3:
-    """Return B-hat or retain the previous well-defined axis near B=0."""
-
     if float(np.linalg.norm(np.asarray(field_t, dtype=float))) <= epsilon_t:
         return normalize(previous_axis)
     return normalize(field_t)
+
+
+__all__ = [
+    "ComplexVec3",
+    "Vec3",
+    "normalize",
+    "polarization_amplitudes",
+    "polarization_weights",
+    "propagation_frame_polarization",
+    "quantization_axis",
+    "spherical_basis",
+    "transverse_basis",
+]

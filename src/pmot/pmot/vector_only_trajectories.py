@@ -35,11 +35,11 @@ from ..configuration import PLANCK_CONSTANT_J_S
 from ..configuration import RB87_MASS_KG
 from ..fields import MOTBeam
 from ..launch_geometry import build_incident_disc_from_angles
-from ..mot_multilevel.configuration import MultilevelMOTConfig
-from ..mot_multilevel.configuration import default_multilevel_mot_config
-from ..mot_multilevel.rate_equations import RateEquationAtomState
-from ..mot_multilevel.rate_equations import RateEquationTrajectoryConfig
-from ..mot_multilevel.rate_equations import RateEquationTrajectoryRecord
+from ..mot_error.configuration import MultilevelMOTConfig
+from ..mot_error.configuration import default_multilevel_mot_config
+from ..mot_error.rate_equations import RateEquationAtomState
+from ..mot_error.rate_equations import RateEquationTrajectoryConfig
+from ..mot_error.rate_equations import RateEquationTrajectoryRecord
 from .ac_stark import ProvisionalStarkConfig
 from .ac_stark import build_physics_trapping_beams
 from .ac_stark import provisional_power_for_target_gradient_w_per_path
@@ -302,7 +302,7 @@ def build_vector_only_trajectory_context(
     else:
         config = replace(multilevel_config, repumper_enabled=True)
     # Local import avoids constructing the cached 24-state graph during module import.
-    from ..mot_multilevel.rate_equations import build_rate_equation_model
+    from ..mot_error.rate_equations import build_rate_equation_model
 
     model = build_rate_equation_model(config.natural_linewidth_rad_per_s)
     table = load_differential_polarizability_table()

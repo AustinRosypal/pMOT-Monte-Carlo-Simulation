@@ -21,8 +21,8 @@ import numpy as np
 from ..configuration import PLANCK_CONSTANT_J_S
 from ..configuration import SPEED_OF_LIGHT_M_PER_S
 from ..configuration import VACUUM_PERMITTIVITY_F_PER_M
-from ..mot_multilevel.polarization import propagation_frame_polarization
-from ..mot_multilevel.rate_equations import RateEquationModel
+from ..mot_error.polarization import propagation_frame_polarization
+from ..mot_error.rate_equations import RateEquationModel
 from .polarizability import DifferentialPolarizabilityTable
 from .polarizability import interpolate_differential_polarizability_arrays
 from .polarizability import load_differential_polarizability_table

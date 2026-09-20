@@ -25,7 +25,7 @@ from ...configuration import PLANCK_CONSTANT_J_S
 from ...configuration import SPEED_OF_LIGHT_M_PER_S
 from ...configuration import VACUUM_PERMITTIVITY_F_PER_M
 from ...fields import MOTBeam
-from ...mot_multilevel.polarization import propagation_frame_polarization
+from ...mot_error.polarization import propagation_frame_polarization
 from ..ac_stark import ProvisionalStarkConfig
 from ..ac_stark import atom_frame_trapping_frequencies_hz
 from ..ac_stark import trapping_component_intensities_w_per_m2

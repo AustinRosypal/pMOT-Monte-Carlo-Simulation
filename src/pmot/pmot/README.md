@@ -141,10 +141,12 @@ external motion so force-law behavior is reproducible.
 
 ## Physics-construction boundary
 
-The pMOT calls the public explicit-local-environment entry point of the
-validated `pmot.mot_multilevel` rate kernel. This prevents duplication of the
-cooling/repump population solver while all pMOT-specific optical environment,
-Stark approximation, trajectory code, and outputs remain in this package.
+The historical pMOT diagnostics call the public explicit-local-environment
+entry point of the archived `pmot.mot_error` rate kernel. That preserves exact
+reproducibility without duplicating the old cooling/repump solver, but the
+kernel is physically invalid and these dynamics are not pMOT predictions. All
+pMOT-specific optical environment, Stark approximation, trajectory code, and
+outputs remain in this package.
 
 The provisional layer demonstrates the detuning plumbing, but production still
 requires separate level-resolved polarizabilities, hyperfine recoupling and
@@ -152,12 +154,12 @@ local Hamiltonian diagonalization, conservative trapping-light forces,
 scattering/heating terms, and well-defined dynamics at the fictitious-field
 zero. Do not expand `preliminary_scattering.py` for that work.
 
-The inherited rate kernel reports ground-population-weighted available
+The archived inherited rate kernel reports ground-population-weighted available
 absorption and applies its momentum as the force while also retaining explicit
-stimulated-emission population links. That saturated-rate closure still needs
-a solver-wide two-level-limit and event-engine validation. The pMOT diagnostic
-preserves it exactly as requested and labels its force as an absorption-force
-proxy; it does not treat the resulting force sign or magnitude as validated
+stimulated-emission population links. That saturated-rate closure is invalid
+for the intended multilevel model. The pMOT diagnostic preserves it only for
+historical comparison and labels its force as an absorption-force proxy; it
+does not treat the resulting force sign or magnitude as validated
 trapping performance.
 
 No provisional trajectory output may be promoted to capture, temperature,

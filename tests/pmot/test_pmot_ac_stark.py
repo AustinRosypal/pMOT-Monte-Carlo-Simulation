@@ -8,12 +8,12 @@ import numpy as np
 import pytest
 
 from pmot.configuration import SPEED_OF_LIGHT_M_PER_S
-from pmot.mot_multilevel.configuration import default_multilevel_mot_config
-from pmot.mot_multilevel.simulation import build_multilevel_mot_beams
-from pmot.mot_multilevel.rate_equations import build_rate_equation_model
-from pmot.mot_multilevel.rate_equations import RateEquationAtomState
-from pmot.mot_multilevel.rate_equations import RateEquationTrajectoryConfig
-from pmot.mot_multilevel.rate_equations import rate_equation_observable_from_local_environment
+from pmot.mot_error.configuration import default_multilevel_mot_config
+from pmot.mot_error.simulation import build_multilevel_mot_beams
+from pmot.mot_error.rate_equations import build_rate_equation_model
+from pmot.mot_error.rate_equations import RateEquationAtomState
+from pmot.mot_error.rate_equations import RateEquationTrajectoryConfig
+from pmot.mot_error.rate_equations import rate_equation_observable_from_local_environment
 from pmot.pmot.ac_stark import ProvisionalStarkConfig
 from pmot.pmot.ac_stark import atom_frame_trapping_frequencies_hz
 from pmot.pmot.ac_stark import atom_frame_trapping_wavelengths_m

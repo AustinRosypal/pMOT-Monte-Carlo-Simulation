@@ -1,0 +1,64 @@
+"""Archived multilevel MOT implementation with an invalid rate closure.
+
+This package is retained for provenance and regression only.  Its
+per-transition saturated two-level scattering formula is not a valid
+elementary rate for the multilevel population equations.  Use
+``pmot.mot_multilevel`` for the replacement implementation once available.
+"""
+
+ARCHIVED_INVALID_MODEL = True
+
+from .atomic_structure import AtomicStructure
+from .atomic_structure import DecayChannel
+from .atomic_structure import DipoleTransition
+from .atomic_structure import InternalState
+from .atomic_structure import build_atomic_structure
+from .atomic_structure import hyperfine_lande_g
+from .atomic_structure import normalized_dipole_strength
+from .configuration import DarkStateBehavior
+from .configuration import InitializationMode
+from .configuration import MultilevelMOTConfig
+from .configuration import default_multilevel_mot_config
+from .configuration import multilevel_mot_paths
+from .coupling import doppler_shift_rad_per_s
+from .coupling import effective_detuning_rad_per_s
+from .coupling import ground_laser_channels
+from .coupling import laser_driven_rate_per_s
+from .coupling import zeeman_shift_rad_per_s
+from .events import EventChannel
+from .events import outgoing_channels
+from .events import sample_channel
+from .events import sample_next_event
+from .events import sample_waiting_time_s
+from .events import spontaneous_channels
+from .polarization import polarization_weights
+from .polarization import propagation_frame_polarization
+from .polarization import quantization_axis
+from .polarization import spherical_basis
+from .trajectory import MultilevelAtomState
+from .trajectory import RepumpAbsorptionRecord
+from .trajectory import TrajectoryCounters
+from .trajectory import absorption_velocity_kick
+from .trajectory import recoil_speed_m_per_s
+from .trajectory import sample_initial_internal_state
+from .trajectory import spontaneous_emission_velocity_kick
+from .trajectory import stimulated_emission_velocity_kick
+from .simulation import MeanObservable
+from .simulation import MultilevelTrajectoryRecord
+from .simulation import build_multilevel_cooling_beams
+from .simulation import build_multilevel_mot_beams
+from .simulation import build_multilevel_repump_beams
+from .simulation import ground_state_mean_observable
+from .simulation import simulate_multilevel_trajectory
+from .simulation import unpolarized_f2_mean_observable
+from .rate_equations import RateEquationAtomState
+from .rate_equations import RateEquationModel
+from .rate_equations import RateEquationObservable
+from .rate_equations import RateEquationTrajectoryConfig
+from .rate_equations import RateEquationTrajectoryRecord
+from .rate_equations import assemble_rate_matrix
+from .rate_equations import build_rate_equation_model
+from .rate_equations import rate_equation_observable
+from .rate_equations import simulate_rate_equation_trajectory
+
+__all__ = [name for name in globals() if not name.startswith("_")]

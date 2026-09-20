@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 
-from pmot.mot_multilevel.rate_equations import RateEquationTrajectoryConfig
+from pmot.mot_error.rate_equations import RateEquationTrajectoryConfig
 from pmot.pmot.vector_only_trajectories import (
     build_vector_only_trajectory_context,
 )

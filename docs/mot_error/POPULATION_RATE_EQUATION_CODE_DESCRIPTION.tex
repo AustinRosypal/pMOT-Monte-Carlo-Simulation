@@ -1,0 +1,351 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{physics}
+\usepackage{hyperref}
+\usepackage{enumitem}
+
+\title{Population Rate Equation in the Multilevel MOT Code}
+\author{pMOT Monte Carlo Project}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{quote}
+\textbf{Archive notice.} This document describes the superseded
+\texttt{mot\_error} implementation. Its use of saturated two-level scattering
+expressions as elementary multilevel population rates is physically invalid;
+this text is retained only for provenance.
+\end{quote}
+
+\section{What a population rate equation is}
+
+A population rate equation is a reduced description of an atom's internal
+quantum state.  Instead of tracking the full wavefunction amplitudes or the
+full density matrix, it tracks only the probability that the atom occupies each
+internal level.  In this project those levels are the hyperfine-Zeeman sublevels
+of the \({}^{87}\mathrm{Rb}\) D2 line.  The state vector is therefore not a
+position or velocity vector; it is a vector of internal-state probabilities,
+\[
+    \mathbf p =
+    \begin{pmatrix}
+    p_{g_1}, \ldots, p_{g_{N_g}},
+    p_{e_1}, \ldots, p_{e_{N_e}}
+    \end{pmatrix}^{T},
+\]
+where \(g_i\) are ground hyperfine-Zeeman states and \(e_j\) are excited
+hyperfine-Zeeman states.
+
+The central approximation is that only populations are retained.  In density
+matrix language, the diagonal elements \(\rho_{ii}\) are kept and interpreted
+as populations, while the off-diagonal elements \(\rho_{ij}\), \(i\ne j\), are
+discarded.  Those off-diagonal elements are optical and ground-state
+coherences.  They are required for phase-sensitive physics such as Rabi
+oscillations, coherent dark states, coherent population trapping, Raman
+coherences, standing-wave interference, and sub-Doppler polarization-gradient
+cooling.  A population rate equation does not represent those effects.
+
+The population dynamics are written as
+\[
+    \dv{\mathbf p}{t} = R(\mathbf r,\mathbf v)\,\mathbf p,
+\]
+where \(R\) is a real rate matrix.  Its off-diagonal entries are transition
+rates moving population from one internal state to another.  Its diagonal
+entries are negative outflow rates, chosen so that total population is
+conserved.  In the current multilevel MOT implementation, the internal state is
+not time-integrated during each external-motion step.  Instead, the code assumes
+that optical pumping equilibrates much faster than mechanical motion and solves
+the steady-state problem
+\[
+    R(\mathbf r,\mathbf v)\,\mathbf p_{\mathrm{ss}} = 0,
+    \qquad
+    \sum_i p_{\mathrm{ss},i}=1.
+\]
+This is the adiabatic-elimination or quasi-steady-state approximation for the
+internal state.
+
+\section{Internal basis used by the current code}
+
+The authoritative implementation is in
+\texttt{src/pmot/mot\_multilevel/rate\_equations.py} and
+\texttt{src/pmot/mot\_multilevel/atomic\_structure.py}.  It uses 24 internal
+states:
+\begin{itemize}[nosep]
+    \item 8 ground states:
+    \[
+        5S_{1/2}, F=1,\ m_F=-1,0,+1,
+        \qquad
+        5S_{1/2}, F=2,\ m_F=-2,-1,0,+1,+2.
+    \]
+    \item 16 excited states:
+    \[
+        5P_{3/2}, F'=0,1,2,3,
+    \]
+    with all allowed \(m_F'\) values in each manifold.
+\end{itemize}
+
+Older design text sometimes describes a 23-state model because the first
+cooling-only specification omitted \(F'=0\).  The current production graph keeps
+\(F'=0\), because the repumper includes the dipole-allowed
+\(F=1\rightarrow F'=0\) channel.
+
+\section{Precomputed atomic structure}
+
+The code constructs all allowed electric-dipole transitions once in
+\texttt{build\_atomic\_structure()}.  For each transition it stores:
+\begin{itemize}[nosep]
+    \item the ground-state index;
+    \item the excited-state index;
+    \item \(F,m_F\) and \(F',m_F'\);
+    \item spherical polarization component \(q=m_F'-m_F\in\{-1,0,+1\}\);
+    \item normalized line strength \(C^2\);
+    \item excited-manifold hyperfine offset.
+\end{itemize}
+
+The transition strengths are computed from Wigner \(3j\) and \(6j\) factors and
+normalized to the cycling transition
+\[
+    \ket{F=2,m_F=+2}
+    \rightarrow
+    \ket{F'=3,m_F'=+3}.
+\]
+The code also precomputes spontaneous-decay channels.  For every excited state,
+the allowed decay branches into \(F=1\) and \(F=2\) ground states are weighted by
+the same dipole strengths and normalized so that the total spontaneous decay
+rate out of each excited state is \(\Gamma\).
+
+\section{Stimulated transition rates}
+
+At a given atom position \(\mathbf r\) and velocity \(\mathbf v\), the ordinary
+multilevel MOT path evaluates the anti-Helmholtz magnetic field and uses its
+direction as the local quantization axis.  Each laser beam polarization is then
+decomposed into local spherical components \(\sigma^{-},\pi,\sigma^{+}\).
+
+For each beam \(b\) and allowed transition \(g\rightarrow e\), the code computes
+a transition-specific saturation parameter
+\[
+    s_{b e g}
+    =
+    \frac{I_b(\mathbf r)}{I_{\mathrm{sat}}}
+    C_{eg}^{2}
+    w_{bq},
+\]
+where \(I_b(\mathbf r)\) is the local Gaussian beam intensity,
+\(C_{eg}^{2}\) is the normalized dipole strength, and \(w_{bq}\) is the local
+spherical-polarization weight for the transition's required \(q\).
+
+The effective detuning used by the code is, in angular-frequency units,
+\[
+    \Delta_{b e g}
+    =
+    \Delta_b
+    - \delta_{\mathrm{HFS},eg}
+    - \mathbf k_b\cdot\mathbf v
+    - \mu_{eg}^{(\mathrm{Z})} |\mathbf B|/\hbar
+    - \Delta^{(\mathrm{extra})}_{eg}.
+\]
+For the conventional multilevel MOT,
+\(\Delta^{(\mathrm{extra})}_{eg}=0\).  The pMOT branch reuses the same local
+environment entry point and may supply an additional transition-resonance shift.
+
+The stimulated rate used in the current implementation is a saturated Lorentzian,
+\[
+    W_{b e g}
+    =
+    \frac{\Gamma}{2}
+    \frac{s_{b e g}}
+    {1+s_{b e g}+4\Delta_{b e g}^{2}/\Gamma^{2}}.
+\]
+The implementation treats different beams as incoherent rate contributors.  It
+does not coherently sum optical fields before squaring.  This is a standard
+fast MOT approximation, but it means that coherent standing-wave and
+phase-sensitive saturation effects are absent.
+
+\section{Rate-matrix construction in the current code}
+
+The function \texttt{build\_beam\_stimulated\_rate\_matrices()} returns an array
+\[
+    W[b,e,g],
+\]
+containing the stimulated rate contributed by each beam.  Cooling beams address
+ground \(F=2\) states.  Repump beams, when enabled, address ground \(F=1\)
+states.  The current repumper graph permits \(F=1\rightarrow F'=0,1,2\).
+
+The beam matrices are summed:
+\[
+    W_{\mathrm{tot}}[e,g] = \sum_b W[b,e,g].
+\]
+The full real population Liouvillian \(R\) is then assembled in
+\texttt{assemble\_rate\_matrix()}:
+\[
+    R =
+    \begin{pmatrix}
+        R_{gg} & R_{ge} \\
+        R_{eg} & R_{ee}
+    \end{pmatrix}.
+\]
+The implemented block structure is:
+\[
+    R_{eg}[e,g] = W_{\mathrm{tot}}[e,g],
+\]
+\[
+    R_{ge}[g,e] = W_{\mathrm{tot}}[e,g] + \Gamma_{\mathrm{decay}}[g,e].
+\]
+Thus the same laser-driven rate is used in reverse as a stimulated-emission
+population link, and spontaneous decay is added independently.  Finally, the
+diagonal entries are set column-by-column to the negative total outflow rate:
+\[
+    R_{ii} = -\sum_{j\ne i} R_{ji}.
+\]
+This enforces population conservation.
+
+\section{Steady-state solve}
+
+The function \texttt{steady\_state\_populations()} solves
+\[
+    R\mathbf p_{\mathrm{ss}}=0,
+    \qquad
+    \sum_i p_{\mathrm{ss},i}=1.
+\]
+Numerically, the code scales the matrix by \(\Gamma\), replaces one row with the
+normalization condition, and calls \texttt{numpy.linalg.solve}.  If the matrix is
+singular, it falls back to a least-squares solve.  Roundoff-scale negative
+populations are clipped to zero, and the population vector is renormalized.
+
+The resulting \(\mathbf p_{\mathrm{ss}}\) is interpreted as the internal-state
+distribution that would be reached by fast optical pumping at the current
+\((\mathbf r,\mathbf v)\).
+
+\section{Force and diffusion}
+
+The code computes each beam's scattering contribution by weighting that beam's
+stimulated rates by the steady-state ground populations:
+\[
+    \Gamma_b^{(\mathrm{sc})}
+    =
+    \sum_{e,g}
+    W[b,e,g]\,p_{\mathrm{ss}}(g).
+\]
+The mean optical force is then
+\[
+    \mathbf F
+    =
+    \sum_b
+    \hbar \mathbf k_b\,\Gamma_b^{(\mathrm{sc})}.
+\]
+This is a radiation-pressure force from absorption momentum.  Gravity is added
+separately during trajectory integration when enabled.  The stored force is the
+optical force, not including gravity.
+
+The code also computes a scalar recoil-diffusion coefficient,
+\[
+    D
+    =
+    \frac{1}{2}
+    \sum_b
+    |\hbar\mathbf k_b|^2\,
+    \Gamma_b^{(\mathrm{sc})}.
+\]
+When trajectory diffusion is enabled, this coefficient drives a Langevin random
+momentum kick.  This is an approximate recoil-heating model, not an explicit
+photon-by-photon emission-direction simulation and not a full diffusion tensor.
+
+\section{External trajectory execution}
+
+The function \texttt{simulate\_rate\_equation\_trajectory()} advances external
+motion with a fixed timestep.  At each step it:
+\begin{enumerate}[nosep]
+    \item evaluates the local magnetic field;
+    \item chooses the local quantization axis;
+    \item builds the beam-resolved stimulated rates;
+    \item assembles and solves the population rate equation;
+    \item computes the mean optical force and diffusion coefficient;
+    \item updates mechanical momentum using optical force and gravity;
+    \item optionally adds a Langevin recoil-diffusion kick;
+    \item updates velocity and position;
+    \item terminates if the atom escapes the configured radius.
+\end{enumerate}
+
+The trajectory update is effectively
+\[
+    \mathbf p_{\mathrm{mech}}(t+\Delta t)
+    =
+    \mathbf p_{\mathrm{mech}}(t)
+    +
+    \left[\mathbf F_{\mathrm{opt}}(\mathbf r,\mathbf v)
+    + m\mathbf g\right]\Delta t
+    +
+    \sqrt{2D\Delta t}\,\boldsymbol\xi,
+\]
+when diffusion is enabled, where \(\boldsymbol\xi\) is a vector of independent
+standard normal random variables.  Then
+\[
+    \mathbf v = \mathbf p_{\mathrm{mech}}/m,
+    \qquad
+    \mathbf r(t+\Delta t)=\mathbf r(t)+\mathbf v\Delta t.
+\]
+
+Capture and loading studies commonly disable diffusion so classifications are
+deterministic and reproducible.  Temperature studies enable diffusion and
+interpret the result as a finite-time Langevin temperature diagnostic.
+
+\section{Physical fidelity and limitations}
+
+The current population-rate model captures important MOT-scale physics:
+\begin{itemize}[nosep]
+    \item Rb-87 D2 hyperfine and Zeeman sublevel structure;
+    \item Clebsch-Gordan-dependent coupling strengths;
+    \item optical pumping among Zeeman sublevels;
+    \item leakage into \(F=1\);
+    \item repumper return from \(F=1\);
+    \item spontaneous-decay branching;
+    \item Doppler shifts;
+    \item Zeeman shifts from the anti-Helmholtz field;
+    \item local polarization decomposition relative to the local quantization axis;
+    \item mean radiation-pressure force;
+    \item approximate recoil diffusion for Langevin trajectories.
+\end{itemize}
+
+It is therefore much more realistic than a two-level MOT model for capture,
+loading, force-curve, optical-pumping, and repumper-dependence studies.
+
+However, it is not a full optical Bloch equation model.  It omits:
+\begin{itemize}[nosep]
+    \item optical coherences;
+    \item ground-state coherences;
+    \item coherent dark states;
+    \item coherent population trapping;
+    \item sub-Doppler and Sisyphus cooling;
+    \item Rabi oscillations;
+    \item coherent standing-wave interference;
+    \item phase-dependent beam correlations;
+    \item a full tensor recoil-diffusion model.
+\end{itemize}
+
+The model is best understood as a fast, state-resolved, Doppler-scale,
+incoherent optical-pumping MOT model.  It is physically defensible when the
+internal populations relax much faster than the external motion and when
+coherence effects are not the dominant source of force or temperature.  It is
+not sufficient for final quantitative claims about sub-Doppler temperatures,
+coherent dark-state physics, or pMOT dynamics requiring a full state-resolved
+AC-Stark Hamiltonian.
+
+\section{Current status for this project}
+
+For the conventional multilevel MOT, this rate-equation engine is the
+authoritative production model, but quantitative claims remain provisional until
+the relevant timestep, duration, and event-engine comparison checks are
+documented for the regime being reported.
+
+For the pMOT, the same rate-equation engine is reused as the 780-nm cooling and
+repump radiation-pressure kernel.  The pMOT-specific 1529-nm trapping-light
+physics is not fully represented by this population-rate equation.  The current
+pMOT branch still requires a validated state-resolved AC-Stark Hamiltonian,
+conservative Stark force, trapping-light scattering/heating/loss, coherent
+interference treatment, and physical handling of the fictitious-field zero
+before quantitative trapping claims are justified.
+
+\end{document}
