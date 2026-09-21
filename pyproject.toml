@@ -21,6 +21,10 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+campaign = [
+  "numba>=0.61",
+  "pytest>=8",
+]
 notebook = [
   "ipykernel>=7.3",
   "ipympl>=0.9",
