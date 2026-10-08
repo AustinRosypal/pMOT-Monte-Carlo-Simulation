@@ -127,25 +127,48 @@ def observable(position, velocity, previous_axis, data):
             w[ei[t], gi[t]] += value
     de = gamma + np.sum(w, axis=1)
     ratios = w/de.reshape((16, 1))
+    # Gaussian wings of millimetre-scale beams can underflow to exactly zero
+    # before a trajectory crosses the escape surface. Any ground state with
+    # exactly zero absorption is then an absorbing state of this rate matrix.
+    # The population solution is nonunique, but its stationary optical force
+    # is uniquely zero. Use the normalized uniform mixture of these dark
+    # states; do not classify the trajectory here (gravity still propagates it).
+    dark = np.sum(w, axis=0) == 0
+    if np.all(dark[3:]):
+        populations = np.zeros(24)
+        for g in range(8):
+            if dark[g]:
+                populations[g] = 1.0/np.sum(dark)
+        return np.zeros(3), populations, np.zeros(len(directions)), axis
     # Off-diagonal ground generator avoids subtracting nearly equal large rates.
     reduced = np.zeros((8, 8))
     for g in range(8):
         for h in range(8):
             if g != h:
                 for e in range(16):
-                    reduced[g, h] += (w[e, g]+decay[g, e])*ratios[e, h]
+                    # Multiply the branching factor by W last, avoiding an
+                    # underflowing intermediate W/Gamma in very weak light.
+                    reduced[g, h] += ((w[e, g]+decay[g, e])/de[e])*w[e, h]
                 reduced[h, h] -= reduced[g, h]
-    scale = np.max(np.abs(reduced))
-    if not np.isfinite(scale) or scale <= 0:
-        raise ValueError('no unique ground steady state')
-    system = reduced/scale
+    # Equilibrate columns before solving. With very narrow cooling beams,
+    # F=2 pumping can be hundreds of orders slower than F=1 repumping. A
+    # single global scale then loses the slow ground-state population ratios.
+    # Solve for q_g = column_scale_g * p_g, with an arbitrary sum(q)=1;
+    # restore the physical ground+excited normalization after substitution.
+    column_scale = np.empty(8)
     for g in range(8):
-        system[7, g] = 1+np.sum(ratios[:, g])
+        column_scale[g] = np.max(np.abs(reduced[:, g]))
+    if not np.all(np.isfinite(column_scale)) or np.min(column_scale) <= 0:
+        raise ValueError('no unique ground steady state')
+    system = reduced/column_scale.reshape((1, 8))
+    for g in range(8):
+        system[7, g] = 1
     rhs = np.zeros(8)
     rhs[7] = 1
-    pg = np.linalg.solve(system, rhs)
+    pg = np.linalg.solve(system, rhs)*(np.min(column_scale)/column_scale)
     pe = ratios @ pg
     populations = np.concatenate((pg, pe))
+    populations /= np.sum(populations)
     if np.min(populations) < -ctrl[6] or not np.all(np.isfinite(populations)):
         raise ValueError('invalid stationary populations')
     populations = np.maximum(populations, 0)
