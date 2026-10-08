@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from functools import lru_cache
+from typing import Callable
 
 import numpy as np
 
@@ -31,6 +32,10 @@ from .coupling import (
 )
 from .polarization import Vec3, polarization_amplitudes, quantization_axis
 from .simulation import build_multilevel_mot_beams
+
+
+MagneticFieldFunction = Callable[[Vec3], Vec3]
+SpatialDomainFunction = Callable[[Vec3], bool]
 
 
 @dataclass(frozen=True, slots=True)
@@ -475,11 +480,18 @@ def rate_equation_observable(
     config: MultilevelMOTConfig | None = None,
     previous_axis: Vec3 = (0.0, 0.0, 1.0),
     *,
+    magnetic_field_function: MagneticFieldFunction | None = None,
     store_rate_matrix: bool = False,
     store_beam_transition_quantities: bool = False,
 ) -> RateEquationObservable:
     cfg = config or default_multilevel_mot_config()
-    field_t = local_magnetic_field_t(position_m, coil_config)
+    field_t = (
+        local_magnetic_field_t(position_m, coil_config)
+        if magnetic_field_function is None
+        else tuple(float(value) for value in magnetic_field_function(position_m))
+    )
+    if np.asarray(field_t).shape != (3,) or not np.all(np.isfinite(field_t)):
+        raise ValueError("magnetic field callback must return a finite three-vector")
     axis = quantization_axis(field_t, previous_axis, cfg.magnetic_field_epsilon_t)
     return rate_equation_observable_from_local_environment(
         model,
@@ -643,6 +655,8 @@ def simulate_rate_equation_trajectory(
     model: RateEquationModel | None = None,
     config: MultilevelMOTConfig | None = None,
     trajectory_config: RateEquationTrajectoryConfig | None = None,
+    magnetic_field_function: MagneticFieldFunction | None = None,
+    spatial_domain_function: SpatialDomainFunction | None = None,
 ) -> RateEquationTrajectoryRecord:
     """Integrate classical motion with RK4 and a fresh Section-12 solve per stage."""
 
@@ -666,6 +680,7 @@ def simulate_rate_equation_trajectory(
             coil_config,
             cfg,
             previous_axis,
+            magnetic_field_function=magnetic_field_function,
         )
         acceleration = np.asarray(observable.force_n) / RB87_MASS_KG + gravity
         return velocity, acceleration
@@ -685,6 +700,7 @@ def simulate_rate_equation_trajectory(
             coil_config,
             cfg,
             previous_axis,
+            magnetic_field_function=magnetic_field_function,
             store_rate_matrix=numerical.store_rate_matrices,
             store_beam_transition_quantities=numerical.store_beam_transition_quantities,
         )
@@ -713,6 +729,11 @@ def simulate_rate_equation_trajectory(
         time_s += dt_s
         observable = record_current()
         previous_axis = observable.quantization_axis
+        if spatial_domain_function is not None and not spatial_domain_function(
+            tuple(position)
+        ):
+            record.termination_reason = "wall_loss"
+            break
         if _escaped(position, velocity, numerical.escape_radius_m):
             record.termination_reason = "escaped"
             break
@@ -721,11 +742,13 @@ def simulate_rate_equation_trajectory(
 
 __all__ = [
     "BeamTransitionQuantities",
+    "MagneticFieldFunction",
     "RateEquationAtomState",
     "RateEquationModel",
     "RateEquationObservable",
     "RateEquationTrajectoryConfig",
     "RateEquationTrajectoryRecord",
+    "SpatialDomainFunction",
     "assemble_rate_matrix",
     "assert_rate_matrix_conserves_probability",
     "build_beam_stimulated_rate_matrices",
