@@ -8,12 +8,12 @@ import numpy as np
 import pytest
 
 from pmot.configuration import SPEED_OF_LIGHT_M_PER_S
-from pmot.mot_error.configuration import default_multilevel_mot_config
-from pmot.mot_error.simulation import build_multilevel_mot_beams
-from pmot.mot_error.rate_equations import build_rate_equation_model
-from pmot.mot_error.rate_equations import RateEquationAtomState
-from pmot.mot_error.rate_equations import RateEquationTrajectoryConfig
-from pmot.mot_error.rate_equations import rate_equation_observable_from_local_environment
+from pmot.mot_multilevel.configuration import default_multilevel_mot_config
+from pmot.mot_multilevel.simulation import build_multilevel_mot_beams
+from pmot.mot_multilevel.rate_equations import build_rate_equation_model
+from pmot.mot_multilevel.rate_equations import RateEquationAtomState
+from pmot.mot_multilevel.rate_equations import RateEquationTrajectoryConfig
+from pmot.mot_multilevel.rate_equations import rate_equation_observable_from_local_environment
 from pmot.pmot.ac_stark import ProvisionalStarkConfig
 from pmot.pmot.ac_stark import atom_frame_trapping_frequencies_hz
 from pmot.pmot.ac_stark import atom_frame_trapping_wavelengths_m
@@ -32,13 +32,13 @@ from pmot.pmot.stark_trajectories import simulate_provisional_pmot_trajectory
 @pytest.fixture(scope="module")
 def provisional_apparatus():
     config = replace(default_multilevel_mot_config(), repumper_enabled=True)
-    model = build_rate_equation_model(config.natural_linewidth_rad_per_s)
+    model = build_rate_equation_model()
     apparatus = default_pmot_apparatus_config()
     return model, apparatus, config
 
 
 def _cycling_transition_index(model) -> int:
-    for index, transition in enumerate(model.structure.absorption_transitions):
+    for index, transition in enumerate(model.structure.transitions):
         if (
             transition.ground_f,
             transition.ground_m_f,
@@ -208,7 +208,7 @@ def test_twenty_gauss_per_cm_proxy_power_and_force_signs(provisional_apparatus) 
 def test_rate_kernel_rejects_invalid_transition_shift_shape(provisional_apparatus) -> None:
     model, apparatus, config = provisional_apparatus
     mot_beams = build_pmot_cooling_and_repump_beams(apparatus)
-    with pytest.raises(ValueError, match="one value per absorption transition"):
+    with pytest.raises(ValueError, match="one finite value per allowed transition"):
         rate_equation_observable_from_local_environment(
             model,
             mot_beams,
@@ -254,8 +254,8 @@ def test_zero_power_pmot_wrapper_recovers_field_free_rate_kernel(
     )
     np.testing.assert_allclose(pmot.rate_equation.force_n, reference.force_n)
     np.testing.assert_allclose(
-        pmot.rate_equation.beam_scattering_rates_per_s,
-        reference.beam_scattering_rates_per_s,
+        pmot.rate_equation.beam_effective_scattering_rates_per_s,
+        reference.beam_effective_scattering_rates_per_s,
     )
     np.testing.assert_allclose(pmot.rate_equation.populations, reference.populations)
 
@@ -281,7 +281,6 @@ def test_short_pmot_trajectory_has_exact_step_count_and_zero_external_field(
         config,
         trajectory_config=RateEquationTrajectoryConfig(
             time_step_s=5.0e-6,
-            include_diffusion=False,
         ),
     )
     assert record.rate_equation.times_s == pytest.approx((0.0, 5.0e-6, 10.0e-6))
@@ -298,19 +297,5 @@ def test_short_pmot_trajectory_rejects_nonpositive_escape_radius(
         apparatus.trapping_laser,
         stark_config,
     )
-    with pytest.raises(ValueError, match="escape radius must be positive"):
-        simulate_provisional_pmot_trajectory(
-            RateEquationAtomState((0.0, 0.0, 0.0), (0.0, 0.0, 0.0)),
-            5.0e-6,
-            model,
-            mot_beams,
-            trapping_beams,
-            apparatus.trapping_laser,
-            stark_config,
-            config,
-            trajectory_config=RateEquationTrajectoryConfig(
-                time_step_s=5.0e-6,
-                include_diffusion=False,
-                escape_radius_m=0.0,
-            ),
-        )
+    with pytest.raises(ValueError, match="time step and escape radius must be positive"):
+        RateEquationTrajectoryConfig(time_step_s=5.0e-6, escape_radius_m=0.0)

@@ -28,9 +28,9 @@ Baseline root:
 
 Before starting or resuming, inspect `process.json`, `launcher.json`, and the
 live PID command lines, including workers and queued helpers. Never duplicate
-pools. The runner uses one 16-worker pool and one BLAS thread per worker.
-Use the prescribed interpreter via
-`wsl.exe --exec /home/ajrosy/pMOT_MonteCarlo/.venv_pMOT_MC/bin/python -u scripts/run_matched_repump_diameter_campaign.py all --workers 16`.
+pools. The runner uses one 16-worker pool and one BLAS thread per worker. From
+the repository root, run
+`uv run python -u scripts/run_matched_repump_diameter_campaign.py all --workers 16`.
 Background launches use a hidden window, with stdout in `run.log` and stderr
 in `run.stderr.log`. Check `failure.json`, `pilot_progress.json`, `progress.json`,
 `sampling_plan.json`, `production_issues.json`, and `completion.json` as available.

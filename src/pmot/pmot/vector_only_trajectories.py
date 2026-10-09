@@ -35,11 +35,11 @@ from ..configuration import PLANCK_CONSTANT_J_S
 from ..configuration import RB87_MASS_KG
 from ..fields import MOTBeam
 from ..launch_geometry import build_incident_disc_from_angles
-from ..mot_error.configuration import MultilevelMOTConfig
-from ..mot_error.configuration import default_multilevel_mot_config
-from ..mot_error.rate_equations import RateEquationAtomState
-from ..mot_error.rate_equations import RateEquationTrajectoryConfig
-from ..mot_error.rate_equations import RateEquationTrajectoryRecord
+from ..mot_multilevel.configuration import MultilevelMOTConfig
+from ..mot_multilevel.configuration import default_multilevel_mot_config
+from ..mot_multilevel.rate_equations import RateEquationAtomState
+from ..mot_multilevel.rate_equations import RateEquationTrajectoryConfig
+from ..mot_multilevel.rate_equations import RateEquationTrajectoryRecord
 from .ac_stark import ProvisionalStarkConfig
 from .ac_stark import build_physics_trapping_beams
 from .ac_stark import provisional_power_for_target_gradient_w_per_path
@@ -71,7 +71,9 @@ VECTOR_ONLY_TRAJECTORY_MODEL_METADATA = {
     "direct_1529nm_mechanical_force_included": False,
     "conservative_stark_gradient_force_included": False,
     "trap_light_scattering_heating_loss_included": False,
-    "force_source": "inherited 780-nm ground-population-weighted absorption proxy",
+    "force_source": "Section-12 beam-resolved net stimulated rate",
+    "trajectory_integrator": "deterministic RK4 with a fresh local solve at every stage",
+    "recoil_diffusion_included": False,
 }
 
 
@@ -296,15 +298,16 @@ def build_vector_only_trajectory_context(
             default_multilevel_mot_config(),
             cooling_detuning_rad_per_s=2.0 * pi * optical.mot_light.cooling.detuning_hz,
             repump_detuning_rad_per_s=2.0 * pi * optical.mot_light.repump.detuning_hz,
+            cooling_power_w_per_beam=optical.mot_light.cooling.power_w_per_beam,
             repumper_enabled=True,
             repump_power_w_per_beam=optical.mot_light.repump.power_w_per_beam,
         )
     else:
         config = replace(multilevel_config, repumper_enabled=True)
     # Local import avoids constructing the cached 24-state graph during module import.
-    from ..mot_error.rate_equations import build_rate_equation_model
+    from ..mot_multilevel.rate_equations import build_rate_equation_model
 
-    model = build_rate_equation_model(config.natural_linewidth_rad_per_s)
+    model = build_rate_equation_model()
     table = load_differential_polarizability_table()
     if trapping_power_w_per_path is None:
         power = provisional_power_for_target_gradient_w_per_path(
@@ -488,7 +491,7 @@ def classify_vector_only_trajectory(
 
 
 def _cycling_transition_index(context: VectorOnlyPMOTTrajectoryContext) -> int:
-    for index, transition in enumerate(context.model.structure.absorption_transitions):
+    for index, transition in enumerate(context.model.structure.transitions):
         if (
             transition.ground_f,
             transition.ground_m_f,
@@ -513,10 +516,14 @@ def _append_sample(
     base.positions_m.append(state.position_m)
     base.velocities_m_per_s.append(state.velocity_m_per_s)
     base.forces_n.append(rate.force_n)
-    base.diffusion_kg2_m2_per_s3.append(rate.diffusion_kg2_m2_per_s3)
-    base.total_scattering_rates_per_s.append(rate.total_scattering_rate_per_s)
-    base.beam_scattering_rates_per_s.append(rate.beam_scattering_rates_per_s)
+    base.total_spontaneous_scattering_rates_per_s.append(
+        rate.total_spontaneous_scattering_rate_per_s
+    )
+    base.beam_effective_scattering_rates_per_s.append(
+        rate.beam_effective_scattering_rates_per_s
+    )
     base.magnetic_fields_t.append(rate.magnetic_field_t)
+    base.quantization_axes.append(rate.quantization_axis)
     base.populations.append(rate.populations.copy())
     record.atom_frame_wavelengths_nm.append(stark.atom_frame_wavelengths_nm)
     record.atom_frame_frequencies_hz.append(stark.atom_frame_frequencies_hz)
@@ -554,77 +561,96 @@ def simulate_vector_only_pmot_trajectory(
 ) -> VectorOnlyPMOTTrajectoryRecord:
     """Integrate a vector-only pMOT diagnostic trajectory.
 
-    The default run is deterministic (mean force, no recoil diffusion).  Set
-    ``RateEquationTrajectoryConfig.include_diffusion=True`` for an optional
-    Langevin recoil realization.  Gravity follows ``context.multilevel_config``
-    and is enabled by the repository default.
+    The run is deterministic because the rebuilt multilevel kernel currently
+    provides a validated mean force only. Gravity follows
+    ``context.multilevel_config`` and is enabled by the repository default.
     """
 
     environment = context or build_vector_only_trajectory_context()
-    numerical = trajectory_config or RateEquationTrajectoryConfig(
-        include_diffusion=False
-    )
-    state = initial_state or inward_launch_state()
+    numerical = trajectory_config or RateEquationTrajectoryConfig()
+    initial = initial_state or inward_launch_state()
     if duration_s <= 0.0 or numerical.time_step_s <= 0.0:
         raise ValueError("duration and timestep must be positive")
     if numerical.escape_radius_m <= 0.0:
         raise ValueError("escape radius must be positive")
-    rng = np.random.default_rng(numerical.seed)
     record = VectorOnlyPMOTTrajectoryRecord()
     reference_index = _cycling_transition_index(environment)
+    position = np.asarray(initial.position_m, dtype=float)
+    velocity = np.asarray(initial.velocity_m_per_s, dtype=float)
+    previous_axis = initial.last_quantization_axis
     time_s = 0.0
-    observable = vector_only_trajectory_observable(
-        environment,
-        state.position_m,
-        state.velocity_m_per_s,
-        state.last_quantization_axis,
-    )
-    _append_sample(record, time_s, state, observable, reference_index)
     gravity = np.asarray(
         GRAVITY_ACCELERATION_M_PER_S2
         if environment.multilevel_config.include_gravity
         else (0.0, 0.0, 0.0),
         dtype=float,
     )
+
+    def evaluate(stage_position: np.ndarray, stage_velocity: np.ndarray):
+        return vector_only_trajectory_observable(
+            environment,
+            tuple(float(value) for value in stage_position),
+            tuple(float(value) for value in stage_velocity),
+            previous_axis,
+        )
+
+    def derivative(stage_position: np.ndarray, stage_velocity: np.ndarray):
+        stage = evaluate(stage_position, stage_velocity)
+        acceleration = (
+            np.asarray(stage.rate_equation.force_n, dtype=float) / RB87_MASS_KG
+            + gravity
+        )
+        return stage_velocity, acceleration
+
+    def record_current() -> VectorOnlyObservable:
+        state = RateEquationAtomState(
+            tuple(float(value) for value in position),
+            tuple(float(value) for value in velocity),
+            previous_axis,
+        )
+        current = evaluate(position, velocity)
+        _append_sample(record, time_s, state, current, reference_index)
+        return current
+
+    observable = record_current()
+    previous_axis = observable.stark_diagnostic.quantization_axis
     expected_steps = int(np.ceil(duration_s / numerical.time_step_s))
     progress_interval = max(1, expected_steps // 20)
     for completed_steps in range(1, expected_steps + 1):
         dt_s = min(numerical.time_step_s, duration_s - time_s)
         if dt_s <= 0.0:
             break
-        momentum = RB87_MASS_KG * np.asarray(state.velocity_m_per_s, dtype=float)
-        momentum += (
-            np.asarray(observable.rate_equation.force_n, dtype=float)
-            + RB87_MASS_KG * gravity
-        ) * dt_s
-        if numerical.include_diffusion and observable.rate_equation.diffusion_kg2_m2_per_s3 > 0.0:
-            momentum += np.sqrt(
-                2.0 * observable.rate_equation.diffusion_kg2_m2_per_s3 * dt_s
-            ) * rng.normal(size=3)
-        velocity = momentum / RB87_MASS_KG
-        position = np.asarray(state.position_m, dtype=float) + velocity * dt_s
+        k1_r, k1_v = derivative(position, velocity)
+        k2_r, k2_v = derivative(
+            position + 0.5 * dt_s * k1_r,
+            velocity + 0.5 * dt_s * k1_v,
+        )
+        k3_r, k3_v = derivative(
+            position + 0.5 * dt_s * k2_r,
+            velocity + 0.5 * dt_s * k2_v,
+        )
+        k4_r, k4_v = derivative(
+            position + dt_s * k3_r,
+            velocity + dt_s * k3_v,
+        )
+        position = position + dt_s * (
+            k1_r + 2.0 * k2_r + 2.0 * k3_r + k4_r
+        ) / 6.0
+        velocity = velocity + dt_s * (
+            k1_v + 2.0 * k2_v + 2.0 * k3_v + k4_v
+        ) / 6.0
         time_s = min(duration_s, time_s + dt_s)
         if not np.all(np.isfinite(position)) or not np.all(np.isfinite(velocity)):
             record.rate_equation.termination_reason = "non_finite"
             break
-        state = RateEquationAtomState(
-            tuple(float(value) for value in position),
-            tuple(float(value) for value in velocity),
-            observable.stark_diagnostic.quantization_axis,
-        )
-        observable = vector_only_trajectory_observable(
-            environment,
-            state.position_m,
-            state.velocity_m_per_s,
-            state.last_quantization_axis,
-        )
-        _append_sample(record, time_s, state, observable, reference_index)
+        observable = record_current()
+        previous_axis = observable.stark_diagnostic.quantization_axis
         if progress_callback is not None and (
             completed_steps % progress_interval == 0
             or completed_steps == expected_steps
         ):
             progress_callback(completed_steps, expected_steps, time_s)
-        if _escaped(state.position_m, state.velocity_m_per_s, numerical.escape_radius_m):
+        if _escaped(position, velocity, numerical.escape_radius_m):
             record.rate_equation.termination_reason = "escaped"
             break
     record.capture = classify_vector_only_trajectory(
@@ -658,7 +684,7 @@ def vector_only_trajectory_dataframe(
     data["radius_m"] = np.linalg.norm(positions, axis=1)
     data["speed_m_per_s"] = np.linalg.norm(velocities, axis=1)
     data["total_780_scattering_rate_per_s"] = np.asarray(
-        base.total_scattering_rates_per_s,
+        base.total_spontaneous_scattering_rates_per_s,
         dtype=float,
     )
     data["reference_vector_shift_hz"] = np.asarray(

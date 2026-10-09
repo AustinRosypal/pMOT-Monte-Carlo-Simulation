@@ -19,5 +19,5 @@ solver. They initialize cooling power to 27 mW per traveling beam:
   interruption. Its small defaults are diagnostic, not converged results.
   Loading uses the project's fixed reference vapor distribution.
 
-Historical notebooks are retained in `notebooks/mot_error` for provenance only.
-New outputs are separated under `mot_multilevel_population_rate_v1`.
+Historical invalid-solver notebooks were removed. New outputs are separated
+under `mot_multilevel_population_rate_v1`.

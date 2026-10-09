@@ -16,7 +16,7 @@ from pmot.pmot.vector_only_trajectories import (
     simulate_vector_only_pmot_trajectory,
     vector_only_trajectory_observable,
 )
-from pmot.mot_error.rate_equations import RateEquationTrajectoryConfig
+from pmot.mot_multilevel.rate_equations import RateEquationTrajectoryConfig
 
 
 def test_symmetric_off_center_point_has_expected_axis_and_normalized_weights():
@@ -69,7 +69,6 @@ def test_short_trajectory_reconstructs_field_and_normalizes_every_beam():
         context=context,
         trajectory_config=RateEquationTrajectoryConfig(
             time_step_s=2.5e-6,
-            include_diffusion=False,
             escape_radius_m=30.0e-3,
         ),
     )

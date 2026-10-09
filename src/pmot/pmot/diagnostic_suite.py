@@ -35,13 +35,14 @@ from ..configuration import PLANCK_CONSTANT_J_S
 from ..configuration import SPEED_OF_LIGHT_M_PER_S
 from ..configuration import VACUUM_PERMITTIVITY_F_PER_M
 from ..fields import beam_intensity_w_per_m2
-from ..mot_error.coupling import beam_polarization_vector
-from ..mot_error.coupling import wavevector_rad_per_m
-from ..mot_error.polarization import polarization_weights
-from ..mot_error.polarization import propagation_frame_polarization
-from ..mot_error.polarization import spherical_basis
-from ..mot_error.rate_equations import build_beam_stimulated_rate_matrices
-from ..mot_error.rate_equations import rate_equation_observable_from_local_environment
+from ..mot_multilevel.coupling import beam_polarization_vector
+from ..mot_multilevel.coupling import wavevector_rad_per_m
+from ..mot_multilevel.polarization import polarization_weights
+from ..mot_multilevel.polarization import propagation_frame_polarization
+from ..mot_multilevel.polarization import spherical_basis
+from ..mot_multilevel.rate_equations import build_beam_transition_quantities
+from ..mot_multilevel.rate_equations import build_beam_stimulated_rate_matrices
+from ..mot_multilevel.rate_equations import rate_equation_observable_from_local_environment
 from .ac_stark import EFFECTIVE_DETUNING_EQUATION
 from .ac_stark import provisional_transition_stark_shifts
 from .polarizability import interpolate_differential_polarizability_arrays
@@ -51,7 +52,7 @@ from .vector_only_trajectories import vector_only_trajectory_observable
 
 
 DEFAULT_OUTPUT_TAG = "initial_construction_qa_20260903"
-REQUIRED_PYTHON_INVOCATION = "/home/ajrosy/pMOT_MonteCarlo/.venv_pMOT_MC/bin/python"
+REQUIRED_PYTHON_INVOCATION = "python -m pmot.pmot.diagnostic_suite"
 TEST_NAMES = {
     0: "Configuration and unit audit",
     1: "Cooling-only Doppler force",
@@ -114,7 +115,7 @@ def _project_root() -> Path:
 
 
 def _reference_transition_index(model) -> int:
-    for index, transition in enumerate(model.structure.absorption_transitions):
+    for index, transition in enumerate(model.structure.transitions):
         if (
             transition.ground_f,
             transition.ground_m_f,
@@ -131,6 +132,19 @@ def _active_transition_indices(model, beam) -> np.ndarray:
     if beam.family == "repump":
         return np.flatnonzero(model.transition_ground_f == 1)
     raise ValueError(beam.family)
+
+
+def _transition_reference_offset_rad_per_s(model, transition_index: int, family: str) -> float:
+    """Return an allowed transition's offset from its family laser reference."""
+
+    transition_omega = model.transition_angular_frequency_rad_per_s[transition_index]
+    if family == "cooling":
+        reference_omega = model.structure.cooling_reference_angular_frequency_rad_per_s
+    elif family == "repump":
+        reference_omega = model.structure.repump_reference_angular_frequency_rad_per_s
+    else:
+        raise ValueError(family)
+    return float(transition_omega - reference_omega)
 
 
 def _complex_parts(vector) -> tuple[list[float], list[float]]:
@@ -225,7 +239,7 @@ def _configuration_consistency(context) -> tuple[dict[str, bool], pd.DataFrame]:
     for beam in context.cooling_repump_beams:
         if beam.family == "cooling":
             expected_detuning_hz = config.cooling_detuning_rad_per_s / (2.0 * np.pi)
-            expected_wavelength_m = config.wavelength_m
+            expected_wavelength_m = config.cooling_wavelength_m
             expected_power_w = apparatus.cooling.power_w_per_beam
         else:
             expected_detuning_hz = config.repump_detuning_rad_per_s / (2.0 * np.pi)
@@ -304,7 +318,7 @@ def _production_kernel_detuning_probe(context) -> tuple[dict[str, bool], pd.Data
     model = context.model
     config = replace(context.multilevel_config, include_gravity=False)
     transition_index = _reference_transition_index(model)
-    transition = model.structure.absorption_transitions[transition_index]
+    transition = model.structure.transitions[transition_index]
     candidates = [
         beam
         for beam in context.cooling_repump_beams
@@ -419,23 +433,20 @@ def _test_zero_shift_and_velocity_algebra(context) -> tuple[dict[str, Any], pd.D
     )
 
     probe_velocity = np.asarray((0.12, -0.08, 0.05), dtype=float)
-    f2_reference_offset = model.structure.states[
-        model.structure.state_index("excited", 2, 0)
-    ].energy_offset_rad_per_s
     rows: list[dict[str, Any]] = []
     for beam in beams:
         k_dot_v = float(np.dot(wavevector_rad_per_m(beam), probe_velocity))
         for transition_index in _active_transition_indices(model, beam):
-            transition = model.structure.absorption_transitions[transition_index]
-            if beam.family == "cooling":
-                base = (
-                    config.cooling_detuning_rad_per_s
-                    - transition.hyperfine_offset_rad_per_s
-                )
-            else:
-                base = config.repump_detuning_rad_per_s - (
-                    transition.hyperfine_offset_rad_per_s - f2_reference_offset
-                )
+            transition = model.structure.transitions[transition_index]
+            offset = _transition_reference_offset_rad_per_s(
+                model, transition_index, beam.family
+            )
+            laser_detuning = (
+                config.cooling_detuning_rad_per_s
+                if beam.family == "cooling"
+                else config.repump_detuning_rad_per_s
+            )
+            base = laser_detuning - offset
             plus = base - k_dot_v
             minus = base + k_dot_v
             rows.append(
@@ -518,7 +529,7 @@ def run_test_00(context, root: Path) -> dict[str, Any]:
         ("MOTBeam.detuning_hz", "Hz", "apparatus metadata only", "PASS"),
         ("intensity", "W/m^2", "per traveling component before summation", "PASS"),
         ("Gaussian radius", "m", "1/e^2 intensity radius", "PASS"),
-        ("saturation", "dimensionless", "per beam, transition strength, and P_q", "PASS"),
+        ("Rabi frequency", "rad/s", "per beam and allowed transition", "PASS"),
         (
             "polarizability",
             "assumed SI (physical dimension absent from raw CSV header)",
@@ -535,18 +546,26 @@ def run_test_00(context, root: Path) -> dict[str, Any]:
     units = pd.DataFrame(unit_rows, columns=("quantity", "units", "convention", "status"))
     units.to_csv(directory / "unit_audit.csv", index=False)
 
+    reference_index = _reference_transition_index(context.model)
+    reference_linewidth = float(
+        context.model.excited_decay_rates_per_s[
+            context.model.transition_excited[reference_index]
+        ]
+    )
     configuration = {
         "schema": "pmot.diagnostic.test-00.v1",
         "effective_detuning_equation": EFFECTIVE_DETUNING_EQUATION,
         "frequency_convention": "Delta = omega_L - omega_0; angular frequency",
-        "natural_linewidth_rad_per_s": context.multilevel_config.natural_linewidth_rad_per_s,
-        "natural_linewidth_hz": context.multilevel_config.natural_linewidth_rad_per_s
-        / (2.0 * np.pi),
+        "reference_excited_state_decay_rate_per_s": reference_linewidth,
+        "reference_excited_state_linewidth_hz": reference_linewidth / (2.0 * np.pi),
         "position_units": "m",
         "velocity_units": "m/s",
         "intensity_units": "W/m^2",
         "beam_radius_convention": "Gaussian 1/e^2 intensity radius",
-        "saturation_convention": "per beam and per transition",
+        "stimulated_rate_convention": (
+            "W = Gamma_e*|Omega|^2/(Gamma_e^2 + 4*Delta^2); "
+            "no two-level 1+s closure"
+        ),
         "external_magnetic_field_t": [0.0, 0.0, 0.0],
         "cooling_power_w_per_beam": context.apparatus.mot_light.cooling.power_w_per_beam,
         "repump_power_w_per_beam": context.apparatus.mot_light.repump.power_w_per_beam,
@@ -568,7 +587,7 @@ def run_test_00(context, root: Path) -> dict[str, Any]:
             "ground_states": context.model.ground_count,
             "excited_states": context.model.excited_count,
             "allowed_absorption_transitions": len(
-                context.model.structure.absorption_transitions
+                context.model.structure.transitions
             ),
         },
         "configuration_consistency_checks": consistency_checks,
@@ -709,10 +728,19 @@ def _fixed_population_transition_rows(
     velocity = np.asarray((0.0, 0.0, velocity_z_m_per_s), dtype=float)
     axis = (0.0, 0.0, 1.0)
     ground_population = _fixed_f2_population(model)
-    gamma = config.natural_linewidth_rad_per_s
     rows: list[dict[str, Any]] = []
     mask = (model.transition_ground_f == 2) & np.isin(
-        model.transition_excited_f, config.enabled_excited_manifolds
+        model.transition_excited_f, config.enabled_cooling_excited_manifolds
+    )
+    quantities = build_beam_transition_quantities(
+        model,
+        list(beams),
+        position,
+        tuple(float(value) for value in velocity),
+        0.0,
+        axis,
+        config,
+        transition_resonance_shift_rad_per_s=np.zeros(model.transition_count),
     )
     for beam_index, beam in enumerate(beams):
         k_hat = np.asarray(beam.direction, dtype=float)
@@ -729,28 +757,27 @@ def _fixed_population_transition_rows(
         intensity = beam_intensity_w_per_m2(beam, position)
         doppler = float(np.dot(k, velocity))
         for transition_index in np.flatnonzero(mask):
-            transition = model.structure.absorption_transitions[transition_index]
+            transition = model.structure.transitions[transition_index]
             ground_local = int(model.transition_ground[transition_index])
             excited_local = int(model.transition_excited[transition_index])
             q = int(model.transition_q[transition_index])
             polarization_weight = float(weights[q])
-            strength = float(model.transition_strength[transition_index])
-            saturation = (
-                intensity
-                / config.saturation_intensity_w_per_m2
-                * strength
-                * polarization_weight
+            dipole_c_m = float(model.transition_dipole_c_m[transition_index])
+            hyperfine = _transition_reference_offset_rad_per_s(
+                model, transition_index, "cooling"
             )
-            hyperfine = float(
-                model.transition_hyperfine_offset_rad_per_s[transition_index]
+            effective_detuning = float(
+                quantities.effective_detunings_rad_per_s[
+                    beam_index, transition_index
+                ]
             )
-            effective_detuning = (
-                config.cooling_detuning_rad_per_s - hyperfine - doppler
-            )
-            expected_rate = 0.5 * gamma * saturation / (
-                1.0
-                + saturation
-                + 4.0 * effective_detuning**2 / gamma**2
+            rabi = quantities.rabi_frequencies_rad_per_s[
+                beam_index, transition_index
+            ]
+            gamma = float(model.excited_decay_rates_per_s[excited_local])
+            expected_rate = float(
+                gamma * abs(rabi) ** 2
+                / (gamma**2 + 4.0 * effective_detuning**2)
             )
             production_rate = float(
                 sample["beam_rate_matrices_per_s"][
@@ -791,8 +818,11 @@ def _fixed_population_transition_rows(
                     "excited_F": transition.excited_f,
                     "excited_mF": transition.excited_m_f,
                     "q": q,
-                    "normalized_full_hyperfine_dipole_strength_C2": strength,
-                    "sqrt_C2_amplitude_magnitude": np.sqrt(strength),
+                    "dipole_matrix_element_c_m": dipole_c_m,
+                    "rabi_frequency_real_rad_per_s": float(np.real(rabi)),
+                    "rabi_frequency_imag_rad_per_s": float(np.imag(rabi)),
+                    "rabi_frequency_magnitude_rad_per_s": float(abs(rabi)),
+                    "excited_state_decay_rate_per_s": gamma,
                     "polarization_weight_Pq": polarization_weight,
                     "polarization_weight_P_minus1": weights[-1],
                     "polarization_weight_P_0": weights[0],
@@ -800,8 +830,6 @@ def _fixed_population_transition_rows(
                     "normalized_spherical_weight_sum": sum(weights.values()),
                     "raw_spherical_projection_sum": raw_weight_sum,
                     "component_intensity_w_per_m2": intensity,
-                    "saturation_intensity_w_per_m2": config.saturation_intensity_w_per_m2,
-                    "transition_saturation": saturation,
                     "laser_detuning_rad_per_s": config.cooling_detuning_rad_per_s,
                     "hyperfine_offset_rad_per_s": hyperfine,
                     "doppler_k_dot_v_rad_per_s": doppler,
@@ -944,27 +972,41 @@ def run_test_01(context, root: Path, sample_count: int = 161) -> dict[str, Any]:
         context.multilevel_config, repumper_enabled=False, include_gravity=False
     )
     for velocity in (-0.1, 0.0, 0.1):
-        observable = rate_equation_observable_from_local_environment(
-            context.model,
-            beams,
-            (0.0, 0.0, 0.0),
-            (0.0, 0.0, velocity),
-            (0.0, 0.0, 0.0),
-            (0.0, 0.0, 1.0),
-            steady_config,
-        )
-        steady_rows.append(
-            {
-                "velocity_z_m_per_s": velocity,
-                "force_z_n": observable.force_n[2],
-                "total_absorption_proxy_per_s": observable.total_scattering_rate_per_s,
-                "F1_ground_population": float(np.sum(observable.populations[:3])),
-                "interpretation": (
-                    "nonunique full-graph steady state collapses into disconnected F=1; "
-                    "not used for the staged Test-1 pass decision"
-                ),
-            }
-        )
+        try:
+            observable = rate_equation_observable_from_local_environment(
+                context.model,
+                beams,
+                (0.0, 0.0, 0.0),
+                (0.0, 0.0, velocity),
+                (0.0, 0.0, 0.0),
+                (0.0, 0.0, 1.0),
+                steady_config,
+            )
+        except RuntimeError as error:
+            steady_rows.append(
+                {
+                    "velocity_z_m_per_s": velocity,
+                    "force_z_n": np.nan,
+                    "total_spontaneous_scattering_rate_per_s": np.nan,
+                    "F1_ground_population": np.nan,
+                    "interpretation": (
+                        "correctly rejected nonunique cooling-only steady state: "
+                        f"{error}"
+                    ),
+                }
+            )
+        else:
+            steady_rows.append(
+                {
+                    "velocity_z_m_per_s": velocity,
+                    "force_z_n": observable.force_n[2],
+                    "total_spontaneous_scattering_rate_per_s": (
+                        observable.total_spontaneous_scattering_rate_per_s
+                    ),
+                    "F1_ground_population": float(np.sum(observable.populations[:3])),
+                    "interpretation": "unexpected unique cooling-only steady state",
+                }
+            )
     pd.DataFrame(steady_rows).to_csv(
         directory / "full_24state_two_beam_steady_state_control.csv", index=False
     )
@@ -976,7 +1018,7 @@ def run_test_01(context, root: Path, sample_count: int = 161) -> dict[str, Any]:
     axes[0].set(xlabel=r"$v_z$ [m/s]", ylabel=r"Force [$10^{-21}$ N]", title="Fixed-population cooling-only force")
     axes[1].plot(velocities, lineout["plus_z_absorption_proxy_per_s"], color="#dc2626", label="+z beam")
     axes[1].plot(velocities, lineout["minus_z_absorption_proxy_per_s"], color="#2563eb", label="-z beam")
-    axes[1].set(xlabel=r"$v_z$ [m/s]", ylabel=r"Available absorption proxy [s$^{-1}$]", title="Beam-resolved rates")
+    axes[1].set(xlabel=r"$v_z$ [m/s]", ylabel=r"Fixed-population absorption rate [s$^{-1}$]", title="Beam-resolved rates")
     axes[2].plot(near["velocity_z_m_per_s"], 1.0e21 * near["total_force_z_n"], "o", ms=3, label="samples")
     axes[2].plot(
         near["velocity_z_m_per_s"],
@@ -1052,7 +1094,10 @@ def run_test_01(context, root: Path, sample_count: int = 161) -> dict[str, Any]:
         "name": TEST_NAMES[1],
         "status": status,
         "population_stage": "fixed uniform population over the five F=2 mF states",
-        "force_convention": "ground-population-weighted available absorption-momentum proxy",
+        "force_convention": (
+            "fixed ground population with zero prescribed excited population; "
+            "Section-12 stimulated absorption momentum"
+        ),
         "qualification_is_non_gating": True,
         "fitted_beta_z_n_s_per_m": beta_fit,
         "fitted_intercept_n": float(intercept),
@@ -1070,15 +1115,13 @@ def run_test_01(context, root: Path, sample_count: int = 161) -> dict[str, Any]:
         },
         "steady_state_control_warning": (
             "The full 24-state graph with only two cooling beams and no repumper "
-            "has disconnected F=1 dark states and a nonunique steady state. It "
-            "returns zero force, so the staged fixed-population diagnostic required "
+            "has disconnected F=1 dark states and a nonunique steady state. The "
+            "physical solver rejects it, so the staged fixed-population diagnostic required "
             "before Test 6 is used here."
         ),
-        "dipole_amplitude_limitation": (
-            "The current rate model stores only the normalized full hyperfine "
-            "line strength C^2 (including Wigner-6j and Wigner-3j factors). "
-            "sqrt(C^2) is saved as a nonnegative magnitude; a signed Clebsch-"
-            "Gordan phase is not available from this representation."
+        "dipole_data": (
+            "ARC-derived signed dipole matrix elements are stored in C m and "
+            "used directly to calculate the Rabi frequencies."
         ),
         "outputs": [
             directory / "README.md",
@@ -1099,9 +1142,9 @@ def run_test_01(context, root: Path, sample_count: int = 161) -> dict[str, Any]:
 **Result: PASS WITH QUALIFICATIONS.** With gravity, recoil, the 1529-nm shift, repumping, and
 unrelated axes disabled, the calculation prescribes equal populations of 0.2
 in the five F=2 Zeeman substates. This is the fixed-population stage required
-before adding optical pumping in Test 6. It uses the production saturated
-transition-rate matrix and reconstructs the absorption-momentum proxy from the
-two z cooling components.
+before adding optical pumping in Test 6. It uses the production Section-12
+stimulated coefficients and reconstructs the fixed-population absorption
+momentum from the two z cooling components.
 
 The near-zero fit gives
 `beta_z = {beta_fit:.9e} N s/m`; all three central-difference refinements are
@@ -1109,19 +1152,18 @@ positive, and the balanced zero-velocity force is
 `{float(zero_row['total_force_z_n']):.3e} N`.
 
 The companion steady-state control documents why the unrestricted 24-state
-solve is not meaningful with only these two beams: population occupies the
-disconnected F=1 dark subspace and the force collapses to zero. Numerical plot
+solve is not meaningful with only these two beams: the disconnected F=1 dark
+subspace makes the normalized steady state nonunique, so the physical solver
+rejects it. Numerical plot
 inputs are in `cooling_force_and_rates_vs_velocity.csv`; the complete
 beam-by-beam and transition-by-transition calculation is retained in
 `transition_resolved_cooling_force.csv`, with grouped sums in
 `transition_sum_reconstruction.csv`. Accordingly this is a pass of the
 fixed-population Doppler stage, not a claim that the unrestricted two-beam
-24-state steady state provides damping. The retained mechanical quantity is
-the inherited ground-population-weighted available-absorption momentum proxy;
-it is not yet a validated net scattering force because reverse stimulated
-emission momentum is omitted. The rate model stores normalized full hyperfine
-`C^2`; `sqrt(C^2)` in the ledger is a magnitude, not a signed Clebsch--Gordan
-coefficient.
+24-state steady state provides damping. The full pMOT observable uses the
+rebuilt steady-state populations and the net stimulated force
+`W*(p_g-p_e)`; this staged check deliberately prescribes zero excited-state
+population. The ledger records ARC dipole matrix elements and Rabi frequencies.
 """,
     )
     return result
@@ -1261,7 +1303,7 @@ def _mirror_transition_table(model, diagnostic, z_m: float) -> pd.DataFrame:
             transition.excited_m_f,
             transition.q,
         ): index
-        for index, transition in enumerate(model.structure.absorption_transitions)
+        for index, transition in enumerate(model.structure.transitions)
     }
     rows: list[dict[str, Any]] = []
     visited: set[tuple[int, int]] = set()
@@ -1269,7 +1311,7 @@ def _mirror_transition_table(model, diagnostic, z_m: float) -> pd.DataFrame:
         np.asarray(diagnostic.vector_transition_energy_j)
         / PLANCK_CONSTANT_J_S
     )
-    for index, transition in enumerate(model.structure.absorption_transitions):
+    for index, transition in enumerate(model.structure.transitions):
         mirror_index = lookup[
             (
                 transition.ground_f,
@@ -1283,7 +1325,7 @@ def _mirror_transition_table(model, diagnostic, z_m: float) -> pd.DataFrame:
         if pair in visited:
             continue
         visited.add(pair)
-        mirror = model.structure.absorption_transitions[mirror_index]
+        mirror = model.structure.transitions[mirror_index]
         shift = float(shifts_hz[index])
         mirror_shift = float(shifts_hz[mirror_index])
         rows.append(
@@ -1320,7 +1362,7 @@ def _transition_shift_kernel_probe(
     model = context.model
     config = replace(context.multilevel_config, include_gravity=False)
     transition_index = _reference_transition_index(model)
-    transition = model.structure.absorption_transitions[transition_index]
+    transition = model.structure.transitions[transition_index]
     axis = tuple(diagnostic.quantization_axis)
     candidates = [
         beam
@@ -1344,21 +1386,14 @@ def _transition_shift_kernel_probe(
     polarization_weight = polarization_weights(
         beam_polarization_vector(beam), axis
     )[transition.q]
-    saturation = (
-        intensity
-        / config.saturation_intensity_w_per_m2
-        * model.transition_strength[transition_index]
-        * polarization_weight
-    )
-    base_detuning = (
-        config.cooling_detuning_rad_per_s
-        - model.transition_hyperfine_offset_rad_per_s[transition_index]
+    base_detuning = config.cooling_detuning_rad_per_s - (
+        _transition_reference_offset_rad_per_s(model, transition_index, "cooling")
     )
     for name, shifts in (
         ("zero_shift", zero_shift),
         ("applied_vector_transition_shift", applied_shift),
     ):
-        matrices = build_beam_stimulated_rate_matrices(
+        quantities = build_beam_transition_quantities(
             model,
             [beam],
             position_m,
@@ -1368,22 +1403,23 @@ def _transition_shift_kernel_probe(
             config,
             transition_resonance_shift_rad_per_s=shifts,
         )
+        matrices = quantities.stimulated_coefficients_per_s
         production_rate = _selected_rate_matrix_value(
             model, matrices, transition_index
         )
         selected_shift = float(shifts[transition_index])
-        effective_detuning = base_detuning - selected_shift
-        expected_rate = (
-            0.5
-            * config.natural_linewidth_rad_per_s
-            * saturation
-            / (
-                1.0
-                + saturation
-                + 4.0
-                * effective_detuning**2
-                / config.natural_linewidth_rad_per_s**2
-            )
+        effective_detuning = float(
+            quantities.effective_detunings_rad_per_s[0, transition_index]
+        )
+        rabi = quantities.rabi_frequencies_rad_per_s[0, transition_index]
+        gamma = float(
+            model.excited_decay_rates_per_s[
+                model.transition_excited[transition_index]
+            ]
+        )
+        expected_rate = float(
+            gamma * abs(rabi) ** 2
+            / (gamma**2 + 4.0 * effective_detuning**2)
         )
         production_rates[name] = production_rate
         expected_rates[name] = expected_rate
@@ -1405,7 +1441,8 @@ def _transition_shift_kernel_probe(
                 "quantization_axis_z": axis[2],
                 "component_intensity_w_per_m2": intensity,
                 "polarization_weight_Pq": polarization_weight,
-                "transition_saturation": saturation,
+                "rabi_frequency_magnitude_rad_per_s": float(abs(rabi)),
+                "excited_state_decay_rate_per_s": gamma,
                 "base_laser_minus_hyperfine_rad_per_s": base_detuning,
                 "applied_transition_shift_rad_per_s": selected_shift,
                 "effective_detuning_rad_per_s": effective_detuning,
@@ -1444,9 +1481,9 @@ def _transition_shift_kernel_probe(
     beam_rows = []
     for beam_item, wrapper_rate, direct_rate, zero_rate in zip(
         context.cooling_repump_beams,
-        wrapper.rate_equation.beam_scattering_rates_per_s,
-        direct.beam_scattering_rates_per_s,
-        zero_direct.beam_scattering_rates_per_s,
+        wrapper.rate_equation.beam_effective_scattering_rates_per_s,
+        direct.beam_effective_scattering_rates_per_s,
+        zero_direct.beam_effective_scattering_rates_per_s,
     ):
         beam_rows.append(
             {
@@ -1498,8 +1535,8 @@ def _transition_shift_kernel_probe(
                 atol=1.0e-14,
             )
             and np.allclose(
-                wrapper.rate_equation.beam_scattering_rates_per_s,
-                direct.beam_scattering_rates_per_s,
+                wrapper.rate_equation.beam_effective_scattering_rates_per_s,
+                direct.beam_effective_scattering_rates_per_s,
                 rtol=2.0e-14,
                 atol=1.0e-8,
             )
@@ -1513,8 +1550,8 @@ def _transition_shift_kernel_probe(
         "shift_changes_at_least_one_full_model_beam_rate": bool(
             np.any(
                 np.abs(
-                    np.asarray(direct.beam_scattering_rates_per_s)
-                    - np.asarray(zero_direct.beam_scattering_rates_per_s)
+                    np.asarray(direct.beam_effective_scattering_rates_per_s)
+                    - np.asarray(zero_direct.beam_effective_scattering_rates_per_s)
                 )
                 > 1.0e-8
             )
@@ -1645,14 +1682,14 @@ def run_test_02(
 
     model = context.model
     reference_index = _reference_transition_index(model)
-    reference_coefficient = model.transition_zeeman_coefficient[reference_index]
+    reference_coefficient = model.transition_zeeman_coefficient_rad_per_s_per_t[reference_index]
     transition_rows: list[dict[str, Any]] = []
     for z, diagnostic, signed_reference_hz in zip(
         positions,
         diagnostics,
         profile["fixed_basis_signed_reference_shift_hz"],
     ):
-        for index, transition in enumerate(model.structure.absorption_transitions):
+        for index, transition in enumerate(model.structure.transitions):
             transition_rows.append(
                 {
                     "z_m": z,
@@ -1663,13 +1700,13 @@ def run_test_02(
                     "excited_F": transition.excited_f,
                     "excited_mF": transition.excited_m_f,
                     "q": transition.q,
-                    "normalized_dipole_strength_C2": transition.c_squared,
+                    "dipole_matrix_element_c_m": transition.dipole_matrix_element_c_m,
                     "applied_local_axis_vector_transition_shift_hz": diagnostic.vector_transition_energy_j[
                         index
                     ]
                     / PLANCK_CONSTANT_J_S,
                     "fixed_global_z_basis_vector_transition_shift_hz": signed_reference_hz
-                    * model.transition_zeeman_coefficient[index]
+                    * model.transition_zeeman_coefficient_rad_per_s_per_t[index]
                     / reference_coefficient,
                 }
             )
@@ -2105,8 +2142,8 @@ def run_ordered_diagnostic_suite(
         "required_python_invocation": REQUIRED_PYTHON_INVOCATION,
         "resolved_python_executable": sys.executable,
         "resolved_executable_note": (
-            "On this Windows workspace the required WSL path is a symlink to the "
-            "recorded Codex bundled Python executable."
+            "Run from an activated project environment or prefix the command "
+            "with 'uv run'; the actual interpreter is recorded separately."
         ),
         "python_version": sys.version,
         "platform": platform.platform(),

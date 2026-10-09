@@ -20,14 +20,14 @@ Work must proceed in validated stages:
    scattering, and trajectory dynamics. Optimize powers and gradients only
    after those physics layers pass their validation checks.
 
-The former 24-state multilevel implementation is archived in
-`src/pmot/mot_error`, with its documentation, notebooks, and regression tests
-under the corresponding `mot_error` directories. It used a saturated
+The former 24-state multilevel implementation and its corresponding source,
+documentation, notebooks, and regression-test directories have been removed.
+It used a saturated
 two-level scattering-rate expression as the elementary bidirectional rate in
 a multilevel population matrix. Because the two-level saturation construction
 already embeds a closed two-state population response, that closure is not a
-valid physical multilevel population-rate model. The archive is retained only
-for provenance and code-comparison purposes. Its forces, trajectories,
+valid physical multilevel population-rate model. Historical outputs are retained
+only for provenance. Its forces, trajectories,
 capture/loading results, temperatures, and any pMOT dynamics that inherit its
 dissipative kernel are scientifically invalid and must not be cited as physical
 predictions.
@@ -161,9 +161,6 @@ radiation pressure explicitly and state when gravity is excluded.
 
 - `src/pmot/mot_simple`: authoritative current two-level MOT, sampling, plots,
   and loading-rate analysis.
-- `src/pmot/mot_error`: archived, physically invalid 24-state implementation,
-  including its old rate engine and isolated Gillespie/event layers. Use only
-  for provenance and regression against historical artifacts.
 - `src/pmot/mot_multilevel`: replacement physical 24-state population-rate
   kernel, ARC atomic-data precomputation, cooling/repump beam construction,
   steady-state force evaluation, and deterministic RK4 trajectories.
@@ -181,11 +178,9 @@ radiation pressure explicitly and state when gravity is excluded.
   `launch_geometry.py`, `capture_statistics.py`, `loading.py`, `state.py`, and
   `beam_plotting.py`: model-neutral field, launch, capture-analysis, loading,
   state, and visualization primitives. Model packages normally depend only on
-  these shared modules. Existing provisional pMOT code explicitly imports the
-  archived `mot_error` local-environment kernel only to keep historical
-  diagnostics reproducible. That dependency is invalid for physical pMOT
-  dynamics and must eventually be replaced by a validated public entry point
-  from the new `mot_multilevel` package. All pMOT-specific environment, Stark,
+  these shared modules. Provisional pMOT code imports the public local-environment
+  entry point from `mot_multilevel`; it must not duplicate or replace that
+  physical population-rate kernel. All pMOT-specific environment, Stark,
   geometry, trajectory, and output code must remain under `src/pmot/pmot`.
 - `data/raw/pmot`: differential-polarizability datasets for the later pMOT phase.
 - `notebooks/mot_simple`: current interactive validation and sampling notebooks.
@@ -194,11 +189,9 @@ radiation pressure explicitly and state when gravity is excluded.
   procedure. Generated campaigns live under `outputs/diagnostics/pmot` and
   must stop at the first failed test, with every later test explicitly marked
   not run.
-- `docs/shared/BFIELD.md`, `docs/mot_error/ZEEMAN.md`, and
-  `docs/mot_simple/SAMPLINGALGORITHM.md`: historical derivations and
-  requirements. Every file under `docs/mot_error` is an archive of the invalid
-  former solver and is not a specification for the rebuild. New derivations
-  and architecture belong under `docs/mot_multilevel`. The root
+- `docs/shared/BFIELD.md` and `docs/mot_simple/SAMPLINGALGORITHM.md`: shared and
+  historical derivations and requirements. Multilevel derivations and
+  architecture belong under `docs/mot_multilevel`. The root
   `PopulationRateEq_Instructions.md`, especially Section 12, governs the new
   solver. This file and explicit user decisions take precedence if documents
   conflict.
@@ -206,7 +199,7 @@ radiation pressure explicitly and state when gravity is excluded.
 ## Authoritative replacement multilevel MOT assumptions
 
 The detailed August and September 2026 campaign records below describe
-historical `mot_error` artifacts. Preserve their provenance, but do not use
+historical invalid-solver outputs. Preserve their provenance, but do not use
 their numerical results to validate or characterize the rebuilt MOT.
 
 - Atom: state-resolved Rb-87 D2 system with 8 ground and 16 excited states.
@@ -319,14 +312,13 @@ their numerical results to validate or characterize the rebuilt MOT.
 - The pMOT has no anti-Helmholtz coils and no applied external magnetic field.
   Its configuration must not contain a coil object or call the conventional
   quadrupole-field evaluator. Shared magnetic-field code remains available to
-  `mot_simple`, the `mot_error` archive, and the rebuilt `mot_multilevel`
+  `mot_simple` and the rebuilt `mot_multilevel`
   model.
 - Retain the six 780 nm cooling and six repump traveling components on the
   Cartesian x, y, and z paths. The first pMOT geometry configuration records
   the current comparison baseline of 27 mW per cooling component and 0.1 mW per
-  repump component. The archived diagnostic currently constructs them through
-  `mot_error` to preserve the exact 780.232684 nm repump wavelength. Production
-  pMOT work must instead use the future validated `mot_multilevel` builder.
+  repump component. The pMOT configuration constructs them through the
+  `mot_multilevel` builder, preserving the exact 780.232684 nm repump wavelength.
 - Use one configurable trapping-laser frequency with default wavelength
   1529.268881 nm. "One trapping beam" means one frequency/configuration routed
   into three Cartesian round-trip paths, not one spatial ray: each path has an
@@ -382,10 +374,10 @@ their numerical results to validate or characterize the rebuilt MOT.
   The external Zeeman term is exactly zero. The trapping-light Doppler shift
   changes the wavelength used for the polarizability lookup; it is not added
   directly as another 780-nm Doppler term.
-- The archived diagnostic used 780-nm cooling/repump propagation-frame path helicities
+- The provisional diagnostic uses 780-nm cooling/repump propagation-frame path helicities
   fixed at `(x, y, z) = (sigma+, sigma+, sigma-)` for both incident and retro
-  components. Its negative velocity-force Jacobian came from the invalid
-  archived rate kernel and must be re-established with the rebuilt solver.
+  components. Its force Jacobian is now evaluated with the rebuilt solver, but
+  remains provisional because the Stark layer is not a state-resolved Hamiltonian.
 - For the intended 1529.268881-nm vector-only design point, where the scalar
   and tensor differential shifts cancel, the unique centered matched-path
   helicity tuple that is position restoring on x, y, and z for the current
@@ -394,26 +386,26 @@ their numerical results to validate or characterize the rebuilt MOT.
   is position anti-restoring. The other six centered matched tuples are
   saddles; unmatched incident/retro tuples bias the fictitious field at the
   origin. These labels are propagation-frame targets at the atoms, not direct
-  laboratory waveplate settings. They are historical `mot_error` diagnostic
+  laboratory waveplate settings. They are historical provisional diagnostic
   classifications, not validated design conclusions; repeat the full
   three-dimensional Jacobian analysis with the rebuilt solver.
 - Do not use the reversed `(sigma-, sigma-, sigma+)` result from the full
   provisional total-shift sweep as a design recommendation. In that diagnostic
-  the helicity-independent -16.339691 MHz central shift changed the nominal
-  -15 MHz stretched-reference cooling detuning to +1.339691 MHz (blue), so
+  the helicity-independent approximately -16.340 MHz central shift changed the nominal
+  -15 MHz stretched-reference cooling detuning to approximately +1.340 MHz (blue), so
   every centered configuration was anti-damping. Helicity cannot correct that
   common detuning error: either enforce the intended scalar/tensor cancellation
   or otherwise keep the relevant cooling transitions effectively red.
-- Existing provisional pMOT diagnostics may import the `mot_error`
-  explicit-local-environment entry point solely for reproducibility. New or
-  production pMOT dynamics must not use it. The rebuilt `mot_multilevel` public
-  entry point will be integrated only after its conventional-MOT validation.
+- Existing provisional pMOT diagnostics use the rebuilt `mot_multilevel`
+  explicit-local-environment entry point. New pMOT dynamics must continue to
+  use that public physical kernel rather than recreating a private rate model.
 - Physical pMOT trapping power remains unspecified. The first diagnostic's
   approximately 38.294 mW/path value is only the stretched-reference power
   scale corresponding to a nominal 20 G/cm vector-gradient proxy. It is not an
   apparatus default or power recommendation.
-- Diagnostic trajectories include the unchanged 780-nm cooling/repump
-  radiation pressure and optional recoil diffusion plus gravity. They exclude
+- Diagnostic trajectories include the rebuilt 780-nm cooling/repump
+  mean radiation pressure plus gravity. Recoil diffusion is disabled until a
+  separate model is derived and validated for the rebuilt kernel. They exclude
   conservative Stark-gradient force, 1529-nm scattering/heating/loss,
   coherent standing-wave structure, measured polarization transformations,
   and nonadiabatic dynamics at the optical-spin zero. They must not be used for
@@ -423,32 +415,33 @@ their numerical results to validate or characterize the rebuilt MOT.
   clean axial launch `r0=(15,0,0) mm`, `v0=(-17,0,0) m/s`, with gravity on,
   recoil diffusion off, 25 ms duration, and 5 microsecond step. It exposes all
   18 cooling, repump, and trapping traveling-component propagation-frame
-  polarizations independently, initialized to the archived candidate `++-`
+  polarizations independently, initialized to the provisional candidate `++-`
   tuple for incident and retro paths. That tuple must be revalidated. Its 3D
   view must draw the shared 12.7-mm
   cooling/repump volumes and the six 1529-nm Gaussian 1/e^2 envelopes at true
   in-trap scale; the 35-mm trapping diameter is a pre-lens input and must not
   be drawn through the trap.
-- The archived inherited rate kernel combines saturated per-transition rates,
-  explicit reverse stimulated-population links, and a force based on the
-  ground-population-weighted available absorption rate. This closure is now
-  known to be physically invalid for the multilevel MOT. Preserve and label it
-  only for exact comparison with historical work; do not extend it or use it
-  for quantitative multilevel or pMOT campaigns.
+- The removed inherited rate kernel used an invalid saturated per-transition
+  closure. Do not recreate it for historical comparison or use its former
+  force semantics in multilevel or pMOT code.
 - One-dimensional force zeros do not establish stability. Classify candidate
   pMOT equilibria using the full three-dimensional force Jacobian and
   distinguish position-restoring static zeros from dynamically stable trapping.
 
 ## Python environment and commands
 
-The project virtual environment is:
-`/home/ajrosy/pMOT_MonteCarlo/.venv_pMOT_MC`
+The project environment is repository-local and must not contain a hard-coded
+machine path. From the repository root, create or update it with:
+`uv sync --all-extras`
 
-For every Python-related command, use this interpreter explicitly:
-`/home/ajrosy/pMOT_MonteCarlo/.venv_pMOT_MC/bin/python`
+For every Python-related command, use `uv run python` so `uv` selects the
+checkout's `.venv` on every platform. Run the suite with:
+`uv run python -m pytest`
 
-Run the suite with:
-`/home/ajrosy/pMOT_MonteCarlo/.venv_pMOT_MC/bin/python -m pytest`
+For users without `uv`, create `.venv` with Python 3.12, activate it, and run
+`python -m pip install -r requirements.txt`. Once activated, use `python` and
+`python -m pytest`. Never commit or copy `.venv`, and never add a user-specific
+absolute interpreter or checkout path to code, scripts, notebooks, or docs.
 
 Use SI units internally. Label unit conversions explicitly in plots, tables,
 saved metadata, and public APIs. Preserve user work in a dirty working tree and

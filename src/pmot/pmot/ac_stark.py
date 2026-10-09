@@ -21,8 +21,8 @@ import numpy as np
 from ..configuration import PLANCK_CONSTANT_J_S
 from ..configuration import SPEED_OF_LIGHT_M_PER_S
 from ..configuration import VACUUM_PERMITTIVITY_F_PER_M
-from ..mot_error.polarization import propagation_frame_polarization
-from ..mot_error.rate_equations import RateEquationModel
+from ..mot_multilevel.polarization import propagation_frame_polarization
+from ..mot_multilevel.rate_equations import RateEquationModel
 from .polarizability import DifferentialPolarizabilityTable
 from .polarizability import interpolate_differential_polarizability_arrays
 from .polarizability import load_differential_polarizability_table
@@ -207,7 +207,7 @@ def trapping_component_intensities_w_per_m2(
 
 
 def _reference_cycling_transition_index(model: RateEquationModel) -> int:
-    for index, transition in enumerate(model.structure.absorption_transitions):
+    for index, transition in enumerate(model.structure.transitions):
         ground = model.structure.states[transition.ground_state_index]
         excited = model.structure.states[transition.excited_state_index]
         if (ground.f, ground.m_f, excited.f, excited.m_f) == (2, 2, 3, 3):
@@ -217,7 +217,7 @@ def _reference_cycling_transition_index(model: RateEquationModel) -> int:
 
 def _excited_tensor_factors(model: RateEquationModel) -> np.ndarray:
     factors = np.zeros(len(model.transition_ground), dtype=float)
-    for index, transition in enumerate(model.structure.absorption_transitions):
+    for index, transition in enumerate(model.structure.transitions):
         excited = model.structure.states[transition.excited_state_index]
         if excited.f <= 0:
             continue
@@ -323,12 +323,14 @@ def provisional_transition_stark_shifts(
         dtype=float,
     )
     reference_index = _reference_cycling_transition_index(model)
-    reference_coefficient = model.transition_zeeman_coefficient[reference_index]
+    reference_coefficient = model.transition_zeeman_coefficient_rad_per_s_per_t[
+        reference_index
+    ]
     if abs(reference_coefficient) <= 0.0:
         raise RuntimeError("stretched cycling transition has zero Zeeman coefficient")
     vector_transition = (
         vector_reference_energy
-        * model.transition_zeeman_coefficient
+        * model.transition_zeeman_coefficient_rad_per_s_per_t
         / reference_coefficient
     )
     tensor_transition = np.sum(component_tensor_by_transition, axis=0)

@@ -126,8 +126,8 @@ def test_combined_trajectory_plot_accepts_nested_rate_record_and_saves(
         positions_m=[(15.0e-3, 0.0, 0.0), (14.98e-3, 0.0, 0.0), (14.96e-3, 0.0, 0.0)],
         velocities_m_per_s=[(-17.0, 0.0, 0.0)] * sample_count,
         forces_n=[(1.0e-21, 0.0, 0.0)] * sample_count,
-        total_scattering_rates_per_s=[2.0e6] * sample_count,
-        beam_scattering_rates_per_s=[tuple([2.0e6 / len(mot_beams)] * len(mot_beams))] * sample_count,
+        total_spontaneous_scattering_rates_per_s=[2.0e6] * sample_count,
+        beam_effective_scattering_rates_per_s=[tuple([2.0e6 / len(mot_beams)] * len(mot_beams))] * sample_count,
     )
     record = SimpleNamespace(rate_equation=base)
     path = tmp_path / "trajectory.png"

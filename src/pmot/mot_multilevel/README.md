@@ -4,9 +4,8 @@ This package implements the Section 12 population-rate model specified in
 `PopulationRateEq_Instructions.md` for the 24 hyperfine-Zeeman states of the
 Rb-87 D2 line.
 
-The former implementation is preserved in `src/pmot/mot_error`. It must not be
-used for physical MOT or pMOT claims because it inserted a saturated two-level
-scattering expression into a multilevel population-rate matrix.
+The former implementation has been removed because it inserted a saturated
+two-level scattering expression into a multilevel population-rate matrix.
 
 ## Solver flow
 
@@ -90,7 +89,7 @@ must not be relabeled as a 27 mW result.
   a full velocity-mask and all-ray convergence audit.
 
 All generated products use `outputs/{trajectories,figures,statistics}/
-mot_multilevel_population_rate_v1`. No new scaffolding imports `mot_error`.
+mot_multilevel_population_rate_v1`. All dependent scaffolding uses this package.
 
 ## Status boundary
 
@@ -104,5 +103,5 @@ before quantitative claims. A recoil-diffusion temperature layer remains
 unimplemented.
 
 New results must use the `mot_multilevel_population_rate_v1` output namespace.
-Historical `outputs/.../mot_multilevel` data came from `mot_error` and remain
-invalid as physical multilevel-MOT predictions.
+Historical `outputs/.../mot_multilevel` data came from the removed invalid
+solver and remain invalid as physical multilevel-MOT predictions.

@@ -7,8 +7,8 @@ from dataclasses import replace
 import numpy as np
 import pytest
 
-from pmot.mot_error.rate_equations import RateEquationTrajectoryConfig
-from pmot.mot_error.rate_equations import RateEquationTrajectoryRecord
+from pmot.mot_multilevel.rate_equations import RateEquationTrajectoryConfig
+from pmot.mot_multilevel.rate_equations import RateEquationTrajectoryRecord
 from pmot.pmot.vector_only_trajectories import PMOTBeamHelicities
 from pmot.pmot.vector_only_trajectories import build_vector_only_apparatus
 from pmot.pmot.vector_only_trajectories import build_vector_only_trajectory_context
@@ -136,7 +136,6 @@ def test_short_default_run_is_deterministic_and_records_all_diagnostics(context)
     )
     numerical = RateEquationTrajectoryConfig(
         time_step_s=5.0e-6,
-        include_diffusion=False,
         escape_radius_m=30.0e-3,
     )
     first = simulate_vector_only_pmot_trajectory(

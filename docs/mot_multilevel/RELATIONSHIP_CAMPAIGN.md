@@ -159,9 +159,9 @@ precision failures to this plan before sampling those settings. Once all 75
 original settings finish, check the saved PID and command and confirm no
 campaign pool remains, then run the prepared launcher:
 
-```powershell
-wsl.exe --exec /home/ajrosy/pMOT_MonteCarlo/.venv_pMOT_MC/bin/python scripts/run_population_precision_confirmation.py --check
-wsl.exe --exec /home/ajrosy/pMOT_MonteCarlo/.venv_pMOT_MC/bin/python scripts/run_population_precision_confirmation.py --workers 16
+```bash
+uv run python scripts/run_population_precision_confirmation.py --check
+uv run python scripts/run_population_precision_confirmation.py --workers 16
 ```
 
 Use a hidden process and separate logs under the new
@@ -276,16 +276,14 @@ matching configurations and code. Never overwrite historical products.
 
 ## Execution notes
 
-The prescribed interpreter currently points through WSL to a Windows Python
-runtime. Campaign dependencies are installed into the ignored project-local
-`.venv_pMOT_MC/Lib/site-packages`, without changing the shared runtime.
-Launchers bootstrap that directory and `src` before importing project code.
-Every Python invocation still uses the prescribed interpreter path.
+Campaign dependencies are installed in the ignored repository-local `.venv`
+from the checked-in lock file. `uv run` selects that environment and the
+editable project installation without relying on a user-specific path.
 
 Launch/resume with:
 
-```powershell
-wsl.exe --exec /home/ajrosy/pMOT_MonteCarlo/.venv_pMOT_MC/bin/python scripts/run_population_relationships.py all --workers 12
+```bash
+uv run python scripts/run_population_relationships.py all --workers 12
 ```
 
 Stages `validate`, `force`, `pilot`, `production`, and `report` are available.

@@ -11,13 +11,13 @@ from ..configuration import GRAVITY_ACCELERATION_M_PER_S2
 from ..configuration import PLANCK_CONSTANT_J_S
 from ..configuration import RB87_MASS_KG
 from ..fields import MOTBeam
-from ..mot_error.configuration import MultilevelMOTConfig
-from ..mot_error.rate_equations import RateEquationAtomState
-from ..mot_error.rate_equations import RateEquationModel
-from ..mot_error.rate_equations import RateEquationObservable
-from ..mot_error.rate_equations import RateEquationTrajectoryConfig
-from ..mot_error.rate_equations import RateEquationTrajectoryRecord
-from ..mot_error.rate_equations import rate_equation_observable_from_local_environment
+from ..mot_multilevel.configuration import MultilevelMOTConfig
+from ..mot_multilevel.rate_equations import RateEquationAtomState
+from ..mot_multilevel.rate_equations import RateEquationModel
+from ..mot_multilevel.rate_equations import RateEquationObservable
+from ..mot_multilevel.rate_equations import RateEquationTrajectoryConfig
+from ..mot_multilevel.rate_equations import RateEquationTrajectoryRecord
+from ..mot_multilevel.rate_equations import rate_equation_observable_from_local_environment
 from .ac_stark import ProvisionalStarkConfig
 from .ac_stark import ProvisionalStarkObservable
 from .ac_stark import provisional_transition_stark_shifts
@@ -56,7 +56,7 @@ class ProvisionalPMOTTrajectoryRecord:
 
 
 def _cycling_transition_index(model: RateEquationModel) -> int:
-    for index, transition in enumerate(model.structure.absorption_transitions):
+    for index, transition in enumerate(model.structure.transitions):
         if (
             transition.ground_f,
             transition.ground_m_f,
@@ -80,6 +80,7 @@ def provisional_pmot_observable(
     *,
     polarizability_table: DifferentialPolarizabilityTable | None = None,
     store_rate_matrix: bool = False,
+    store_beam_transition_quantities: bool = False,
 ) -> ProvisionalPMOTObservable:
     """Evaluate one no-coil pMOT phase point.
 
@@ -110,6 +111,7 @@ def provisional_pmot_observable(
             stark.transition_angular_frequency_shift_rad_per_s
         ),
         store_rate_matrix=store_rate_matrix,
+        store_beam_transition_quantities=store_beam_transition_quantities,
     )
     return ProvisionalPMOTObservable(rate, stark)
 
@@ -128,11 +130,19 @@ def _append_record(
     base.positions_m.append(state.position_m)
     base.velocities_m_per_s.append(state.velocity_m_per_s)
     base.forces_n.append(rate.force_n)
-    base.diffusion_kg2_m2_per_s3.append(rate.diffusion_kg2_m2_per_s3)
-    base.total_scattering_rates_per_s.append(rate.total_scattering_rate_per_s)
-    base.beam_scattering_rates_per_s.append(rate.beam_scattering_rates_per_s)
+    base.total_spontaneous_scattering_rates_per_s.append(
+        rate.total_spontaneous_scattering_rate_per_s
+    )
+    base.beam_effective_scattering_rates_per_s.append(
+        rate.beam_effective_scattering_rates_per_s
+    )
     base.magnetic_fields_t.append(rate.magnetic_field_t)
+    base.quantization_axes.append(rate.quantization_axis)
     base.populations.append(rate.populations.copy())
+    if rate.rate_matrix_per_s is not None:
+        base.rate_matrices_per_s.append(rate.rate_matrix_per_s.copy())
+    if rate.beam_transition_quantities is not None:
+        base.beam_transition_quantities.append(rate.beam_transition_quantities)
     record.atom_frame_frequencies_hz.append(stark.atom_frame_frequencies_hz)
     record.atom_frame_wavelengths_nm.append(stark.atom_frame_wavelengths_nm)
     record.trapping_component_intensities_w_per_m2.append(
@@ -176,7 +186,7 @@ def simulate_provisional_pmot_trajectory(
     polarizability_table: DifferentialPolarizabilityTable | None = None,
     progress_callback=None,
 ) -> ProvisionalPMOTTrajectoryRecord:
-    """Integrate the same fixed-step external dynamics used by the full MOT."""
+    """Integrate deterministic motion with a fresh Section-12 solve at every RK4 stage."""
 
     numerical = trajectory_config or RateEquationTrajectoryConfig()
     if duration_s <= 0.0 or numerical.time_step_s <= 0.0:
@@ -184,31 +194,57 @@ def simulate_provisional_pmot_trajectory(
     if numerical.escape_radius_m <= 0.0:
         raise ValueError("escape radius must be positive")
     table = polarizability_table or load_differential_polarizability_table()
-    rng = np.random.default_rng(numerical.seed)
     record = ProvisionalPMOTTrajectoryRecord()
-    state = initial_state
+    position = np.asarray(initial_state.position_m, dtype=float)
+    velocity = np.asarray(initial_state.velocity_m_per_s, dtype=float)
+    previous_axis = initial_state.last_quantization_axis
     time_s = 0.0
     reference_index = _cycling_transition_index(model)
-    observable = provisional_pmot_observable(
-        model,
-        cooling_repump_beams,
-        trapping_beams,
-        state.position_m,
-        state.velocity_m_per_s,
-        laser_config,
-        stark_config,
-        multilevel_config,
-        state.last_quantization_axis,
-        polarizability_table=table,
-        store_rate_matrix=numerical.store_rate_matrices,
-    )
-    _append_record(record, time_s, state, observable, reference_index)
     gravity = np.asarray(
         GRAVITY_ACCELERATION_M_PER_S2
         if multilevel_config.include_gravity
         else (0.0, 0.0, 0.0),
         dtype=float,
     )
+
+    def evaluate(stage_position: np.ndarray, stage_velocity: np.ndarray, *, store=False):
+        return provisional_pmot_observable(
+            model,
+            cooling_repump_beams,
+            trapping_beams,
+            tuple(float(value) for value in stage_position),
+            tuple(float(value) for value in stage_velocity),
+            laser_config,
+            stark_config,
+            multilevel_config,
+            previous_axis,
+            polarizability_table=table,
+            store_rate_matrix=store and numerical.store_rate_matrices,
+            store_beam_transition_quantities=(
+                store and numerical.store_beam_transition_quantities
+            ),
+        )
+
+    def derivative(stage_position: np.ndarray, stage_velocity: np.ndarray):
+        stage = evaluate(stage_position, stage_velocity)
+        acceleration = (
+            np.asarray(stage.rate_equation.force_n, dtype=float) / RB87_MASS_KG
+            + gravity
+        )
+        return stage_velocity, acceleration
+
+    def record_current() -> ProvisionalPMOTObservable:
+        state = RateEquationAtomState(
+            tuple(float(value) for value in position),
+            tuple(float(value) for value in velocity),
+            previous_axis,
+        )
+        current = evaluate(position, velocity, store=True)
+        _append_record(record, time_s, state, current, reference_index)
+        return current
+
+    observable = record_current()
+    previous_axis = observable.stark.quantization_axis
     step_ratio = duration_s / numerical.time_step_s
     rounded_steps = int(round(step_ratio))
     expected_steps = (
@@ -221,49 +257,39 @@ def simulate_provisional_pmot_trajectory(
         dt_s = min(numerical.time_step_s, duration_s - time_s)
         if dt_s <= 0.0:
             break
-        momentum = RB87_MASS_KG * np.asarray(state.velocity_m_per_s, dtype=float)
-        momentum += (
-            np.asarray(observable.rate_equation.force_n) + RB87_MASS_KG * gravity
-        ) * dt_s
-        if (
-            numerical.include_diffusion
-            and observable.rate_equation.diffusion_kg2_m2_per_s3 > 0.0
-        ):
-            momentum += np.sqrt(
-                2.0
-                * observable.rate_equation.diffusion_kg2_m2_per_s3
-                * dt_s
-            ) * rng.normal(size=3)
-        velocity = momentum / RB87_MASS_KG
-        position = np.asarray(state.position_m, dtype=float) + velocity * dt_s
+        k1_r, k1_v = derivative(position, velocity)
+        k2_r, k2_v = derivative(
+            position + 0.5 * dt_s * k1_r,
+            velocity + 0.5 * dt_s * k1_v,
+        )
+        k3_r, k3_v = derivative(
+            position + 0.5 * dt_s * k2_r,
+            velocity + 0.5 * dt_s * k2_v,
+        )
+        k4_r, k4_v = derivative(
+            position + dt_s * k3_r,
+            velocity + dt_s * k3_v,
+        )
+        position = position + dt_s * (
+            k1_r + 2.0 * k2_r + 2.0 * k3_r + k4_r
+        ) / 6.0
+        velocity = velocity + dt_s * (
+            k1_v + 2.0 * k2_v + 2.0 * k3_v + k4_v
+        ) / 6.0
         time_s = min(duration_s, time_s + dt_s)
-        state = RateEquationAtomState(
-            tuple(float(value) for value in position),
-            tuple(float(value) for value in velocity),
-            observable.stark.quantization_axis,
-        )
-        observable = provisional_pmot_observable(
-            model,
-            cooling_repump_beams,
-            trapping_beams,
-            state.position_m,
-            state.velocity_m_per_s,
-            laser_config,
-            stark_config,
-            multilevel_config,
-            state.last_quantization_axis,
-            polarizability_table=table,
-            store_rate_matrix=numerical.store_rate_matrices,
-        )
-        _append_record(record, time_s, state, observable, reference_index)
+        if not np.all(np.isfinite(position)) or not np.all(np.isfinite(velocity)):
+            record.rate_equation.termination_reason = "non_finite"
+            break
+        observable = record_current()
+        previous_axis = observable.stark.quantization_axis
         if progress_callback is not None and (
             completed_steps % next_progress_step == 0
             or completed_steps == expected_steps
         ):
             progress_callback(completed_steps, expected_steps, time_s)
         if _escaped(
-            state.position_m,
-            state.velocity_m_per_s,
+            position,
+            velocity,
             numerical.escape_radius_m,
         ):
             record.rate_equation.termination_reason = "escaped"

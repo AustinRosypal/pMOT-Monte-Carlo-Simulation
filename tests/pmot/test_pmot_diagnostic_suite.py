@@ -40,7 +40,7 @@ def test_fixed_population_two_beam_force_is_balanced_and_damping() -> None:
     plus = _fixed_population_force(context, beams, 1.0e-3)["total_force_n"][2]
     minus = _fixed_population_force(context, beams, -1.0e-3)["total_force_n"][2]
 
-    assert zero == 0.0
+    assert np.isclose(zero, 0.0, atol=1.0e-30)
     assert plus < 0.0 < minus
     assert np.isclose(plus, -minus, rtol=1.0e-12, atol=1.0e-30)
 

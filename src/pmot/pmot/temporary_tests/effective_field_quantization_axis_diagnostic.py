@@ -23,10 +23,10 @@ import pandas as pd
 from ...configuration import PLANCK_CONSTANT_J_S
 from ...configuration import SPEED_OF_LIGHT_M_PER_S
 from ...configuration import VACUUM_PERMITTIVITY_F_PER_M
-from ...mot_error.configuration import default_multilevel_mot_config
-from ...mot_error.polarization import polarization_weights
-from ...mot_error.polarization import propagation_frame_polarization
-from ...mot_error.rate_equations import build_rate_equation_model
+from ...mot_multilevel.configuration import default_multilevel_mot_config
+from ...mot_multilevel.polarization import polarization_weights
+from ...mot_multilevel.polarization import propagation_frame_polarization
+from ...mot_multilevel.rate_equations import build_rate_equation_model
 from ..ac_stark import ProvisionalStarkConfig
 from ..ac_stark import build_physics_trapping_beams
 from ..ac_stark import provisional_power_for_target_gradient_w_per_path
@@ -48,7 +48,7 @@ def _project_root() -> Path:
 
 
 def _reference_transition_index(model) -> int:
-    for index, transition in enumerate(model.structure.absorption_transitions):
+    for index, transition in enumerate(model.structure.transitions):
         if (
             transition.ground_f,
             transition.ground_m_f,
@@ -76,7 +76,7 @@ def calculate_beamwise_diagnostic(
 
     apparatus = default_pmot_apparatus_config()
     rate_config = default_multilevel_mot_config()
-    model = build_rate_equation_model(rate_config.natural_linewidth_rad_per_s)
+    model = build_rate_equation_model()
     table = load_differential_polarizability_table()
     if power_w_per_path is None:
         power = provisional_power_for_target_gradient_w_per_path(
@@ -123,7 +123,7 @@ def calculate_beamwise_diagnostic(
     )
 
     reference_index = _reference_transition_index(model)
-    reference_transition = model.structure.absorption_transitions[reference_index]
+    reference_transition = model.structure.transitions[reference_index]
     reference_ground = model.structure.states[
         reference_transition.ground_state_index
     ]
@@ -135,7 +135,7 @@ def calculate_beamwise_diagnostic(
         - reference_ground.lande_g * reference_ground.m_f
     )
     zeeman_angular_coefficient = float(
-        model.transition_zeeman_coefficient[reference_index]
+        model.transition_zeeman_coefficient_rad_per_s_per_t[reference_index]
     )
     # Match the existing provisional Stark observable's exact conversion.
     # (The repository's rounded HBAR constant is not used by that observable.)

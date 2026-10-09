@@ -79,8 +79,7 @@ so the adapter clears that cache before each immutable ray payload.
 - Runner: `scripts/run_population_diameter_campaign.py`
 - Statistics: `outputs/statistics/mot_multilevel_population_rate_v1/cooling_diameter_20260930_fixed_intensity_baseline`
 - Figures: matching `outputs/figures/mot_multilevel_population_rate_v1` root.
-- Explicit interpreter: `/home/ajrosy/pMOT_MonteCarlo/.venv_pMOT_MC/bin/python`
-  via `wsl.exe --exec` on this Windows host.
+- Environment: repository-local `.venv`, selected portably with `uv run`.
 - Full run arguments: `scripts/run_population_diameter_campaign.py all --power-mode fixed_intensity --detuning baseline --workers 16`.
 
 Before launching/resuming, read `process.json` and check the PID **and command**

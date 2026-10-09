@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 
-from pmot.mot_error.rate_equations import RateEquationTrajectoryConfig
+from pmot.mot_multilevel.rate_equations import RateEquationTrajectoryConfig
 from pmot.pmot.vector_only_trajectories import (
     build_vector_only_trajectory_context,
 )
@@ -53,7 +53,6 @@ def short_trajectory():
         context=context,
         trajectory_config=RateEquationTrajectoryConfig(
             time_step_s=2.5e-6,
-            include_diffusion=False,
             escape_radius_m=30.0e-3,
         ),
     )

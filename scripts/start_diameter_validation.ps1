@@ -1,5 +1,10 @@
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
+$wslProjectRoot = (& wsl.exe --cd $projectRoot pwd).Trim()
+if ($LASTEXITCODE -ne 0 -or -not $wslProjectRoot) { throw 'Could not resolve the repository path in WSL' }
+$pythonWsl = "$wslProjectRoot/.venv/bin/python"
+& wsl.exe test -x $pythonWsl
+if ($LASTEXITCODE -ne 0) { throw 'Project .venv is missing in WSL; run uv sync --all-extras from the repository root' }
 $campaignRoot = Join-Path $projectRoot 'outputs/statistics/mot_multilevel_population_rate_v1/cooling_diameter_20260930_fixed_intensity_baseline'
 $launcherRecord = Join-Path $campaignRoot 'fixed_validation_launcher.json'
 @{ pid=$PID; status='waiting for pilot collector'; started_at_utc=[DateTime]::UtcNow.ToString('o') } | ConvertTo-Json | Set-Content $launcherRecord
@@ -16,5 +21,5 @@ $activePools = Get-CimInstance Win32_Process | Where-Object {
 }
 if ($activePools) { throw 'Campaign pool active; refusing duplicate launch' }
 if (Test-Path (Join-Path $campaignRoot 'fixed_validation.log')) { throw 'Existing validation log needs review' }
-$child = Start-Process -FilePath 'wsl.exe' -ArgumentList @('--exec','/home/ajrosy/pMOT_MonteCarlo/.venv_pMOT_MC/bin/python','-u','scripts/validate_diameter_pilot_masks.py') -WorkingDirectory $projectRoot -WindowStyle Hidden -RedirectStandardOutput (Join-Path $campaignRoot 'fixed_validation.log') -RedirectStandardError (Join-Path $campaignRoot 'fixed_validation.stderr.log') -PassThru
+$child = Start-Process -FilePath 'wsl.exe' -ArgumentList @('--cd',$projectRoot,'--exec',$pythonWsl,'-u','scripts/validate_diameter_pilot_masks.py') -WorkingDirectory $projectRoot -WindowStyle Hidden -RedirectStandardOutput (Join-Path $campaignRoot 'fixed_validation.log') -RedirectStandardError (Join-Path $campaignRoot 'fixed_validation.stderr.log') -PassThru
 @{ pid=$PID; status='validator launched'; child_launcher_pid=$child.Id; launched_at_utc=[DateTime]::UtcNow.ToString('o') } | ConvertTo-Json | Set-Content $launcherRecord

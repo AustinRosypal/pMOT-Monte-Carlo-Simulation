@@ -17,10 +17,10 @@ import numpy as np
 import pandas as pd
 
 from ..configuration import RB87_MASS_KG
-from ..mot_error.configuration import default_multilevel_mot_config
-from ..mot_error.rate_equations import RateEquationAtomState
-from ..mot_error.rate_equations import RateEquationTrajectoryConfig
-from ..mot_error.rate_equations import build_rate_equation_model
+from ..mot_multilevel.configuration import default_multilevel_mot_config
+from ..mot_multilevel.rate_equations import RateEquationAtomState
+from ..mot_multilevel.rate_equations import RateEquationTrajectoryConfig
+from ..mot_multilevel.rate_equations import build_rate_equation_model
 from .ac_stark import EFFECTIVE_DETUNING_EQUATION
 from .ac_stark import PROVISIONAL_MODEL_NAME
 from .ac_stark import ProvisionalStarkConfig
@@ -56,18 +56,16 @@ OMITTED_PHYSICS = (
     "window and mirror polarization transformations",
     "full local Stark-operator diagonalization and nonadiabatic zero crossing",
 )
-INHERITED_RATE_KERNEL_LIMITATION = (
-    "The authoritative multilevel kernel uses saturated per-transition rates, "
-    "explicit bidirectional stimulated population links, and a ground-population-"
-    "weighted absorption rate for radiation pressure and diffusion. That inherited "
-    "closure has not yet been validated against a consistent two-level limit or the "
-    "event engine, so its force magnitude and sign cannot support a quantitative "
-    "pMOT trapping claim."
+MULTILEVEL_RATE_KERNEL_BOUNDARY = (
+    "The 780-nm force uses the rebuilt Section-12 population-rate kernel and "
+    "beam-resolved W*(p_g-p_e) momentum. Recoil diffusion is disabled because no "
+    "validated diffusion model exists for this kernel. The provisional Stark layer "
+    "still cannot support a quantitative pMOT trapping claim."
 )
 
 
 def _cycling_transition_index(model) -> int:
-    for index, transition in enumerate(model.structure.absorption_transitions):
+    for index, transition in enumerate(model.structure.transitions):
         if (
             transition.ground_f,
             transition.ground_m_f,
@@ -105,7 +103,7 @@ def summarize_trajectory(record: ProvisionalPMOTTrajectoryRecord) -> dict[str, o
         "maximum_speed_m_per_s": float(np.max(speeds)),
         "remained_inside_2mm_during_short_run": bool(np.all(radii <= 2.0e-3)),
         "mean_kernel_ground_weighted_absorption_rate_per_s": float(
-            np.mean(base.total_scattering_rates_per_s)
+            np.mean(base.total_spontaneous_scattering_rates_per_s)
         ),
         "maximum_force_n": float(np.max(np.linalg.norm(forces, axis=1))),
         "maximum_effective_field_proxy_g": float(np.max(effective_fields) * 1.0e4),
@@ -143,7 +141,7 @@ def save_trajectory_csv(
             "fy_n": force[:, 1],
             "fz_n": force[:, 2],
             "kernel_ground_weighted_absorption_rate_per_s": (
-                base.total_scattering_rates_per_s
+                base.total_spontaneous_scattering_rates_per_s
             ),
             "beff_x_t": effective_field[:, 0],
             "beff_y_t": effective_field[:, 1],
@@ -182,7 +180,7 @@ def plot_trajectory_time_diagnostics(
     positions_mm = 1.0e3 * np.asarray(base.positions_m, dtype=float)
     velocities = np.asarray(base.velocities_m_per_s, dtype=float)
     forces_scaled = 1.0e21 * np.asarray(base.forces_n, dtype=float)
-    beam_rates = np.asarray(base.beam_scattering_rates_per_s, dtype=float)
+    beam_rates = np.asarray(base.beam_effective_scattering_rates_per_s, dtype=float)
     colors = ("#b91c1c", "#1d4ed8", "#15803d")
     figure, panels = plt.subplots(2, 2, figsize=(14, 9), constrained_layout=True)
     for component, (label, color) in enumerate(zip("xyz", colors)):
@@ -219,7 +217,7 @@ def plot_trajectory_time_diagnostics(
     )
     panels[1, 1].plot(
         times_ms,
-        base.total_scattering_rates_per_s,
+        base.total_spontaneous_scattering_rates_per_s,
         label="total kernel absorption",
         color="#111827",
         linestyle="--",
@@ -670,7 +668,6 @@ def run_provisional_stark_trajectory_study(
     target_gradient_g_per_cm: float = 20.0,
     duration_s: float = 5.0e-3,
     time_step_s: float = 5.0e-6,
-    include_diffusion: bool = False,
     output_tag: str = "provisional_stark_20Gpcm",
 ) -> dict[str, object]:
     """Run force checks and four short trajectories with explicit caveats."""
@@ -681,7 +678,7 @@ def run_provisional_stark_trajectory_study(
         repumper_enabled=True,
         repump_power_w_per_beam=apparatus.mot_light.repump.power_w_per_beam,
     )
-    model = build_rate_equation_model(multilevel.natural_linewidth_rad_per_s)
+    model = build_rate_equation_model()
     table = load_differential_polarizability_table()
     if power_w_per_path is None:
         selected_power = provisional_power_for_target_gradient_w_per_path(
@@ -728,8 +725,8 @@ def run_provisional_stark_trajectory_study(
     )
     print(f"[pMOT Stark diagnostic] LIMITATION: {PROVISIONAL_LIMITATION}", flush=True)
     print(
-        "[pMOT Stark diagnostic] INHERITED KERNEL LIMITATION: "
-        f"{INHERITED_RATE_KERNEL_LIMITATION}",
+        "[pMOT Stark diagnostic] MULTILEVEL KERNEL BOUNDARY: "
+        f"{MULTILEVEL_RATE_KERNEL_BOUNDARY}",
         flush=True,
     )
 
@@ -861,8 +858,6 @@ def run_provisional_stark_trajectory_study(
             multilevel,
             trajectory_config=RateEquationTrajectoryConfig(
                 time_step_s=time_step_s,
-                include_diffusion=include_diffusion,
-                seed=20260831 + case_index,
                 escape_radius_m=30.0e-3,
             ),
             polarizability_table=table,
@@ -902,27 +897,7 @@ def run_provisional_stark_trajectory_study(
         f"{1e6*0.5*time_step_s:.3f} us and {1e6*0.25*time_step_s:.3f} us",
         flush=True,
     )
-    if include_diffusion:
-        convergence_baseline = simulate_provisional_pmot_trajectory(
-            RateEquationAtomState((1.0e-3, 0.0, 0.0), (0.0, 0.0, 0.0)),
-            duration_s,
-            model,
-            cooling_repump_beams,
-            trapping_beams,
-            apparatus.trapping_laser,
-            stark_config,
-            multilevel,
-            trajectory_config=RateEquationTrajectoryConfig(
-                time_step_s=time_step_s,
-                include_diffusion=False,
-                seed=20260832,
-                escape_radius_m=30.0e-3,
-            ),
-            polarizability_table=table,
-        )
-        convergence_baseline_summary = summarize_trajectory(convergence_baseline)
-    else:
-        convergence_baseline_summary = trajectory_summaries["x_offset"]
+    convergence_baseline_summary = trajectory_summaries["x_offset"]
     convergence_rows = [
         {
             "time_step_s": time_step_s,
@@ -945,8 +920,6 @@ def run_provisional_stark_trajectory_study(
             multilevel,
             trajectory_config=RateEquationTrajectoryConfig(
                 time_step_s=refined_dt_s,
-                include_diffusion=False,
-                seed=20260832,
                 escape_radius_m=30.0e-3,
             ),
             polarizability_table=table,
@@ -991,7 +964,7 @@ def run_provisional_stark_trajectory_study(
         "atom_frame_doppler_equation": ATOM_FRAME_DOPPLER_EQUATION,
         "stark_decomposition_equation": STARK_DECOMPOSITION_EQUATION,
         "provisional_limitation": PROVISIONAL_LIMITATION,
-        "inherited_rate_kernel_limitation": INHERITED_RATE_KERNEL_LIMITATION,
+        "multilevel_rate_kernel_boundary": MULTILEVEL_RATE_KERNEL_BOUNDARY,
         "omitted_physics": list(OMITTED_PHYSICS),
         "external_magnetic_field_t": [0.0, 0.0, 0.0],
         "cooling_power_w_per_beam": apparatus.mot_light.cooling.power_w_per_beam,
@@ -1007,7 +980,7 @@ def run_provisional_stark_trajectory_study(
         "multilevel_config": asdict(multilevel),
         "duration_s": duration_s,
         "time_step_s": time_step_s,
-        "include_diffusion": include_diffusion,
+        "recoil_diffusion_included": False,
         "polarizability_csv": str(table.source_path),
         "polarizability_wavelength_range_nm": list(table.wavelength_range_nm),
         "origin_total_trapping_intensity_w_per_m2": origin.stark.total_intensity_w_per_m2,
@@ -1042,7 +1015,6 @@ def build_argument_parser() -> argparse.ArgumentParser:
     parser.add_argument("--target-gradient-g-per-cm", type=float, default=20.0)
     parser.add_argument("--duration-ms", type=float, default=5.0)
     parser.add_argument("--dt-us", type=float, default=5.0)
-    parser.add_argument("--include-diffusion", action="store_true")
     parser.add_argument("--output-tag", default="provisional_stark_20Gpcm")
     return parser
 
@@ -1058,7 +1030,6 @@ def main(argv: list[str] | None = None) -> int:
         target_gradient_g_per_cm=args.target_gradient_g_per_cm,
         duration_s=1.0e-3 * args.duration_ms,
         time_step_s=1.0e-6 * args.dt_us,
-        include_diffusion=args.include_diffusion,
         output_tag=args.output_tag,
     )
     print(json.dumps(result, indent=2))

@@ -4,15 +4,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from dataclasses import replace
+from math import pi
 from pathlib import Path
 
 from ..beams import Vec3
 from ..configuration import MOTApparatusConfig
 from ..configuration import default_mot_apparatus_config
 from ..fields import MOTBeam
-from ..mot_error.configuration import MultilevelMOTConfig
-from ..mot_error.configuration import default_multilevel_mot_config
-from ..mot_error.simulation import build_multilevel_mot_beams
+from ..mot_multilevel.configuration import MultilevelMOTConfig
+from ..mot_multilevel.configuration import default_multilevel_mot_config
+from ..mot_multilevel.simulation import build_multilevel_mot_beams
 from .trapping_beams import DEFAULT_TRAPPING_WAVELENGTH_M
 from .trapping_beams import TrappingLaserConfig
 from .trapping_beams import build_trapping_beams
@@ -88,6 +89,13 @@ def build_pmot_cooling_and_repump_beams(
     if multilevel_config is None:
         rate_config = replace(
             default_multilevel_mot_config(),
+            cooling_detuning_rad_per_s=(
+                2.0 * pi * apparatus.mot_light.cooling.detuning_hz
+            ),
+            repump_detuning_rad_per_s=(
+                2.0 * pi * apparatus.mot_light.repump.detuning_hz
+            ),
+            cooling_power_w_per_beam=apparatus.mot_light.cooling.power_w_per_beam,
             repumper_enabled=True,
             repump_power_w_per_beam=apparatus.mot_light.repump.power_w_per_beam,
         )

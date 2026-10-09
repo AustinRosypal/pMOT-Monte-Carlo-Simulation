@@ -1,5 +1,10 @@
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
+$wslProjectRoot = (& wsl.exe --cd $projectRoot pwd).Trim()
+if ($LASTEXITCODE -ne 0 -or -not $wslProjectRoot) { throw 'Could not resolve the repository path in WSL' }
+$pythonWsl = "$wslProjectRoot/.venv/bin/python"
+& wsl.exe test -x $pythonWsl
+if ($LASTEXITCODE -ne 0) { throw 'Project .venv is missing in WSL; run uv sync --all-extras from the repository root' }
 $campaignRoot = Join-Path $projectRoot 'outputs/statistics/mot_multilevel_population_rate_v1/cooling_diameter_20260930_fixed_intensity_baseline'
 $launcherRecord = Join-Path $campaignRoot 'pilot_continuation_launcher.json'
 @{ pid=$PID; status='waiting for retention audit'; started_at_utc=[DateTime]::UtcNow.ToString('o') } | ConvertTo-Json | Set-Content $launcherRecord
@@ -17,5 +22,5 @@ $activePools = Get-CimInstance Win32_Process | Where-Object {
 }
 if ($activePools) { throw 'Another campaign pool is active; refusing duplicate launch' }
 if (Test-Path (Join-Path $campaignRoot 'pilot_collection.log')) { throw 'Existing collector log needs review before restarting' }
-$collector = Start-Process -FilePath 'wsl.exe' -ArgumentList @('--exec','/home/ajrosy/pMOT_MonteCarlo/.venv_pMOT_MC/bin/python','-u','scripts/collect_diameter_pilots.py','--start-index','1','--workers','16') -WorkingDirectory $projectRoot -WindowStyle Hidden -RedirectStandardOutput (Join-Path $campaignRoot 'pilot_collection.log') -RedirectStandardError (Join-Path $campaignRoot 'pilot_collection.stderr.log') -PassThru
+$collector = Start-Process -FilePath 'wsl.exe' -ArgumentList @('--cd',$projectRoot,'--exec',$pythonWsl,'-u','scripts/collect_diameter_pilots.py','--start-index','1','--workers','16') -WorkingDirectory $projectRoot -WindowStyle Hidden -RedirectStandardOutput (Join-Path $campaignRoot 'pilot_collection.log') -RedirectStandardError (Join-Path $campaignRoot 'pilot_collection.stderr.log') -PassThru
 @{ pid=$PID; status='collector launched'; collector_launcher_pid=$collector.Id; launched_at_utc=[DateTime]::UtcNow.ToString('o') } | ConvertTo-Json | Set-Content $launcherRecord

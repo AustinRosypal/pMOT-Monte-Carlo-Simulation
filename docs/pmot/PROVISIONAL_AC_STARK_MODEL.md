@@ -142,27 +142,22 @@ For cooling or repump beam (b), the implemented angular-frequency detuning is
 \]
 
 with \(\mathbf B_{\rm external}=\mathbf0\). A positive shifted transition
-resonance is therefore subtracted from the laser detuning. The unchanged
-multilevel kernel's stimulated rate and absorption-momentum force are
+resonance is therefore subtracted from the laser detuning. The rebuilt
+multilevel kernel's Section-12 coefficient and radiation-pressure force are
 
 \[
-W_{b,t}=\frac{\Gamma}{2}
-\frac{s_{b,t}}{1+s_{b,t}+4(\Delta_{b,t}^{\rm eff}/\Gamma)^2},
+W_{b,t}=\frac{\Gamma_e|\Omega_{b,t}|^2}
+{\Gamma_e^2+4(\Delta_{b,t}^{\rm eff})^2},
 \qquad
-\mathbf F_{780}=\sum_b\hbar\mathbf k_bR_b.
+\mathbf F_{780}=\sum_b\hbar\mathbf k_b
+\sum_t W_{b,t}(p_g-p_e).
 \]
 
-Here the existing kernel defines
-\(R_b=\sum_{e,g}W_{b,e,g}p_g\), a ground-population-weighted available
-absorption rate. This is not the spontaneous scattering rate
-\(\Gamma\sum_ep_e\). The inherited solver simultaneously uses saturated
-per-transition rates and explicit reverse stimulated links in its population
-matrix. Those conventions have not yet been jointly validated against a
-consistent two-level limit or the event engine. Consequently, the plotted
-force magnitude and even its sign in strongly saturated regions remain a
-solver-level uncertainty shared with the multilevel MOT; they cannot establish
-quantitative pMOT trapping. Correcting that closure requires a separate
-multilevel-solver re-derivation and rerun, not a pMOT-only subtraction.
+Saturation emerges from the coupled populations; there is no two-level
+`1+s` closure. The total spontaneous rate is recorded separately as
+\(\sum_e\Gamma_ep_e\). This corrects the former dissipative-kernel defect, but
+it does not establish quantitative pMOT trapping because the Stark layer is
+still a differential-transition proxy rather than a 24-state Hamiltonian.
 
 Gravity is added in the external trajectory integration, not in the plotted
 optical force.
@@ -357,6 +352,5 @@ must be re-derived and validated before its trajectory force is quantitative.
 Reproduce the diagnostic with:
 
 ```bash
-/home/ajrosy/pMOT_MonteCarlo/.venv_pMOT_MC/bin/python \
-  -m pmot.pmot.stark_trajectory_study
+uv run python -m pmot.pmot.stark_trajectory_study
 ```

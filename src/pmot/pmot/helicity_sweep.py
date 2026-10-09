@@ -3,11 +3,11 @@
 The six configurable trapping-light helicities are ordered as incident x/y/z
 followed by retro x/y/z.  This module evaluates all ``2**6`` combinations at
 fixed apparatus parameters and records the complete local linearization of the
-inherited stationary-atom absorption-force proxy at the origin.
+Section-12 stationary-atom mean force at the origin.
 
 Nothing in this module is a quantitative trapping prediction.  In particular,
-the force is the unchanged ground-population-weighted absorption-momentum
-proxy of the multilevel rate kernel; conservative Stark force, 1529-nm
+the force is the rebuilt kernel's beam-resolved net stimulated momentum
+``W*(p_g-p_e)``; conservative Stark force, 1529-nm
 scattering/heating, coherent interference, and nonadiabatic dynamics at the
 optical-spin zero remain absent.
 """
@@ -33,8 +33,8 @@ import numpy as np
 import pandas as pd
 
 from ..configuration import PLANCK_CONSTANT_J_S
-from ..mot_error.configuration import default_multilevel_mot_config
-from ..mot_error.rate_equations import build_rate_equation_model
+from ..mot_multilevel.configuration import default_multilevel_mot_config
+from ..mot_multilevel.rate_equations import build_rate_equation_model
 from .ac_stark import EFFECTIVE_DETUNING_EQUATION
 from .ac_stark import PROVISIONAL_MODEL_NAME
 from .ac_stark import ProvisionalStarkConfig
@@ -62,11 +62,9 @@ POSITION_RESTORING_COMBINED_CODE = (
     POSITION_RESTORING_PATH_CODE + POSITION_RESTORING_PATH_CODE
 )
 INHERITED_ABSORPTION_FORCE_CAVEAT = (
-    "The force is the authoritative multilevel kernel's ground-population-"
-    "weighted absorption-momentum proxy. The same kernel includes stimulated "
-    "population links, but their momentum is not subtracted. Its force sign and "
-    "magnitude are not yet validated against a consistent two-level limit or "
-    "the event engine."
+    "The 780-nm force uses the rebuilt Section-12 population-rate kernel and "
+    "beam-resolved W*(p_g-p_e) momentum. The pMOT conclusion remains provisional "
+    "because its differential Stark layer is not a state-resolved Hamiltonian."
 )
 OMITTED_PHYSICS = (
     "conservative Stark-gradient force",
@@ -117,7 +115,7 @@ def decode_helicity_code(code: str) -> tuple[tuple[str, ...], tuple[str, ...]]:
 
 
 def _cycling_transition_index(model) -> int:
-    for index, transition in enumerate(model.structure.absorption_transitions):
+    for index, transition in enumerate(model.structure.transitions):
         if (
             transition.ground_f,
             transition.ground_m_f,
@@ -141,7 +139,7 @@ def build_helicity_sweep_context(
         repumper_enabled=True,
         repump_power_w_per_beam=apparatus.mot_light.repump.power_w_per_beam,
     )
-    model = build_rate_equation_model(multilevel.natural_linewidth_rad_per_s)
+    model = build_rate_equation_model()
     table = load_differential_polarizability_table()
     if power_w_per_path is None:
         selected_power = provisional_power_for_target_gradient_w_per_path(

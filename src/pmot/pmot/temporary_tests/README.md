@@ -16,8 +16,7 @@ recommendation. Use `--power-mw-per-path` to test another scale.
 Run from the repository root with the project interpreter:
 
 ```bash
-/home/ajrosy/pMOT_MonteCarlo/.venv_pMOT_MC/bin/python \
-  -m pmot.pmot.temporary_tests.run_fixed_stretched_shift_diagnostic
+uv run python -m pmot.pmot.temporary_tests.run_fixed_stretched_shift_diagnostic
 ```
 
 The raw Arora CSV has no unit declaration and supplies only differential

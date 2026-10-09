@@ -270,8 +270,8 @@ def _rate_record(record):
         "positions_m",
         "velocities_m_per_s",
         "forces_n",
-        "total_scattering_rates_per_s",
-        "beam_scattering_rates_per_s",
+        "total_spontaneous_scattering_rates_per_s",
+        "beam_effective_scattering_rates_per_s",
     )
     missing = [name for name in required if not hasattr(base, name)]
     if missing:
@@ -300,8 +300,8 @@ def plot_pmot_trajectory_diagnostics(
     positions_mm = 1.0e3 * np.asarray(base.positions_m, dtype=float)
     velocities = np.asarray(base.velocities_m_per_s, dtype=float)
     forces_zeptonewton = 1.0e21 * np.asarray(base.forces_n, dtype=float)
-    beam_rates = np.asarray(base.beam_scattering_rates_per_s, dtype=float)
-    total_rates = np.asarray(base.total_scattering_rates_per_s, dtype=float)
+    beam_rates = np.asarray(base.beam_effective_scattering_rates_per_s, dtype=float)
+    total_rates = np.asarray(base.total_spontaneous_scattering_rates_per_s, dtype=float)
     if times_ms.ndim != 1 or len(times_ms) == 0:
         raise ValueError("trajectory must contain at least one time sample")
     for name, values in (
@@ -312,9 +312,9 @@ def plot_pmot_trajectory_diagnostics(
         if values.shape != (len(times_ms), 3):
             raise ValueError(f"{name} must have shape (time, 3)")
     if total_rates.shape != (len(times_ms),):
-        raise ValueError("total_scattering_rates_per_s must have shape (time,)")
+        raise ValueError("total_spontaneous_scattering_rates_per_s must have shape (time,)")
     if beam_rates.ndim != 2 or beam_rates.shape[0] != len(times_ms):
-        raise ValueError("beam_scattering_rates_per_s must have shape (time, beam)")
+        raise ValueError("beam_effective_scattering_rates_per_s must have shape (time, beam)")
 
     figure = plt.figure(figsize=(16.0, 10.0), constrained_layout=True)
     figure.patch.set_facecolor("#fbfaf6")

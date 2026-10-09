@@ -285,7 +285,7 @@ def test_common_geometry_exactly_matches_multilevel_comparison_seed() -> None:
     assert len(discs) == 25
     assert len(points) == 625
     assert hashlib.sha256(text.encode("utf-8")).hexdigest() == (
-        "02509217f582bc1619712cd31de3fcb34aac11b208c54a4cb228694f36603e17"
+        "d226f9c28c6bbf786987d84d346070fa58c3e98156fe8e1ab5d9b892f62e9c9c"
     )
     directions = np.asarray([disc.incident_unit_vector for disc in discs])
     assert np.all(np.min(directions, axis=0) < 0.0)

@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from ...mot_error.rate_equations import RateEquationTrajectoryConfig
+from ...mot_multilevel.rate_equations import RateEquationTrajectoryConfig
 from ..trajectory_plotting import plot_pmot_trajectory_diagnostics
 from ..vector_only_trajectories import build_vector_only_trajectory_context
 from ..vector_only_trajectories import inward_launch_state
@@ -222,12 +222,10 @@ def run() -> dict:
     initial = inward_launch_state(speed_m_per_s=LAUNCH_SPEED_M_PER_S)
     primary_config = RateEquationTrajectoryConfig(
         time_step_s=PRIMARY_TIME_STEP_S,
-        include_diffusion=False,
         escape_radius_m=30.0e-3,
     )
     coarse_config = RateEquationTrajectoryConfig(
         time_step_s=COARSE_TIME_STEP_S,
-        include_diffusion=False,
         escape_radius_m=30.0e-3,
     )
 

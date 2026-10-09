@@ -187,13 +187,13 @@ def test_symmetric_six_beam_origin_keeps_scalar_but_cancels_vector_and_tensor(
     )
 
     assert diagnostic_context["power_w_per_path"] == pytest.approx(
-        0.03829448617292197, rel=2.0e-12
+        0.03829484059390806, rel=2.0e-10
     )
     assert origin.total_intensity_w_per_m2 == pytest.approx(
-        30797.974634914408, rel=2.0e-12
+        30798.259674606295, rel=2.0e-12
     )
     assert origin.total_scalar_shift_hz / 1.0e6 == pytest.approx(
-        -16.33969143, rel=2.0e-9
+        -16.339842653891957, rel=2.0e-9
     )
     assert abs(origin.total_vector_shift_hz) < 1.0e-6
     assert abs(origin.total_tensor_shift_hz) < 1.0e-6

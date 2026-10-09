@@ -66,7 +66,7 @@ REVERSED_COMBINED_CODE = REVERSED_PATH_CODE + REVERSED_PATH_CODE
 
 
 def _cycling_transition_index(model) -> int:
-    for index, transition in enumerate(model.structure.absorption_transitions):
+    for index, transition in enumerate(model.structure.transitions):
         if (
             transition.ground_f,
             transition.ground_m_f,

@@ -49,9 +49,9 @@ labeled marker in the comparison, never a member of the matched-diameter curve.
 
 Inspect `process.json`, `launcher.json`, live PID commands and worker parents,
 and any queued helper before launch or resume. Never duplicate pools. Use one
-16-worker pool, one BLAS thread per worker, and the prescribed interpreter:
+16-worker pool, one BLAS thread per worker, and run from the repository root:
 
-`wsl.exe --exec /home/ajrosy/pMOT_MonteCarlo/.venv_pMOT_MC/bin/python -u scripts/run_repump_6p35_campaign.py all --workers 16`
+`uv run python -u scripts/run_repump_6p35_campaign.py all --workers 16`
 
 Background launch uses a hidden window and redirects to `run.log` and
 `run.stderr.log`. The manifest pins runner, helper, adapter and core hashes.

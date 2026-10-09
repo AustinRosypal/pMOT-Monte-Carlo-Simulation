@@ -5,13 +5,12 @@
 This document defines the optical geometry starting point for the
 pseudo-magneto-optical trap (pMOT). A provisional differential-transition
 Stark detuning layer is now implemented, but the production pMOT force model is
-not. Its historical atomic basis and dissipative-light starting point are the
-archived, physically invalid 24-state population-rate equations in
-`src/pmot/mot_error`; the exploratory two-level helper in
+not. Its atomic basis and dissipative-light starting point are now supplied by
+the rebuilt Section-12 population-rate equations in
+`src/pmot/mot_multilevel`; the exploratory two-level helper in
 `src/pmot/pmot/preliminary_scattering.py` is not a production pMOT engine.
-The replacement pMOT dynamics must wait for the rebuilt and validated
-`src/pmot/mot_multilevel` solver. Geometry-only statements in this document do
-not validate the archived dissipative force.
+Geometry-only statements in this document do not validate the provisional
+Stark layer or establish quantitative pMOT trapping.
 The provisional mapping, its equations, first short trajectories, and the data
 missing for a state-resolved Hamiltonian are recorded in
 `docs/pmot/PROVISIONAL_AC_STARK_MODEL.md`.
@@ -290,13 +289,11 @@ stretched-reference power scale, not a specified apparatus power or production
 default.
 
 The retained light is built by the authoritative multilevel beam constructor,
-including the 780.232684-nm repump wavelength. The inherited kernel's plotted
-rate is its ground-population-weighted available absorption rate, and its force
-uses the corresponding absorption momentum even though the population matrix
-also contains reverse stimulated links. That solver-wide closure has not yet
-been validated against a consistent two-level limit or the event engine, so
-the pMOT output labels it as an absorption-force proxy rather than a validated
-net scattering force.
+including the 780.232684-nm repump wavelength. The rebuilt Section-12 kernel
+solves the coupled steady-state populations and evaluates each beam's force
+from the net stimulated rate `W*(p_g-p_e)`. The pMOT output remains provisional
+because the differential Stark ansatz is not a state-resolved Hamiltonian and
+does not provide conservative force or trapping-light scattering/heating.
 
 ## Appendix: superseded historical two-tone proposal
 

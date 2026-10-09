@@ -88,15 +88,13 @@ also absent.
 Reproduce the geometry outputs with:
 
 ```bash
-/home/ajrosy/pMOT_MonteCarlo/.venv_pMOT_MC/bin/python \
-  -m pmot.pmot.geometry_validation
+uv run python -m pmot.pmot.geometry_validation
 ```
 
 Run the ordered construction QA campaign with:
 
 ```bash
-/home/ajrosy/pMOT_MonteCarlo/.venv_pMOT_MC/bin/python \
-  -m pmot.pmot.diagnostic_suite
+uv run python -m pmot.pmot.diagnostic_suite
 ```
 
 Its canonical campaign output is
@@ -107,15 +105,13 @@ exit is expected while a diagnostic test remains failed; inspect
 Run the provisional 20-G/cm-equivalent diagnostic with:
 
 ```bash
-/home/ajrosy/pMOT_MonteCarlo/.venv_pMOT_MC/bin/python \
-  -m pmot.pmot.stark_trajectory_study
+uv run python -m pmot.pmot.stark_trajectory_study
 ```
 
 Run the full-provisional, blue-centered 64-case diagnostic with:
 
 ```bash
-/home/ajrosy/pMOT_MonteCarlo/.venv_pMOT_MC/bin/python \
-  -m pmot.pmot.helicity_sweep
+uv run python -m pmot.pmot.helicity_sweep
 ```
 
 Its tables and manifest are saved under
@@ -126,8 +122,7 @@ Run the authoritative design-helicity audit for the intended ideal-magic
 vector-only condition with:
 
 ```bash
-/home/ajrosy/pMOT_MonteCarlo/.venv_pMOT_MC/bin/python \
-  -m pmot.pmot.vector_only_helicity_study
+uv run python -m pmot.pmot.vector_only_helicity_study
 ```
 
 This preserves the full-provisional outputs above and writes to the separate
@@ -141,12 +136,11 @@ external motion so force-law behavior is reproducible.
 
 ## Physics-construction boundary
 
-The historical pMOT diagnostics call the public explicit-local-environment
-entry point of the archived `pmot.mot_error` rate kernel. That preserves exact
-reproducibility without duplicating the old cooling/repump solver, but the
-kernel is physically invalid and these dynamics are not pMOT predictions. All
-pMOT-specific optical environment, Stark approximation, trajectory code, and
-outputs remain in this package.
+The pMOT diagnostics call the public explicit-local-environment entry point of
+`pmot.mot_multilevel`. Cooling/repump configuration and beam construction are
+therefore supplied by the rebuilt physical multilevel package rather than a
+private pMOT copy. All pMOT-specific optical environment, Stark approximation,
+trajectory code, and outputs remain in this package.
 
 The provisional layer demonstrates the detuning plumbing, but production still
 requires separate level-resolved polarizabilities, hyperfine recoupling and
@@ -154,13 +148,12 @@ local Hamiltonian diagonalization, conservative trapping-light forces,
 scattering/heating terms, and well-defined dynamics at the fictitious-field
 zero. Do not expand `preliminary_scattering.py` for that work.
 
-The archived inherited rate kernel reports ground-population-weighted available
-absorption and applies its momentum as the force while also retaining explicit
-stimulated-emission population links. That saturated-rate closure is invalid
-for the intended multilevel model. The pMOT diagnostic preserves it only for
-historical comparison and labels its force as an absorption-force proxy; it
-does not treat the resulting force sign or magnitude as validated
-trapping performance.
+The retained 780-nm force now uses the Section-12 coefficient and the
+beam-resolved net stimulated rate `W*(p_g-p_e)`. Deterministic pMOT wrappers
+recompute the complete local problem at every RK4 stage. Recoil diffusion is
+not available until a separate model is derived and validated for the rebuilt
+kernel. These corrections do not validate the provisional differential Stark
+ansatz as trapping physics.
 
 No provisional trajectory output may be promoted to capture, temperature,
 loading-rate, or trapping-performance evidence until trapping power/path split,

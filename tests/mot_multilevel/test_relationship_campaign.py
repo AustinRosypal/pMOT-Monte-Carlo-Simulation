@@ -13,14 +13,12 @@ from pmot.mot_multilevel.campaign_execution import geometry,PILOT_SEED,PRODUCTIO
 
 def test_exact_historical_coordinates_and_independent_scans():
     assert len(loading_points())==75
-    assert len(RAW_SATURATION)==24
+    assert RAW_SATURATION==(
+        .25,.5,.75,1.,2.,3.,5.,10.,15.,20.,25.,30.,35.,40.,45.,50.,
+        60.,70.,80.,90.,100.,110.,120.,125.)
     assert EFFECTIVE_SATURATION==tuple(np.arange(.25,5.001,.25))
     assert LOADING_DETUNING==tuple(np.arange(-.5,-6.001,-.25))
     assert len(FORCE_DETUNING)==111 and FORCE_DETUNING[-1]==-6
-    archive=Path(__file__).resolve().parents[2]/'src/pmot/mot_error/refined_relationship_campaign.py'
-    tree=ast.parse(archive.read_text(encoding='utf-8'))
-    raw=next(n.value for n in tree.body if isinstance(n,ast.AnnAssign) and n.target.id=='RAW_SATURATION_VALUES')
-    assert RAW_SATURATION==ast.literal_eval(raw)
     for point in loading_points():
         s0=2*point.cooling_power_w/(np.pi*BEAM_RADIUS**2*REFERENCE_ISAT)
         if point.study=='02_raw_saturation':

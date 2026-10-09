@@ -25,11 +25,11 @@ import pandas as pd
 from ...configuration import PLANCK_CONSTANT_J_S
 from ...configuration import SPEED_OF_LIGHT_M_PER_S
 from ...configuration import VACUUM_PERMITTIVITY_F_PER_M
-from ...mot_error.coupling import beam_polarization_vector
-from ...mot_error.polarization import polarization_weights
-from ...mot_error.polarization import propagation_frame_polarization
-from ...mot_error.rate_equations import RateEquationAtomState
-from ...mot_error.rate_equations import RateEquationTrajectoryConfig
+from ...mot_multilevel.coupling import beam_polarization_vector
+from ...mot_multilevel.polarization import polarization_weights
+from ...mot_multilevel.polarization import propagation_frame_polarization
+from ...mot_multilevel.rate_equations import RateEquationAtomState
+from ...mot_multilevel.rate_equations import RateEquationTrajectoryConfig
 from ..polarizability import interpolate_differential_polarizability_arrays
 from ..trajectory_plotting import plot_pmot_trajectory_diagnostics
 from ..trapping_beams import helicity_sign
@@ -64,7 +64,7 @@ def _json_ready(value):
 
 
 def _reference_transition_index(model) -> int:
-    for index, transition in enumerate(model.structure.absorption_transitions):
+    for index, transition in enumerate(model.structure.transitions):
         if (
             transition.ground_f,
             transition.ground_m_f,
@@ -125,7 +125,7 @@ def reconstruct_component_fields_t(record, context):
     )
     reference_index = _reference_transition_index(context.model)
     magnetic_moment = (
-        context.model.transition_zeeman_coefficient[reference_index]
+        context.model.transition_zeeman_coefficient_rad_per_s_per_t[reference_index]
         * PLANCK_CONSTANT_J_S
         / (2.0 * pi)
     )
@@ -201,7 +201,7 @@ def polarization_history(record, context):
 
 def _trajectory_frame(record, context) -> pd.DataFrame:
     frame = vector_only_trajectory_dataframe(record)
-    rates = np.asarray(record.rate_equation.beam_scattering_rates_per_s)
+    rates = np.asarray(record.rate_equation.beam_effective_scattering_rates_per_s)
     for index, beam in enumerate(context.cooling_repump_beams):
         label = (
             f"{beam.family}_{_safe_label(beam.axis_name)}_"
@@ -291,7 +291,7 @@ def _summary(
         ],
         "maximum_radiation_force_n": np.max(np.linalg.norm(force, axis=1)),
         "mean_ground_weighted_absorption_rate_per_s": np.mean(
-            base.total_scattering_rates_per_s
+            base.total_spontaneous_scattering_rates_per_s
         ),
         "beamwise_field_sum_maximum_error_t": field_error_t,
         "sum_fields_vs_sum_energy_then_divide_maximum_roundoff_t": (
@@ -407,7 +407,7 @@ def _plot_comparison(records, path):
         field_g = 1.0e4 * np.linalg.norm(
             np.asarray(record.effective_fields_t), axis=1
         )
-        rates = np.asarray(record.rate_equation.total_scattering_rates_per_s)
+        rates = np.asarray(record.rate_equation.total_spontaneous_scattering_rates_per_s)
         panels[0, 0].plot(
             times_ms,
             1.0e3 * np.linalg.norm(position, axis=1),
@@ -520,12 +520,10 @@ def run() -> dict:
     cases = _cases()
     primary_config = RateEquationTrajectoryConfig(
         time_step_s=PRIMARY_TIME_STEP_S,
-        include_diffusion=False,
         escape_radius_m=30.0e-3,
     )
     coarse_config = RateEquationTrajectoryConfig(
         time_step_s=COARSE_TIME_STEP_S,
-        include_diffusion=False,
         escape_radius_m=30.0e-3,
     )
     records = {}
