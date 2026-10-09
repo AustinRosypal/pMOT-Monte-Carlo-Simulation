@@ -4,7 +4,7 @@ Monte Carlo and rate-equation simulations for Rb-87 laser cooling and trapping.
 Development is separated into three model branches:
 
 - `mot_simple`: validated deterministic effective two-level MOT.
-- `mot_multilevel`: Section-12 physical 24-state population-rate MOT kernel.
+- `mot_multilevel`: Physical 24-state population-rate MOT kernel.
 - `pmot`: provisional pseudo-MOT work using the rebuilt multilevel dissipative
   kernel; its Stark layer is not yet a physical pMOT prediction.
 
