@@ -1,7 +1,7 @@
 # Multilevel MOT rebuild notebooks
 
-These ipywidgets notebooks use only the replacement Section-12 population-rate
-solver. They initialize cooling power to 27 mW per traveling beam:
+These notebooks use only the replacement Section-12 population-rate solver.
+They initialize cooling power to 27 mW per traveling beam:
 
 - `trajectory_explorer.ipynb`: configure a single launch, cooling/repump powers,
   detuning, coil gradient, and integration settings; inspect beam geometry,
@@ -11,13 +11,16 @@ solver. They initialize cooling power to 27 mW per traveling beam:
 - `configured_trajectory_lab.ipynb`: define the cooling, repump, beam-size,
   coil-gradient, numerical, and launch parameters in one reproducible place;
   preview true-scale beam envelopes and magnetic-field planes; run either one
-  manual launch or a seeded full-sphere trajectory ensemble; inspect selected
-  3D paths, time diagnostics, and an inline trajectory animation.
+  manual Cartesian launch, one direction-disc launch with specified polar and
+  azimuthal angles and impact parameter, or a seeded full-sphere trajectory
+  ensemble; inspect selected 3D paths, time diagnostics, and an inline
+  trajectory animation.
 - `capture_loading_explorer.ipynb`: sample capture velocities, cross sections,
-  and loading rates while controlling the coil gradient and launch geometry.
-  Name each run to preserve outputs; a matching run can be resumed after
-  interruption. Its small defaults are diagnostic, not converged results.
-  Loading uses the project's fixed reference vapor distribution.
+  and loading rates from editable `PHYSICS` and `CAPTURE` dictionaries. Run it
+  cell-by-cell, run all cells, or execute it headlessly with `jupyter
+  nbconvert`. Name each run to preserve outputs; a matching run can be resumed
+  after interruption. Its small defaults are diagnostic, not converged
+  results. Loading uses the project's fixed reference vapor distribution.
 
 Historical invalid-solver notebooks were removed. New outputs are separated
 under `mot_multilevel_population_rate_v1`.

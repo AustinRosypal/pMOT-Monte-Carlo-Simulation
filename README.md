@@ -28,9 +28,10 @@ superseded invalid solver. New solver results are reserved under
 Historical preliminary results are retained under `pmot/legacy_preliminary`
 directories rather than mixed with current MOT results.
 
-The physical multilevel workflow is exposed through three ipywidgets
-notebooks under `notebooks/mot_multilevel`: `trajectory_explorer.ipynb`,
-`trajectory_animation.ipynb`, and `capture_loading_explorer.ipynb`. Their
+The physical multilevel workflow is exposed through notebooks under
+`notebooks/mot_multilevel`. The trajectory explorers use ipywidgets; the
+configured trajectory and capture/loading notebooks use ordinary editable
+parameter dictionaries and can run top-to-bottom without UI controls. Their
 trajectory, animation, capture-cross-section, and loading-rate support code is
 in `src/pmot/mot_multilevel/diagnostics.py` and
 `src/pmot/mot_multilevel/capture.py`. These tools write only to the new
@@ -97,7 +98,8 @@ Edit the `PHYSICS` and `SIMULATION` dictionaries near the top of the notebook,
 then select **Run > Run All Cells**. They expose cooling and repump powers and
 detunings, cooling and repump beam diameters, the anti-Helmholtz axial gradient
 and coil geometry, gravity, trajectory duration and timestep, manual or seeded
-full-sphere launches, trajectory count, and output saving. Powers are per
+full-sphere launches, an exact direction-disc launch with user-selected polar
+and azimuthal angles and impact parameter, trajectory count, and output saving. Powers are per
 traveling beam; detunings are entered in MHz; beam sizes are Gaussian
 1/e-squared intensity diameters. Saved runs are written below
 `outputs/trajectories/mot_multilevel_population_rate_v1/`.
@@ -109,14 +111,31 @@ For a capture-cross-section and loading-rate study, launch the
 uv run jupyter lab notebooks/mot_multilevel/capture_loading_explorer.ipynb
 ```
 
-Set the direction-disc count, points per disc, launch geometry, velocity-search
-controls, duration, timestep, cooling detuning, cooling and repump powers,
-magnetic gradient, seed, worker count, and run name; then press **Run
-capture/loading**. The number of sampled launch rays is `direction discs x
-points per disc`, and every ray may require several trajectories while its
+Edit the `PHYSICS` and `CAPTURE` dictionaries, then select **Run > Run All
+Cells**. They expose the direction-disc count, points per disc, launch
+geometry, capture-speed bracket and bisection, duration, timestep, capture
+criterion, cross-section velocity grid, cooling and repump powers and
+detunings, magnetic gradient and coil geometry, seed, worker count, checkpoint
+interval, and run name. The number of sampled launch rays is `direction discs
+x points per disc`, and every ray may require several trajectories while its
 capture boundary is searched. This interface currently uses the standard
-12.7-mm beam geometry. Multilevel capture/loading outputs remain diagnostic
-until the repository's full convergence policy has been satisfied.
+12.7-mm beam geometry.
+
+After editing those same dictionaries, execute the notebook without opening
+JupyterLab:
+
+```bash
+uv run jupyter nbconvert --to notebook --execute \
+  --ExecutePreprocessor.timeout=-1 \
+  --output-dir outputs/notebook_runs \
+  --output capture_loading_executed.ipynb \
+  notebooks/mot_multilevel/capture_loading_explorer.ipynb
+```
+
+Use a new `run_name` for a new study. To continue an interrupted study, retain
+all parameters and set `resume_matching_run` to `True`. Multilevel
+capture/loading outputs remain diagnostic until the repository's full
+convergence policy has been satisfied.
 
 ### Validated two-level MOT command line
 

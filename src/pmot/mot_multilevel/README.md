@@ -64,9 +64,11 @@ must not be relabeled as a 27 mW result.
   trajectory, beam, population, scattering, and force explorer.
 - `notebooks/mot_multilevel/trajectory_animation.ipynb` creates interactive
   trajectory and 24-state population animations and optional GIF files.
-- `notebooks/mot_multilevel/capture_loading_explorer.ipynb` controls small
-  capture-velocity, cross-section, and loading-rate studies. Its small defaults
-  are for inspection, not production statistics.
+- `notebooks/mot_multilevel/capture_loading_explorer.ipynb` uses editable
+  `PHYSICS` and `CAPTURE` dictionaries for small capture-velocity,
+  cross-section, and loading-rate studies. It can run interactively or through
+  headless notebook execution. Its small defaults are for inspection, not
+  production statistics.
 - `scripts/run_ten_atom_population_campaign.py` runs a seeded ten-launch
   demonstration and saves individual/combined trajectories, a 24-state
   population GIF, capture brackets, an illustrative cross section and loading

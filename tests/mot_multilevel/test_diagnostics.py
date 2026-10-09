@@ -66,3 +66,20 @@ def test_static_plots_and_animation_are_constructible() -> None:
     plt.close(diagnostic_figure)
     plt.close(movie._fig)
     plt.close(population_movie._fig)
+
+
+def test_trajectory_animation_subsamples_the_complete_record() -> None:
+    record = _short_record()
+    beams = build_multilevel_mot_beams()
+    record.times_s = [index * 5.0e-6 for index in range(1001)]
+    record.positions_m = [
+        (index * 1.0e-6, 0.0, 0.0) for index in range(1001)
+    ]
+    movie = create_trajectory_animation(record, beams, max_frames=40, fps=10)
+    indices = np.asarray(movie.pmot_frame_indices)
+    assert indices[0] == 0
+    assert indices[-1] == 1000
+    assert len(indices) <= 40
+    assert movie.pmot_frame_stride > 1
+    movie._draw_was_started = True
+    plt.close(movie._fig)

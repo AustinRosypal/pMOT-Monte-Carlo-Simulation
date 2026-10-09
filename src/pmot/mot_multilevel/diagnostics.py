@@ -313,22 +313,33 @@ def create_trajectory_animation(
     fps: int = 20,
     spatial_extent_mm: float | None = None,
 ):
-    """Create an inspectable 3D trajectory animation and optionally save a GIF."""
+    """Animate evenly spaced samples spanning the complete stored trajectory.
+
+    ``max_frames`` is a memory and rendering cap, not a prefix length.  The
+    first and final trajectory samples are always included, and intermediate
+    frames use one automatically selected timestep stride.
+    """
 
     if max_frames < 2 or fps <= 0:
         raise ValueError("max_frames must be at least two and fps must be positive")
     positions = 1.0e3 * np.asarray(record.positions_m, dtype=float)
     times = 1.0e3 * np.asarray(record.times_s, dtype=float)
-    frame_indices = np.unique(
-        np.linspace(0, len(times) - 1, min(max_frames, len(times)), dtype=int)
-    )
+    if len(times) < 2 or len(positions) != len(times):
+        raise ValueError("at least two synchronized trajectory samples are required")
+    target_frames = min(max_frames, len(times))
+    frame_stride = max(1, (len(times) - 2) // (target_frames - 1) + 1)
+    frame_indices = np.arange(0, len(times), frame_stride, dtype=int)
+    if frame_indices[-1] != len(times) - 1:
+        frame_indices = np.append(frame_indices, len(times) - 1)
+    frame_positions = positions[frame_indices]
+    frame_times = times[frame_indices]
     extent = spatial_extent_mm
     if extent is None:
         extent = min(32.0, max(8.0, 1.15 * float(np.max(np.abs(positions)))))
     figure = plt.figure(figsize=(8.2, 7.2), constrained_layout=True)
     axis = figure.add_subplot(111, projection="3d")
     draw_mot_beam_volumes(axis, beams)
-    axis.plot(*positions.T, color="#94a3b8", linewidth=1.0, alpha=0.65)
+    axis.plot(*frame_positions.T, color="#94a3b8", linewidth=1.0, alpha=0.65)
     trace, = axis.plot([], [], [], color="#0f766e", linewidth=2.0)
     marker = axis.scatter([], [], [], color="#b91c1c", s=55)
     time_label = axis.text2D(0.03, 0.95, "", transform=axis.transAxes)
@@ -344,15 +355,18 @@ def create_trajectory_animation(
     axis.set_box_aspect((1.0, 1.0, 1.0))
 
     def update(frame_number):
-        index = int(frame_indices[frame_number])
-        trace.set_data(positions[: index + 1, 0], positions[: index + 1, 1])
-        trace.set_3d_properties(positions[: index + 1, 2])
-        marker._offsets3d = (
-            [positions[index, 0]],
-            [positions[index, 1]],
-            [positions[index, 2]],
+        point = frame_positions[frame_number]
+        trace.set_data(
+            frame_positions[: frame_number + 1, 0],
+            frame_positions[: frame_number + 1, 1],
         )
-        time_label.set_text(f"t = {times[index]:.3f} ms")
+        trace.set_3d_properties(frame_positions[: frame_number + 1, 2])
+        marker._offsets3d = (
+            [point[0]],
+            [point[1]],
+            [point[2]],
+        )
+        time_label.set_text(f"t = {frame_times[frame_number]:.3f} ms")
         return trace, marker, time_label
 
     movie = animation.FuncAnimation(
@@ -366,6 +380,8 @@ def create_trajectory_animation(
     if path is not None:
         path.parent.mkdir(parents=True, exist_ok=True)
         movie.save(path, writer=animation.PillowWriter(fps=fps), dpi=110)
+    movie.pmot_frame_indices = frame_indices
+    movie.pmot_frame_stride = frame_stride
     return movie
 
 
