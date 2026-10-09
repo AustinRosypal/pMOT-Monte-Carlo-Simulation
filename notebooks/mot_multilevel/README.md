@@ -15,6 +15,13 @@ They initialize cooling power to 27 mW per traveling beam:
   azimuthal angles and impact parameter, or a seeded full-sphere trajectory
   ensemble; inspect selected 3D paths, time diagnostics, and an inline
   trajectory animation.
+- `mot_with_pmot_fields_trajectory_lab.ipynb`: use the same configurable
+  trajectory workflow with the physical 24-state multilevel MOT, but replace
+  the anti-Helmholtz coil with the intended pMOT trapping-intensity envelopes
+  mapped to a centered surrogate magnetic field. Configure the MOT,
+  surrogate-field geometry, launch, integration, saving, and coarse-grained
+  full-trajectory animation through ordinary dictionaries. This is a MOT with
+  pMOT-shaped fields, not a physical pMOT prediction.
 - `capture_loading_explorer.ipynb`: sample capture velocities, cross sections,
   and loading rates from editable `PHYSICS` and `CAPTURE` dictionaries. Run it
   cell-by-cell, run all cells, or execute it headlessly with `jupyter

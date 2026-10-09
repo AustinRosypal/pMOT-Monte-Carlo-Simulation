@@ -133,3 +133,45 @@ def test_configured_trajectory_lab_uses_portable_kernel_and_full_animation() -> 
     assert metadata[0]["mode"] == "specified_disc"
     assert metadata[0]["impact_radius_m"] == pytest.approx(0.002)
 
+
+def test_mot_with_pmot_fields_notebook_uses_physical_solver_and_surrogate_field() -> None:
+    root = Path(__file__).resolve().parents[2]
+    path = (
+        root
+        / "notebooks"
+        / "mot_multilevel"
+        / "mot_with_pmot_fields_trajectory_lab.ipynb"
+    )
+    notebook = json.loads(path.read_text(encoding="utf-8"))
+    assert notebook["metadata"]["kernelspec"]["name"] == "python3"
+    assert all(
+        cell.get("outputs", []) == []
+        for cell in notebook["cells"]
+        if cell["cell_type"] == "code"
+    )
+
+    source = _code_source(notebook)
+    assert "pmot.mot_multilevel" in source
+    assert "surrogate_effective_field_t" in source
+    assert "inside_surrogate_cell" in source
+    assert "magnetic_field_function=effective_field" in source
+    assert "spatial_domain_function=inside_field_domain" in source
+    assert "coil_config=None" in source
+    assert "create_trajectory_animation" in source
+    assert "to_html5_video()" in source
+    assert "fallback_frames = min(requested_frames, 40)" in source
+    assert "axis.set_yscale('symlog'" in source
+    assert "'field_plot_symlog_linthresh_g'" in source
+    assert "'manual'" in source
+    assert "'specified_disc'" in source
+    assert "'random_full_sphere'" in source
+    assert "simulate_provisional_pmot_trajectory" not in source
+    assert "simulate_vector_only_pmot_trajectory" not in source
+    assert "mot_error" not in source
+    assert "pmot-env" not in json.dumps(notebook)
+    compile(
+        "\n".join(line for line in source.splitlines() if not line.startswith("%")),
+        str(path),
+        "exec",
+    )
+

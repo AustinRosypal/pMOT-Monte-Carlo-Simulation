@@ -5,17 +5,23 @@ Development is separated into three model branches:
 
 - `mot_simple`: validated deterministic effective two-level MOT.
 - `mot_multilevel`: Physical 24-state population-rate MOT kernel.
-- `pmot`: provisional pseudo-MOT work using the rebuilt multilevel dissipative
-  kernel; its Stark layer is not yet a physical pMOT prediction.
+- `pmot`: **MOT with pMOT Fields** studies plus future pMOT-development code.
+  The highlighted runnable study keeps the physical multilevel MOT dynamics
+  but replaces the coil field with a surrogate magnetic field shaped by the
+  intended pMOT trapping-beam intensities.
 
 ## Repository layout
 
-| Area | Two-level MOT | Physical multilevel MOT | Provisional pMOT |
+| Area | Two-level MOT | Physical multilevel MOT | MOT with pMOT Fields |
 |---|---|---|---|
-| Source | `src/pmot/mot_simple` | `src/pmot/mot_multilevel` | `src/pmot/pmot` |
-| Notebooks | `notebooks/mot_simple` | `notebooks/mot_multilevel` | `notebooks/pmot` |
-| Tests | `tests/mot_simple` | `tests/mot_multilevel` | `tests/pmot` |
-| Documentation | `docs/mot_simple` | `docs/mot_multilevel` | `docs/pmot` |
+| Source | `src/pmot/mot_simple` | `src/pmot/mot_multilevel` | `src/pmot/pmot/surrogate_effective_field*.py` |
+| Primary entry points | `notebooks/mot_simple` and CLI | `notebooks/mot_multilevel` | `notebooks/mot_multilevel/mot_with_pmot_fields_trajectory_lab.ipynb` and CLI |
+| Tests | `tests/mot_simple` | `tests/mot_multilevel` | surrogate-field tests under `tests/pmot` |
+| Documentation | `docs/mot_simple` | `docs/mot_multilevel` | `PMOT_EFFECTIVE_FIELD_CODEX.md` and `docs/pmot` |
+
+The other modules and notebooks under `src/pmot/pmot` and `notebooks/pmot`
+are retained for future pMOT development and provenance. They are not promoted
+here as validated pMOT simulation entry points.
 
 Reusable apparatus, beam, anti-Helmholtz-field, launch-disc, capture-analysis,
 loading-rate, and plotting primitives remain directly under `src/pmot`;
@@ -162,26 +168,111 @@ The sampler's command-line options control sampling and numerics; its physical
 defaults are the documented 12.7-mm, 20-mW-per-beam, -15-MHz, 10-G/cm
 two-level MOT.
 
-### Provisional pMOT trajectory diagnostic
+### MOT with pMOT Fields
 
-Launch the interactive
-[no-coil pMOT trajectory laboratory](notebooks/pmot/trajectory_sampling.ipynb)
-with:
+This is the current bridge between the validated multilevel MOT and a future
+physical pMOT. It answers a deliberately limited question: **if the spatially
+varying field intended from the pMOT trapping-beam intensities acted as an
+effective magnetic field, would an otherwise conventional MOT exhibit local
+restoring force, velocity damping, and trapped trajectories?**
+
+The simulation uses the physical Section-12 24-state population-rate MOT,
+including the six 780-nm cooling beams, six repump beams, deterministic
+mean radiation pressure, and gravity. It does not use an anti-Helmholtz coil.
+Instead, the six intended 1529-nm intensity/helicity envelopes are mapped to a
+centered, stretched-transition-equivalent surrogate magnetic field. That field
+is supplied to the MOT Zeeman calculation at every local force evaluation and
+RK4 stage.
+
+#### Interactive trajectory notebook
+
+Open
+[`notebooks/mot_multilevel/mot_with_pmot_fields_trajectory_lab.ipynb`](notebooks/mot_multilevel/mot_with_pmot_fields_trajectory_lab.ipynb)
+in VS Code, select the repository's `.venv` Python kernel, and choose **Run
+All**. Edit the `PHYSICS`, `SURROGATE_FIELD`, and `SIMULATION` dictionaries near
+the top before running to set the laser parameters, effective-field geometry,
+initial atom state, timestep, duration, plots, animation, and output options.
+The launch can be a manual Cartesian state, a direction-disc state with chosen
+polar angle, azimuthal angle, and impact parameter, or a seeded random
+full-sphere ensemble.
+
+Alternatively, launch the notebook from the repository root in JupyterLab:
 
 ```bash
-uv run jupyter lab notebooks/pmot/trajectory_sampling.ipynb
+uv run jupyter lab notebooks/mot_multilevel/mot_with_pmot_fields_trajectory_lab.ipynb
 ```
 
-Run all notebook cells to create the control panel, choose a preset or edit the
-launch, integration, cooling/repump, 1529-nm geometry/power, and component
-polarization controls, then press **Run pMOT trajectory**. Merely opening the
-notebook or running its cells does not start a trajectory. Enable **save CSV,
-JSON, and PNG** to write results below
-`outputs/trajectories/pmot/vector_only_local_axis_notebook/`.
+If Jupyter prints a `localhost` URL but cannot open a browser automatically,
+leave that terminal running and paste the printed URL into a browser. This is
+only the notebook interface; the Python kernel still runs locally in the
+repository environment. Notebook results can optionally be saved under
+`outputs/trajectories/mot_with_pmot_fields/` and
+`outputs/figures/mot_with_pmot_fields/`.
 
-This pMOT notebook is an explicitly provisional ideal-magic, vector-only
-diagnostic. It omits the state-resolved scalar/vector/tensor Stark Hamiltonian,
-conservative trapping-light force, trapping-light scattering/heating, coherent
-interference, measured polarization transformations, and nonadiabatic dynamics
-at the fictitious-field zero. Its trajectories must not be reported as
-quantitative pMOT capture, loading, temperature, or trapping predictions.
+#### Complete diagnostic study
+
+Run the complete field, force, trajectory, and timestep-audit study from the
+repository root:
+
+```bash
+uv run python scripts/run_pmot_surrogate_effective_field_test.py --stage all --output-directory "outputs/diagnostics/pmot/MOT with pMOT Fields/example"
+```
+
+The stages can also be run individually with `--stage field`, `--stage force`,
+`--stage trajectories`, or `--stage audit`. After all required stages exist,
+`--stage report` regenerates the summary report. Use `--help` to show the
+available command-line arguments:
+
+```bash
+uv run python scripts/run_pmot_surrogate_effective_field_test.py --help
+```
+
+The selected output directory contains:
+
+- `README.md` and `campaign_manifest.json`: verdict, evidence gates, and run
+  provenance;
+- `figures/effective_field`: field-axis cuts, planes, and three-dimensional
+  vector plots;
+- `figures/force`: restoring and damping comparisons against a conventional
+  10 G/cm coil MOT;
+- `figures/trajectories`: surrogate-field and coil-MOT trajectory comparisons;
+- `data/`: the sampled fields, force diagnostics, trajectories, and timestep
+  audit in machine-readable form.
+
+The default surrogate-field definition is in
+[`src/pmot/pmot/surrogate_effective_field.py`](src/pmot/pmot/surrogate_effective_field.py),
+and the diagnostic trajectory cases and analysis are in
+[`src/pmot/pmot/surrogate_effective_field_study.py`](src/pmot/pmot/surrogate_effective_field_study.py).
+
+#### Longer capture and loading survey
+
+The repository also contains the completed campaign definition for 25
+full-sphere direction discs, 10 uniform-area points per disc, a 15-mm sampling
+disc, and a direct 1--100 m/s velocity mask:
+
+```bash
+uv run python scripts/run_pmot_centered_surrogate_capture_loading.py
+```
+
+This launches 5,500 deterministic trajectories, uses eight worker processes,
+and permits up to 12 hours of wall time. It checkpoints and resumes in:
+
+```text
+outputs/diagnostics/pmot/MOT testing with a strange defined magnetic field/centered field full-sphere capture loading 25x10 r15mm 20261002/
+```
+
+Its fixed sampling, velocity, timestep, duration, and worker parameters are
+defined near the top of
+[`scripts/run_pmot_centered_surrogate_capture_loading.py`](scripts/run_pmot_centered_surrogate_capture_loading.py).
+
+#### Interpretation boundary
+
+Despite the pMOT-shaped field, this is a **MOT with pMOT Fields**, not a
+physical pMOT simulation. The trapping light is represented only through a
+surrogate magnetic field. The calculation does not yet include the unique
+state-resolved scalar/vector/tensor AC-Stark Hamiltonian, conservative
+trapping-light force, trapping-light scattering or heating, coherent
+interference, measured polarization transformations, or nonadiabatic dynamics
+at the fictitious-field zero. Results test the intended field geometry inside
+the conventional MOT dynamics; they must not be presented as quantitative
+pMOT predictions.
