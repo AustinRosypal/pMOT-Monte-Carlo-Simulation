@@ -8,6 +8,7 @@ same force samples drawn immediately above it.
 
 from __future__ import annotations
 
+import argparse
 import json
 from dataclasses import replace
 from pathlib import Path
@@ -44,9 +45,6 @@ OUTPUT_DIRECTORY = (
     / "diagnostics"
     / "updated_force_gradient_overlays_20261023"
 )
-DATA_PATH = OUTPUT_DIRECTORY / "current_model_on_axis_force_gradient_linecuts.csv"
-METADATA_PATH = OUTPUT_DIRECTORY / "metadata.json"
-
 AXES = ("x", "y", "z")
 AXIS_INDEX = {"x": 0, "y": 1, "z": 2}
 # Stop at the outer edge of the 5-mm glass-wall bands.  The mot_strange
@@ -59,6 +57,7 @@ MULTILEVEL_COOLING_POWER_MW = 27.0
 MULTILEVEL_REPUMP_POWER_MW = 0.1
 PMOT_COOLING_POWER_MW = 1.0571
 PMOT_TRAPPING_PATH_POWERS_MW = np.full(3, 31.524310589374092)
+FIGURE_DPI = 220
 GLASS_WALL_CENTERS_MM = (-10.0, 10.0)
 GLASS_WALL_WIDTH_MM = 5.0
 
@@ -82,13 +81,41 @@ MODEL_STYLES = {
 }
 
 
-def scan_coordinates_m() -> np.ndarray:
+def display_path(path: Path) -> str:
+    """Return a repository-relative path when possible, otherwise absolute."""
+
+    resolved = path.resolve()
+    try:
+        return str(resolved.relative_to(PROJECT_ROOT.resolve()))
+    except ValueError:
+        return str(resolved)
+
+
+def scan_coordinates_m(
+    *,
+    broad_samples: int = 301,
+    center_samples: int = 161,
+    focus_samples: int = 201,
+) -> np.ndarray:
     """Use a broad grid plus dense origin/focus sampling for derivatives."""
 
-    broad_mm = np.linspace(-SCAN_LIMIT_MM, SCAN_LIMIT_MM, 301)
-    center_mm = np.linspace(-1.0, 1.0, 161)
-    negative_focus_mm = np.linspace(-12.5, -7.5, 201)
-    positive_focus_mm = np.linspace(7.5, 12.5, 201)
+    if min(broad_samples, center_samples, focus_samples) < 3:
+        raise ValueError("all sampling counts must be at least three")
+    broad_mm = np.linspace(-SCAN_LIMIT_MM, SCAN_LIMIT_MM, broad_samples)
+    center_extent_mm = min(1.0, SCAN_LIMIT_MM)
+    center_mm = np.linspace(-center_extent_mm, center_extent_mm, center_samples)
+    focus_outer_mm = min(12.5, SCAN_LIMIT_MM)
+    focus_inner_mm = min(7.5, focus_outer_mm)
+    negative_focus_mm = np.linspace(
+        -focus_outer_mm,
+        -focus_inner_mm,
+        focus_samples,
+    )
+    positive_focus_mm = np.linspace(
+        focus_inner_mm,
+        focus_outer_mm,
+        focus_samples,
+    )
     values_mm = np.unique(
         np.round(
             np.concatenate(
@@ -299,10 +326,13 @@ def plot_overlay(
     figure.text(
         0.5,
         0.945,
-        "Stationary atom; gravity excluded; detuning = -15 MHz. "
-        "Multilevel MOT and mot_strange: cooling 27 mW/component, repump 0.1 mW/component. "
-        "Two-level pMOTs: cooling 1.0571 mW/component, trapping paths "
-        "(31.524, 31.524, 31.524) mW; repump geometry passive.",
+        f"Stationary atom; gravity excluded; detuning = {COOLING_DETUNING_MHZ:g} MHz. "
+        f"Multilevel MOT and mot_strange: cooling {MULTILEVEL_COOLING_POWER_MW:g} "
+        f"mW/component, repump {MULTILEVEL_REPUMP_POWER_MW:g} mW/component. "
+        f"Two-level pMOTs: cooling {PMOT_COOLING_POWER_MW:g} mW/component, "
+        "trapping paths ("
+        + ", ".join(f"{power:.3f}" for power in PMOT_TRAPPING_PATH_POWERS_MW)
+        + ") mW; repump geometry passive.",
         ha="center",
         va="top",
         fontsize=10.8,
@@ -333,20 +363,146 @@ def plot_overlay(
         frameon=False,
     )
     figure.tight_layout(rect=(0.02, 0.085, 0.98, 0.91), h_pad=1.8, w_pad=1.4)
-    figure.savefig(output_path, dpi=220, bbox_inches="tight")
+    figure.savefig(output_path, dpi=FIGURE_DPI, bbox_inches="tight")
     plt.close(figure)
 
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description=(
+            "Recompute the current MOT, mot_strange, full two-level pMOT, and "
+            "vector-only two-level pMOT on-axis force/gradient overlays."
+        )
+    )
+    parser.add_argument(
+        "--output-directory",
+        type=Path,
+        default=OUTPUT_DIRECTORY,
+        help="Output directory (default: %(default)s).",
+    )
+    parser.add_argument(
+        "--scan-limit-mm",
+        type=float,
+        default=SCAN_LIMIT_MM,
+        help=(
+            "Symmetric position limit in mm. Values beyond 14.142 mm cross the "
+            "mot_strange hard clipping boundary (default: %(default)s)."
+        ),
+    )
+    parser.add_argument(
+        "--cooling-detuning-mhz",
+        type=float,
+        default=COOLING_DETUNING_MHZ,
+        help="Cooling detuning used by all models in MHz (default: %(default)s).",
+    )
+    parser.add_argument(
+        "--multilevel-cooling-power-mw",
+        type=float,
+        default=MULTILEVEL_COOLING_POWER_MW,
+        help="MOT and mot_strange cooling power per component in mW.",
+    )
+    parser.add_argument(
+        "--multilevel-repump-power-mw",
+        type=float,
+        default=MULTILEVEL_REPUMP_POWER_MW,
+        help="MOT and mot_strange repump power per component in mW.",
+    )
+    parser.add_argument(
+        "--pmot-cooling-power-mw",
+        type=float,
+        default=PMOT_COOLING_POWER_MW,
+        help="Both two-level pMOT cooling powers per component in mW.",
+    )
+    parser.add_argument(
+        "--pmot-trapping-powers-mw",
+        type=float,
+        nargs=3,
+        metavar=("PX", "PY", "PZ"),
+        default=tuple(PMOT_TRAPPING_PATH_POWERS_MW),
+        help="Three pMOT trapping-path powers in mW (default: 31.524 each).",
+    )
+    parser.add_argument(
+        "--broad-samples",
+        type=int,
+        default=301,
+        help="Samples across the full scan before dense-grid merging.",
+    )
+    parser.add_argument(
+        "--center-samples",
+        type=int,
+        default=161,
+        help="Samples across the central +/-1 mm interval.",
+    )
+    parser.add_argument(
+        "--focus-samples",
+        type=int,
+        default=201,
+        help="Samples in each dense focus interval around +/-10 mm.",
+    )
+    parser.add_argument(
+        "--dpi",
+        type=int,
+        default=FIGURE_DPI,
+        help="PNG resolution in dots per inch (default: %(default)s).",
+    )
+    return parser.parse_args()
+
+
 def main() -> None:
-    OUTPUT_DIRECTORY.mkdir(parents=True, exist_ok=True)
-    scan_m = scan_coordinates_m()
+    global SCAN_LIMIT_MM
+    global COOLING_DETUNING_MHZ
+    global MULTILEVEL_COOLING_POWER_MW
+    global MULTILEVEL_REPUMP_POWER_MW
+    global PMOT_COOLING_POWER_MW
+    global PMOT_TRAPPING_PATH_POWERS_MW
+    global FIGURE_DPI
+
+    args = parse_args()
+    if not np.isfinite(args.scan_limit_mm) or args.scan_limit_mm <= 0.0:
+        raise ValueError("--scan-limit-mm must be finite and positive")
+    powers = np.asarray(args.pmot_trapping_powers_mw, dtype=float)
+    scalar_parameters = np.asarray(
+        (
+            args.multilevel_cooling_power_mw,
+            args.multilevel_repump_power_mw,
+            args.pmot_cooling_power_mw,
+            args.cooling_detuning_mhz,
+        ),
+        dtype=float,
+    )
+    if not np.all(np.isfinite(scalar_parameters)):
+        raise ValueError("powers and detuning must be finite")
+    if np.any(scalar_parameters[:3] < 0.0) or np.any(~np.isfinite(powers)) or np.any(powers < 0.0):
+        raise ValueError("all powers must be finite and non-negative")
+    if args.dpi <= 0:
+        raise ValueError("--dpi must be positive")
+
+    SCAN_LIMIT_MM = float(args.scan_limit_mm)
+    COOLING_DETUNING_MHZ = float(args.cooling_detuning_mhz)
+    MULTILEVEL_COOLING_POWER_MW = float(args.multilevel_cooling_power_mw)
+    MULTILEVEL_REPUMP_POWER_MW = float(args.multilevel_repump_power_mw)
+    PMOT_COOLING_POWER_MW = float(args.pmot_cooling_power_mw)
+    PMOT_TRAPPING_PATH_POWERS_MW = powers
+    FIGURE_DPI = int(args.dpi)
+
+    output_directory = args.output_directory
+    if not output_directory.is_absolute():
+        output_directory = PROJECT_ROOT / output_directory
+    output_directory.mkdir(parents=True, exist_ok=True)
+    data_path = output_directory / "current_model_on_axis_force_gradient_linecuts.csv"
+    metadata_path = output_directory / "metadata.json"
+    scan_m = scan_coordinates_m(
+        broad_samples=args.broad_samples,
+        center_samples=args.center_samples,
+        focus_samples=args.focus_samples,
+    )
     frame = evaluate_models(scan_m)
-    frame.to_csv(DATA_PATH, index=False)
+    frame.to_csv(data_path, index=False)
 
     outputs = {
-        "three_model": OUTPUT_DIRECTORY / "mot_strange_pmot2level_overlay.png",
-        "four_model": OUTPUT_DIRECTORY / "mot_strange_pmot2level_vector_overlay.png",
-        "pmot_pair": OUTPUT_DIRECTORY / "pmot2level_full_vs_vector_only_overlay.png",
+        "three_model": output_directory / "mot_strange_pmot2level_overlay.png",
+        "four_model": output_directory / "mot_strange_pmot2level_vector_overlay.png",
+        "pmot_pair": output_directory / "pmot2level_full_vs_vector_only_overlay.png",
     }
     plot_overlay(
         frame,
@@ -404,12 +560,12 @@ def main() -> None:
             ]
             for _, row in origin.iterrows()
         },
-        "data_csv": str(DATA_PATH.relative_to(PROJECT_ROOT)),
+        "data_csv": display_path(data_path),
         "figures": {
-            name: str(path.relative_to(PROJECT_ROOT)) for name, path in outputs.items()
+            name: display_path(path) for name, path in outputs.items()
         },
     }
-    METADATA_PATH.write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
+    metadata_path.write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(metadata, indent=2), flush=True)
 
 

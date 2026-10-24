@@ -8,17 +8,19 @@ Development is separated into explicit model branches:
 - `mot_strange`: a conventional multilevel MOT whose coil field is replaced by
   a surrogate magnetic field shaped by the intended pMOT-beam intensities.
 - `pMOT_2Level`: the effective two-level, no-coil pMOT model.
+- `pmot_vec_2Level`: a controlled vector-only variant of `pMOT_2Level` that
+  sets the differential scalar and tensor polarizabilities to zero.
 - `pMOT_multilevel`: reserved placeholder for the future physical multilevel
   pMOT; no simulation is implemented there yet.
 
 ## Repository layout
 
-| Area | Two-level MOT | Physical multilevel MOT | MOT with pMOT Fields |
-|---|---|---|---|
-| Source | `src/pmot/mot_simple` | `src/pmot/mot_multilevel` | `src/pmot/mot_strange/surrogate_effective_field*.py` |
-| Primary entry points | `notebooks/mot_simple` and CLI | `notebooks/mot_multilevel` | `notebooks/mot_strange/mot_strange_trajectory_lab.ipynb` and CLI |
-| Tests | `tests/mot_simple` | `tests/mot_multilevel` | surrogate-field tests under `tests/mot_strange` |
-| Documentation | `docs/mot_simple` | `docs/mot_multilevel` | `MOT_STRANGE_EFFECTIVE_FIELD_CODEX.md` and `docs/pmot` |
+| Area | Two-level MOT | Physical multilevel MOT | MOT with pMOT Fields | 2-Level pMOT | Vector-only 2-Level pMOT |
+|---|---|---|---|---|---|
+| Source | `src/pmot/mot_simple` | `src/pmot/mot_multilevel` | `src/pmot/mot_strange/surrogate_effective_field*.py` | `src/pmot/pMOT_2Level` | `src/pmot/pmot_vec_2Level` |
+| Primary entry points | `notebooks/mot_simple` and CLI | `notebooks/mot_multilevel` | `notebooks/mot_strange/mot_strange_trajectory_lab.ipynb` and CLI | `notebooks/pMOT_2Level/trajectory_simulation.ipynb` and Python API | `notebooks/model_comparison/updated_force_gradient_overlays.ipynb`, Python API, and plotting script |
+| Tests | `tests/mot_simple` | `tests/mot_multilevel` | surrogate-field tests under `tests/mot_strange` | `tests/pMOT_2Level` | `tests/pmot_vec_2Level` |
+| Documentation | `docs/mot_simple` | `docs/mot_multilevel` | `MOT_STRANGE_EFFECTIVE_FIELD_CODEX.md` and `docs/pmot` | package docstrings and `docs/pmot` | `src/pmot/pmot_vec_2Level/README.md` |
 
 The non-surrogate modules under `src/pmot/mot_strange` and the corresponding
 notebooks are retained as provisional historical scaffolding and provenance.
@@ -29,7 +31,8 @@ Reusable apparatus, beam, anti-Helmholtz-field, launch-disc, capture-analysis,
 loading-rate, and plotting primitives remain directly under `src/pmot`;
 model-specific algorithms must stay in their model branch. There is no generic
 `mot` package: implementations are explicitly `mot_simple`, `mot_multilevel`,
-`mot_strange`, `pMOT_2Level`, or the future `pMOT_multilevel`. Historical
+`mot_strange`, `pMOT_2Level`, `pmot_vec_2Level`, or the future
+`pMOT_multilevel`. Historical
 `outputs/<category>/mot_multilevel` and
 `data/processed/mot_multilevel` names are retained as provenance for the
 superseded invalid solver. New solver results are reserved under
@@ -170,6 +173,104 @@ uv run python -m pmot.mot_simple.loading --spectrum-csv outputs/statistics/mot_s
 The sampler's command-line options control sampling and numerics; its physical
 defaults are the documented 12.7-mm, 20-mW-per-beam, -15-MHz, 10-G/cm
 two-level MOT.
+
+### Force and force-gradient model overlays
+
+The comparison script recomputes the stationary-atom radiation-pressure force
+and its spatial derivative from the live implementations of the conventional
+multilevel MOT, `mot_strange`, the effective `pMOT_2Level`, and the controlled
+vector-only `pmot_vec_2Level` variant. Gravity is excluded from these force-law
+comparisons.
+
+#### Interactive comparison notebook
+
+The primary interactive plotting entry point is
+[`notebooks/model_comparison/updated_force_gradient_overlays.ipynb`](notebooks/model_comparison/updated_force_gradient_overlays.ipynb).
+Open that exact file from the repository explorer in VS Code or Codex, select
+the repository's `.venv` Python kernel, and choose **Run All**. It can also be
+opened from the repository root with:
+
+```bash
+uv run jupyter lab notebooks/model_comparison/updated_force_gradient_overlays.ipynb
+```
+
+The notebook is organized as a numbered workflow:
+
+1. Section 1 locates the checkout and imports the live comparison code.
+2. Section 2 contains all user controls. Edit the cooling detuning, multilevel
+   cooling and repump powers, pMOT cooling power, three x/y/z trapping-path
+   powers, scan range, sampling resolution, figure DPI, and output directory
+   here before running.
+3. Sections 3 and 4 construct the position grid and evaluate all four force
+   models. This is the slow part of the notebook.
+4. Section 5 checks the force and same-axis force gradient at the origin.
+5. Sections 6--8 create the three-model overlay, complete four-model overlay,
+   and full-versus-vector-only pMOT overlay, respectively.
+6. Section 9 saves the selected settings and lists every generated artifact.
+
+The first complete run should use `RECOMPUTE_PHYSICS = True`. After the
+linecut CSV has been generated, set it to `False` to reuse those force samples
+when redisplaying the plots. Set it back to `True` whenever a physical power,
+detuning, scan range, or sampling setting is changed.
+
+Notebook outputs are saved by default under:
+
+```text
+outputs/diagnostics/updated_force_gradient_overlays_notebook/
+```
+
+That directory receives the sampled force/gradient CSV, a JSON record of the
+notebook controls, and these figures:
+
+- `mot_strange_pmot2level_overlay.png`: MOT, strange MOT, and full two-level
+  pMOT;
+- `mot_strange_pmot2level_vector_overlay.png`: all four models, including the
+  vector-only two-level pMOT;
+- `pmot2level_full_vs_vector_only_overlay.png`: direct comparison of the full
+  and vector-only two-level pMOT branches.
+
+Every figure places force in the upper row and the numerical spatial derivative
+of that same force curve in the lower row. These are stationary-atom,
+gravity-free radiation-pressure diagnostics; they are not trajectory, capture,
+loading, or temperature predictions.
+
+#### Command-line comparison script
+
+From the repository root, regenerate the three standard overlay figures with:
+
+```bash
+uv run python scripts/plot_updated_force_gradient_overlays.py
+```
+
+The default output directory is
+`outputs/diagnostics/updated_force_gradient_overlays_20261023/`. It receives
+the three PNG figures, the sampled force/gradient CSV, and a JSON file recording
+all settings. The default figures compare (1) MOT, strange MOT, and full
+two-level pMOT; (2) those three plus the vector-only two-level pMOT; and (3)
+the full and vector-only two-level pMOT branches directly.
+
+Show every control and its default with:
+
+```bash
+uv run python scripts/plot_updated_force_gradient_overlays.py --help
+```
+
+For example, this command chooses a new output directory, a +/-12-mm scan,
+-20-MHz cooling detuning, and explicit pMOT cooling and trapping powers:
+
+```bash
+uv run python scripts/plot_updated_force_gradient_overlays.py --output-directory outputs/diagnostics/my_overlay --scan-limit-mm 12 --cooling-detuning-mhz -20 --pmot-cooling-power-mw 1.0571 --pmot-trapping-powers-mw 31.524 31.524 31.524
+```
+
+The multilevel MOT and strange MOT share the values selected by
+`--multilevel-cooling-power-mw` and `--multilevel-repump-power-mw`. The full
+and vector-only two-level pMOT branches share `--pmot-cooling-power-mw` and the
+three x/y/z path powers supplied to `--pmot-trapping-powers-mw`. Use
+`--scan-limit-mm` to change the symmetric spatial range. The
+`--broad-samples`, `--center-samples`, and `--focus-samples` options control
+the numerical resolution used both for the force curves and their directly
+computed spatial derivatives. The default +/-12.5-mm range stays inside the
+hard transverse-support boundary of the current strange-MOT surrogate field.
 
 ### MOT with pMOT Fields
 
