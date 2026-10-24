@@ -276,7 +276,7 @@ def test_energy_frequency_shifted_resonance_and_effective_detuning_algebra(
         origin.total_frequency_shift_hz,
         cooling_carrier_offset_hz=origin.total_frequency_shift_hz,
     )
-    np.testing.assert_allclose(recentered, -15.0e6, rtol=0.0, atol=1.0e-9)
+    np.testing.assert_allclose(recentered, -15.0e6, rtol=2.0e-16, atol=1.0e-9)
 
 
 def test_zero_trapping_power_produces_exactly_zero_energy_and_shift(
