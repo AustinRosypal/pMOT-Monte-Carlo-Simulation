@@ -1,6 +1,6 @@
 # pMOT Simulation Diagnostic Test Plan
 
-> Canonical scientific specification. Moved from `tests/pmot` to `docs/pmot` on 2026-09-03 because it defines an ordered validation procedure rather than an executable unit test.
+> Canonical scientific specification. Moved from `tests/mot_strange` to `docs/pmot` on 2026-09-03 because it defines an ordered validation procedure rather than an executable unit test.
 
 ## Purpose
 
@@ -94,7 +94,7 @@ The 1529-nm field does not need to form an ordinary intensity maximum at the ori
 
 - Do not tune parameters against stochastic trajectories until the corresponding deterministic force curves have the correct signs.
 
-The generated-result layout is specified in [outputs/diagnostics/pmot/README.md](../../outputs/diagnostics/pmot/README.md).
+The generated-result layout is specified in [outputs/diagnostics/mot_strange/README.md](../../outputs/diagnostics/mot_strange/README.md).
 
 ---
 

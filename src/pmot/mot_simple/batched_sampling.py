@@ -106,8 +106,7 @@ def _acceleration_batch(
         beam_data["detunings"][None, :] - doppler_hz - zeeman_hz
     )
     rates_per_s = (
-        0.5
-        * simple_config.linewidth_hz
+        simple_config.maximum_scattering_rate_per_s
         * saturations
         / (
             1.0

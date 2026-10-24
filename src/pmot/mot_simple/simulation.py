@@ -163,7 +163,7 @@ def rate_samples(
         doppler = doppler_shift_hz(beam, atom_state.velocity_m_per_s)
         zeeman = zeeman_shift_hz(beam, magnetic_field, simple)
         delta_eff = beam.detuning_hz - doppler - zeeman
-        rate = 0.5 * simple.linewidth_hz * beam_saturations[beam.label] / (
+        rate = simple.maximum_scattering_rate_per_s * beam_saturations[beam.label] / (
             1.0 + total_saturation + (2.0 * delta_eff / simple.linewidth_hz) ** 2
         )
         samples.append(

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from math import pi
 from pathlib import Path
 
 from ..configuration import GRAVITY_ACCELERATION_M_PER_S2
@@ -30,6 +31,23 @@ class SimpleMOTConfig:
     gravity_acceleration_m_per_s2: tuple[float, float, float]
     sample_count_per_axis: int
     plot_extent_m: float
+
+    @property
+    def natural_decay_rate_per_s(self) -> float:
+        """Return the excited-state population decay rate Gamma [s^-1].
+
+        ``linewidth_hz`` is the ordinary-frequency FWHM ``gamma_nu =
+        Gamma/(2*pi)``.  A rate prefactor must therefore restore the factor of
+        ``2*pi`` rather than treating ``gamma_nu`` itself as a decay rate.
+        """
+
+        return 2.0 * pi * self.linewidth_hz
+
+    @property
+    def maximum_scattering_rate_per_s(self) -> float:
+        """Return the closed-two-level saturation ceiling Gamma/2 [s^-1]."""
+
+        return 0.5 * self.natural_decay_rate_per_s
 
 
 def default_simple_mot_config() -> SimpleMOTConfig:

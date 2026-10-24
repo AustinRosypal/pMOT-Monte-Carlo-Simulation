@@ -1,37 +1,40 @@
 # pMOT Monte Carlo
 
 Monte Carlo and rate-equation simulations for Rb-87 laser cooling and trapping.
-Development is separated into three model branches:
+Development is separated into explicit model branches:
 
 - `mot_simple`: validated deterministic effective two-level MOT.
 - `mot_multilevel`: Physical 24-state population-rate MOT kernel.
-- `pmot`: **MOT with pMOT Fields** studies plus future pMOT-development code.
-  The highlighted runnable study keeps the physical multilevel MOT dynamics
-  but replaces the coil field with a surrogate magnetic field shaped by the
-  intended pMOT trapping-beam intensities.
+- `mot_strange`: a conventional multilevel MOT whose coil field is replaced by
+  a surrogate magnetic field shaped by the intended pMOT-beam intensities.
+- `pMOT_2Level`: the effective two-level, no-coil pMOT model.
+- `pMOT_multilevel`: reserved placeholder for the future physical multilevel
+  pMOT; no simulation is implemented there yet.
 
 ## Repository layout
 
 | Area | Two-level MOT | Physical multilevel MOT | MOT with pMOT Fields |
 |---|---|---|---|
-| Source | `src/pmot/mot_simple` | `src/pmot/mot_multilevel` | `src/pmot/pmot/surrogate_effective_field*.py` |
-| Primary entry points | `notebooks/mot_simple` and CLI | `notebooks/mot_multilevel` | `notebooks/mot_multilevel/mot_with_pmot_fields_trajectory_lab.ipynb` and CLI |
-| Tests | `tests/mot_simple` | `tests/mot_multilevel` | surrogate-field tests under `tests/pmot` |
-| Documentation | `docs/mot_simple` | `docs/mot_multilevel` | `PMOT_EFFECTIVE_FIELD_CODEX.md` and `docs/pmot` |
+| Source | `src/pmot/mot_simple` | `src/pmot/mot_multilevel` | `src/pmot/mot_strange/surrogate_effective_field*.py` |
+| Primary entry points | `notebooks/mot_simple` and CLI | `notebooks/mot_multilevel` | `notebooks/mot_strange/mot_strange_trajectory_lab.ipynb` and CLI |
+| Tests | `tests/mot_simple` | `tests/mot_multilevel` | surrogate-field tests under `tests/mot_strange` |
+| Documentation | `docs/mot_simple` | `docs/mot_multilevel` | `MOT_STRANGE_EFFECTIVE_FIELD_CODEX.md` and `docs/pmot` |
 
-The other modules and notebooks under `src/pmot/pmot` and `notebooks/pmot`
-are retained for future pMOT development and provenance. They are not promoted
-here as validated pMOT simulation entry points.
+The non-surrogate modules under `src/pmot/mot_strange` and the corresponding
+notebooks are retained as provisional historical scaffolding and provenance.
+Future physical multilevel-pMOT work belongs under `pMOT_multilevel`, not
+`mot_strange`.
 
 Reusable apparatus, beam, anti-Helmholtz-field, launch-disc, capture-analysis,
 loading-rate, and plotting primitives remain directly under `src/pmot`;
 model-specific algorithms must stay in their model branch. There is no generic
 `mot` package: implementations are explicitly `mot_simple`, `mot_multilevel`,
-or `pmot`. Historical `outputs/<category>/mot_multilevel` and
+`mot_strange`, `pMOT_2Level`, or the future `pMOT_multilevel`. Historical
+`outputs/<category>/mot_multilevel` and
 `data/processed/mot_multilevel` names are retained as provenance for the
 superseded invalid solver. New solver results are reserved under
 `outputs/<category>/mot_multilevel_population_rate_v1`.
-Historical preliminary results are retained under `pmot/legacy_preliminary`
+Historical preliminary results are retained under `mot_strange/legacy_preliminary`
 directories rather than mixed with current MOT results.
 
 The physical multilevel workflow is exposed through notebooks under
@@ -187,7 +190,7 @@ RK4 stage.
 #### Interactive trajectory notebook
 
 Open
-[`notebooks/mot_multilevel/mot_with_pmot_fields_trajectory_lab.ipynb`](notebooks/mot_multilevel/mot_with_pmot_fields_trajectory_lab.ipynb)
+[`notebooks/mot_strange/mot_strange_trajectory_lab.ipynb`](notebooks/mot_strange/mot_strange_trajectory_lab.ipynb)
 in VS Code, select the repository's `.venv` Python kernel, and choose **Run
 All**. Edit the `PHYSICS`, `SURROGATE_FIELD`, and `SIMULATION` dictionaries near
 the top before running to set the laser parameters, effective-field geometry,
@@ -199,15 +202,15 @@ full-sphere ensemble.
 Alternatively, launch the notebook from the repository root in JupyterLab:
 
 ```bash
-uv run jupyter lab notebooks/mot_multilevel/mot_with_pmot_fields_trajectory_lab.ipynb
+uv run jupyter lab notebooks/mot_strange/mot_strange_trajectory_lab.ipynb
 ```
 
 If Jupyter prints a `localhost` URL but cannot open a browser automatically,
 leave that terminal running and paste the printed URL into a browser. This is
 only the notebook interface; the Python kernel still runs locally in the
 repository environment. Notebook results can optionally be saved under
-`outputs/trajectories/mot_with_pmot_fields/` and
-`outputs/figures/mot_with_pmot_fields/`.
+`outputs/trajectories/mot_strange/` and
+`outputs/figures/mot_strange/`.
 
 #### Complete diagnostic study
 
@@ -215,7 +218,7 @@ Run the complete field, force, trajectory, and timestep-audit study from the
 repository root:
 
 ```bash
-uv run python scripts/run_pmot_surrogate_effective_field_test.py --stage all --output-directory "outputs/diagnostics/pmot/MOT with pMOT Fields/example"
+uv run python scripts/run_mot_strange_surrogate_effective_field_test.py --stage all --output-directory "outputs/diagnostics/mot_strange/MOT with pMOT Fields/example"
 ```
 
 The stages can also be run individually with `--stage field`, `--stage force`,
@@ -224,7 +227,7 @@ The stages can also be run individually with `--stage field`, `--stage force`,
 available command-line arguments:
 
 ```bash
-uv run python scripts/run_pmot_surrogate_effective_field_test.py --help
+uv run python scripts/run_mot_strange_surrogate_effective_field_test.py --help
 ```
 
 The selected output directory contains:
@@ -240,9 +243,9 @@ The selected output directory contains:
   audit in machine-readable form.
 
 The default surrogate-field definition is in
-[`src/pmot/pmot/surrogate_effective_field.py`](src/pmot/pmot/surrogate_effective_field.py),
+[`src/pmot/mot_strange/surrogate_effective_field.py`](src/pmot/mot_strange/surrogate_effective_field.py),
 and the diagnostic trajectory cases and analysis are in
-[`src/pmot/pmot/surrogate_effective_field_study.py`](src/pmot/pmot/surrogate_effective_field_study.py).
+[`src/pmot/mot_strange/surrogate_effective_field_study.py`](src/pmot/mot_strange/surrogate_effective_field_study.py).
 
 #### Longer capture and loading survey
 
@@ -251,19 +254,19 @@ full-sphere direction discs, 10 uniform-area points per disc, a 15-mm sampling
 disc, and a direct 1--100 m/s velocity mask:
 
 ```bash
-uv run python scripts/run_pmot_centered_surrogate_capture_loading.py
+uv run python scripts/run_mot_strange_centered_surrogate_capture_loading.py
 ```
 
 This launches 5,500 deterministic trajectories, uses eight worker processes,
 and permits up to 12 hours of wall time. It checkpoints and resumes in:
 
 ```text
-outputs/diagnostics/pmot/MOT testing with a strange defined magnetic field/centered field full-sphere capture loading 25x10 r15mm 20261002/
+outputs/diagnostics/mot_strange/MOT testing with a strange defined magnetic field/centered field full-sphere capture loading 25x10 r15mm 20261002/
 ```
 
 Its fixed sampling, velocity, timestep, duration, and worker parameters are
 defined near the top of
-[`scripts/run_pmot_centered_surrogate_capture_loading.py`](scripts/run_pmot_centered_surrogate_capture_loading.py).
+[`scripts/run_mot_strange_centered_surrogate_capture_loading.py`](scripts/run_mot_strange_centered_surrogate_capture_loading.py).
 
 #### Interpretation boundary
 

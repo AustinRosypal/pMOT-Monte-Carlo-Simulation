@@ -134,13 +134,13 @@ def test_configured_trajectory_lab_uses_portable_kernel_and_full_animation() -> 
     assert metadata[0]["impact_radius_m"] == pytest.approx(0.002)
 
 
-def test_mot_with_pmot_fields_notebook_uses_physical_solver_and_surrogate_field() -> None:
+def test_mot_strange_notebook_uses_physical_solver_and_surrogate_field() -> None:
     root = Path(__file__).resolve().parents[2]
     path = (
         root
         / "notebooks"
-        / "mot_multilevel"
-        / "mot_with_pmot_fields_trajectory_lab.ipynb"
+        / "mot_strange"
+        / "mot_strange_trajectory_lab.ipynb"
     )
     notebook = json.loads(path.read_text(encoding="utf-8"))
     assert notebook["metadata"]["kernelspec"]["name"] == "python3"

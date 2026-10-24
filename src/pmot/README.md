@@ -1,10 +1,17 @@
 # Python package boundaries
 
-The source tree has three explicit model packages:
+The source tree has five explicit model packages:
 
 - `mot_simple`: deterministic effective two-level MOT;
 - `mot_multilevel`: authoritative 24-state, repumper-enabled rate-equation MOT;
-- `pmot`: future pseudo-MOT branch and its currently preliminary optical tools.
+- `pMOT_2Level`: effective no-coil F=2 to F'=3 pseudo-MOT model;
+- `pmot_vec_2Level`: controlled variant of `pMOT_2Level` with scalar and
+  tensor differential polarizabilities set to zero;
+- `mot_strange`: conventional multilevel MOT with the intensity-derived
+  surrogate magnetic field, plus retained provisional historical scaffolding;
+  and
+- `pMOT_multilevel`: empty reserved namespace for the future physical,
+  hyperfine-resolved multilevel pMOT.
 
 These packages may use the model-neutral modules directly under this directory,
 but `mot_simple` and `mot_multilevel` must not import from one another.
@@ -30,13 +37,18 @@ but `mot_simple` and `mot_multilevel` must not import from one another.
 
 ## Model-owned code
 
-Two-level force, RK4, validation, and command-line workflows stay in
+Two-level MOT force, RK4, validation, and command-line workflows stay in
 `mot_simple`. Hyperfine structure, repumper coupling, population-rate forces,
 Langevin temperature dynamics, and multilevel capture workflows stay in
-`mot_multilevel`. Differential polarizability, future trapping-light geometry,
-and pMOT-specific forces belong in `pmot`; its current
+`mot_multilevel`. The `pMOT_2Level` package currently reuses the retained
+trapping-beam envelopes and differential-polarizability loader from
+`mot_strange`; it owns the effective
+F=2 to F'=3 Stark-shift, six-beam mean-force, and trajectory model. This is an
+effective manifold closure, not an `m_F`-resolved Hamiltonian. The provisional
+historical tools remain in `mot_strange`; its current
 `preliminary_scattering.py` is retained only for exploratory notebook
-reproducibility and is not a production solver.
+reproducibility and is not a production solver. New multilevel-pMOT physics
+must be developed in `pMOT_multilevel` after the required validation gates.
 
 There is intentionally no generic `mot` subpackage. Shared magnetic-field code
 that formerly occupied that ambiguous name now lives in the shared modules

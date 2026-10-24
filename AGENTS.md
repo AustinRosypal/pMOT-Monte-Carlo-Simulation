@@ -67,7 +67,10 @@ is no generic `mot` package.
 - Default anti-Helmholtz axial gradient: 10 G/cm.
 - Gravity is part of trajectory dynamics and points in -z.
 - Scattering, detuning, and linewidth quantities in `mot_simple` use ordinary
-  frequency units (Hz), never angular-frequency units.
+  frequency units (Hz), never angular-frequency units. In particular,
+  `linewidth_hz = Gamma/(2*pi)`, so the closed-two-level scattering prefactor
+  `Gamma/2` must be written as `pi*linewidth_hz`; using
+  `linewidth_hz/2` is an inconsistent angular/ordinary-frequency conversion.
 - Effective detuning is `Delta_0 - k.v/(2*pi) - Delta_B`.
 - Keep the current simplified Zeeman prescription:
   `Delta_B = xi * (mu_eff/h) * dot(B, k_hat)`, with the axis-dependent effective
@@ -164,29 +167,42 @@ radiation pressure explicitly and state when gravity is excluded.
 - `src/pmot/mot_multilevel`: replacement physical 24-state population-rate
   kernel, ARC atomic-data precomputation, cooling/repump beam construction,
   steady-state force evaluation, and deterministic RK4 trajectories.
-- `src/pmot/pmot`: pMOT branch. Its no-coil apparatus, single-frequency focused
-  trapping-light geometry, vectorized polarizability interpolation, and an
-  explicitly provisional differential-transition AC-Stark detuning layer are
-  implemented. The latter is not a unique 24-state Stark Hamiltonian and must
-  not be treated as a quantitative pMOT prediction; see
+- `src/pmot/pMOT_2Level`: geometry-first effective two-level pseudo-MOT branch.
+  It reuses the pMOT trapping-beam envelopes and exposes pointwise component
+  intensities, beam propagation axes, the optical-spin geometry vector, and
+  explicit quantization-axis handling. It now also contains an explicitly
+  effective F=2 to F'=3 differential scalar/vector/tensor Stark closure,
+  local cooling-polarization decomposition, six-beam mean force, and RK4
+  trajectories. This is not an m_F-resolved Stark Hamiltonian and is not yet a
+  validated pMOT prediction.
+- `src/pmot/mot_strange`: conventional 24-state MOT driven by the
+  intensity-derived, pMOT-shaped surrogate magnetic field instead of an
+  anti-Helmholtz coil. The directory also retains the historical provisional
+  no-coil/Stark diagnostic scaffolding that preceded the package split. Those
+  retained modules are provenance, not the future physical multilevel pMOT and
+  not quantitative pMOT predictions; see
   `docs/pmot/GEOMETRY_AND_TRAPPING_BEAMS.md` and
   `docs/pmot/PMOT_AC_STARK_THEORY.md`, and
   `docs/pmot/PROVISIONAL_AC_STARK_MODEL.md`.
+- `src/pmot/pMOT_multilevel`: reserved placeholder for the future physical,
+  hyperfine-resolved multilevel pMOT. It currently contains no force,
+  Stark-Hamiltonian, scattering, or trajectory implementation.
 - `src/pmot/configuration.py`, `beams.py`, `fields.py`: shared apparatus and beam
   geometry.
 - `src/pmot/magnetic_fields.py`, `magnetic_field_plotting.py`,
   `launch_geometry.py`, `capture_statistics.py`, `loading.py`, `state.py`, and
   `beam_plotting.py`: model-neutral field, launch, capture-analysis, loading,
   state, and visualization primitives. Model packages normally depend only on
-  these shared modules. Provisional pMOT code imports the public local-environment
-  entry point from `mot_multilevel`; it must not duplicate or replace that
-  physical population-rate kernel. All pMOT-specific environment, Stark,
-  geometry, trajectory, and output code must remain under `src/pmot/pmot`.
+  these shared modules. Future multilevel-pMOT code must import the public
+  local-environment entry point from `mot_multilevel`; it must not duplicate or
+  replace that physical population-rate kernel. New physical multilevel-pMOT
+  environment, Stark, geometry, trajectory, and output code belongs under
+  `src/pmot/pMOT_multilevel`, not `mot_strange`.
 - `data/raw/pmot`: differential-polarizability datasets for the later pMOT phase.
 - `notebooks/mot_simple`: current interactive validation and sampling notebooks.
 - `tests`: automated physics and numerical checks.
 - `docs/pmot/DIAGNOSTIC_TESTS.md`: canonical ordered pMOT construction-QA
-  procedure. Generated campaigns live under `outputs/diagnostics/pmot` and
+  procedure. Generated campaigns live under `outputs/diagnostics/mot_strange` and
   must stop at the first failed test, with every later test explicitly marked
   not run.
 - `docs/shared/BFIELD.md` and `docs/mot_simple/SAMPLINGALGORITHM.md`: shared and
@@ -410,7 +426,7 @@ their numerical results to validate or characterize the rebuilt MOT.
   coherent standing-wave structure, measured polarization transformations,
   and nonadiabatic dynamics at the optical-spin zero. They must not be used for
   capture, loading, temperature, or quantitative trapping claims.
-- `notebooks/pmot/trajectory_sampling.ipynb` is the current interactive
+- `notebooks/mot_strange/trajectory_sampling.ipynb` is the current interactive
   vector-only diagnostic trajectory entry point. Its standard shot is the
   clean axial launch `r0=(15,0,0) mm`, `v0=(-17,0,0) m/s`, with gravity on,
   recoil diffusion off, 25 ms duration, and 5 microsecond step. It exposes all

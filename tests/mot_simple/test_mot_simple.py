@@ -116,7 +116,11 @@ def test_force_scale_and_rk4_timestep_convergence() -> None:
     coil = default_anti_helmholtz_config()
     state = AtomState((1.0e-3, -0.7e-3, 0.8e-3), (0.4, -0.2, 0.1))
     force, samples, _ = mean_force_n(beams, state, coil, simple)
-    per_beam_limit = HBAR_J_S * (2.0 * np.pi / beams[0].wavelength_m) * simple.linewidth_hz / 2.0
+    per_beam_limit = (
+        HBAR_J_S
+        * (2.0 * np.pi / beams[0].wavelength_m)
+        * simple.maximum_scattering_rate_per_s
+    )
     assert np.linalg.norm(force) <= len(beams) * per_beam_limit
 
     one_step, _, _, _ = rk4_step(beams, state, 2.0e-6, coil, simple)
@@ -125,3 +129,38 @@ def test_force_scale_and_rk4_timestep_convergence() -> None:
     assert np.allclose(one_step.position_m, two_half_steps.position_m, rtol=1.0e-7, atol=1.0e-12)
     assert np.allclose(one_step.velocity_m_per_s, two_half_steps.velocity_m_per_s, rtol=1.0e-5, atol=1.0e-9)
     assert all(sample.scattering_rate_per_s >= 0.0 for sample in samples)
+
+
+def test_ordinary_frequency_linewidth_restores_decay_rate_two_pi() -> None:
+    simple = default_simple_mot_config()
+    assert simple.natural_decay_rate_per_s == 2.0 * np.pi * simple.linewidth_hz
+    assert simple.maximum_scattering_rate_per_s == np.pi * simple.linewidth_hz
+
+
+def test_resonant_scattering_uses_physical_ordinary_frequency_prefactor() -> None:
+    simple = replace(
+        default_simple_mot_config(),
+        cooling_detuning_hz=0.0,
+        include_gravity=False,
+    )
+    beams = [
+        beam
+        for beam in build_simple_mot_beams(simple_config=simple)
+        if beam.axis_name == "horizontal_x"
+    ]
+    coil = replace(default_anti_helmholtz_config(), current_a=0.0)
+    _, samples, _ = mean_force_n(
+        beams,
+        AtomState((0.0, 0.0, 0.0), (0.0, 0.0, 0.0)),
+        coil,
+        simple,
+    )
+    saturation = samples[0].saturation_parameter
+    total_saturation = sum(sample.saturation_parameter for sample in samples)
+    expected = (
+        np.pi
+        * simple.linewidth_hz
+        * saturation
+        / (1.0 + total_saturation)
+    )
+    assert np.isclose(samples[0].scattering_rate_per_s, expected, rtol=1.0e-14)

@@ -8,7 +8,7 @@ Stark detuning layer is now implemented, but the production pMOT force model is
 not. Its atomic basis and dissipative-light starting point are now supplied by
 the rebuilt Section-12 population-rate equations in
 `src/pmot/mot_multilevel`; the exploratory two-level helper in
-`src/pmot/pmot/preliminary_scattering.py` is not a production pMOT engine.
+`src/pmot/mot_strange/preliminary_scattering.py` is not a production pMOT engine.
 Geometry-only statements in this document do not validate the provisional
 Stark layer or establish quantitative pMOT trapping.
 The provisional mapping, its equations, first short trajectories, and the data

@@ -196,8 +196,8 @@ remained within 1.393 mm, but they began inside the cooling region and reached
 speeds as high as about 4.0 m/s. That is evidence of bounded short-run motion
 in the proxy only; it is not evidence of loading, capture, or a physical pMOT.
 
-Data are in `outputs/trajectories/pmot/provisional_stark_20Gpcm` and plots are
-in `outputs/figures/pmot/provisional_stark_20Gpcm`.
+Data are in `outputs/trajectories/mot_strange/provisional_stark_20Gpcm` and plots are
+in `outputs/figures/mot_strange/provisional_stark_20Gpcm`.
 
 ## Damping-preserving vector-only helicity audit
 
@@ -324,9 +324,9 @@ anti-restoring and damping. Missing production physics must still be resolved
 before claiming a trap.
 
 The sweep data and full position/velocity Jacobians are in
-`outputs/statistics/pmot/helicity_sweep_20Gpcm`; the bias, classification,
+`outputs/statistics/mot_strange/helicity_sweep_20Gpcm`; the bias, classification,
 force, shift-decomposition, optical-spin, and velocity-response figures are in
-`outputs/figures/pmot/helicity_sweep_20Gpcm`. Experimental retroreflection
+`outputs/figures/mot_strange/helicity_sweep_20Gpcm`. Experimental retroreflection
 handedness must ultimately be derived through the actual window, waveplate,
 and mirror Jones transformations rather than copied directly from these six
 independent software labels.
@@ -352,5 +352,5 @@ must be re-derived and validated before its trajectory force is quantitative.
 Reproduce the diagnostic with:
 
 ```bash
-uv run python -m pmot.pmot.stark_trajectory_study
+uv run python -m pmot.mot_strange.stark_trajectory_study
 ```

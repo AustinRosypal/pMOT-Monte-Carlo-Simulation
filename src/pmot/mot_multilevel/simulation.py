@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
-from dataclasses import replace
 from math import pi
 
+from ..cartesian_light import CartesianLightParameters
+from ..cartesian_light import build_cartesian_light_bundle
+from ..configuration import RB87_COOLING_RESONANCE_HZ
 from ..configuration import RB87_REPUMP_RESONANCE_HZ
-from ..fields import MOTBeam, build_mot_beams
+from ..configuration import default_mot_apparatus_config
+from ..fields import MOTBeam
 from .configuration import MultilevelMOTConfig, default_multilevel_mot_config
 
 
@@ -17,6 +20,29 @@ _HELICITY_BY_AXIS = {
 }
 
 
+def _build_multilevel_light_bundle(apparatus_config, config: MultilevelMOTConfig):
+    apparatus = apparatus_config or default_mot_apparatus_config()
+    helicities = tuple(
+        _HELICITY_BY_AXIS[name]
+        for name in ("horizontal_x", "horizontal_y", "vertical_z")
+    )
+    return build_cartesian_light_bundle(
+        apparatus,
+        CartesianLightParameters(
+            cooling_power_w_per_beam=config.cooling_power_w_per_beam,
+            cooling_detuning_hz=config.cooling_detuning_rad_per_s / (2.0 * pi),
+            cooling_wavelength_m=config.cooling_wavelength_m,
+            cooling_resonance_frequency_hz=RB87_COOLING_RESONANCE_HZ,
+            repump_power_w_per_beam=config.repump_power_w_per_beam,
+            repump_detuning_hz=config.repump_detuning_rad_per_s / (2.0 * pi),
+            repump_wavelength_m=config.repump_wavelength_m,
+            repump_resonance_frequency_hz=RB87_REPUMP_RESONANCE_HZ,
+            cooling_helicities_by_axis=helicities,
+            repump_helicities_by_axis=helicities,
+        ),
+    )
+
+
 def build_multilevel_cooling_beams(
     apparatus_config=None,
     config: MultilevelMOTConfig | None = None,
@@ -24,17 +50,7 @@ def build_multilevel_cooling_beams(
     """Build the six cooling components with propagation-frame helicities."""
 
     cfg = config or default_multilevel_mot_config()
-    return [
-        replace(
-            beam,
-            circular_polarization=_HELICITY_BY_AXIS[beam.axis_name],
-            power_w=cfg.cooling_power_w_per_beam,
-            wavelength_m=cfg.cooling_wavelength_m,
-            detuning_hz=cfg.cooling_detuning_rad_per_s / (2.0 * pi),
-        )
-        for beam in build_mot_beams(apparatus_config)
-        if beam.family == "cooling"
-    ]
+    return list(_build_multilevel_light_bundle(apparatus_config, cfg).cooling_beams)
 
 
 def build_multilevel_repump_beams(
@@ -44,18 +60,7 @@ def build_multilevel_repump_beams(
     """Build six co-propagating repump frequency components."""
 
     cfg = config or default_multilevel_mot_config()
-    return [
-        replace(
-            beam,
-            label=beam.label.replace("_cooling_", "_repump_"),
-            family="repump",
-            wavelength_m=cfg.repump_wavelength_m,
-            resonance_frequency_hz=RB87_REPUMP_RESONANCE_HZ,
-            detuning_hz=cfg.repump_detuning_rad_per_s / (2.0 * pi),
-            power_w=cfg.repump_power_w_per_beam,
-        )
-        for beam in build_multilevel_cooling_beams(apparatus_config, cfg)
-    ]
+    return list(_build_multilevel_light_bundle(apparatus_config, cfg).repump_beams)
 
 
 def build_multilevel_mot_beams(
