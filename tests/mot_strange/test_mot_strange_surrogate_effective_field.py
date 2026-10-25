@@ -4,8 +4,11 @@ import numpy as np
 import pytest
 
 from pmot.mot_strange.surrogate_effective_field import (
+    BOHR_MAGNETON_J_PER_T,
     DEFAULT_SURROGATE_EFFECTIVE_FIELD_CONFIG,
+    DIFFERENTIAL_VECTOR_POLARIZABILITY_HZ_PER_W_PER_M2,
     LEGACY_ASYMMETRIC_SURROGATE_EFFECTIVE_FIELD_CONFIG,
+    PLANCK_CONSTANT_J_S,
     inside_surrogate_cell,
     numerical_field_jacobian_t_per_m,
     surrogate_component_intensities_w_per_m2,
@@ -49,7 +52,14 @@ def test_vector_sum_matches_beamwise_specification() -> None:
         )
     )
     np.testing.assert_allclose(surrogate_effective_field_t(point, cfg), expected)
-    assert cfg.kappa_t_per_w_per_m2 == pytest.approx(-9.741e-8, rel=5.0e-4)
+    expected_kappa = (
+        -PLANCK_CONSTANT_J_S
+        * DIFFERENTIAL_VECTOR_POLARIZABILITY_HZ_PER_W_PER_M2
+        / (BOHR_MAGNETON_J_PER_T * cfg.transition_zeeman_factor)
+    )
+    assert cfg.kappa_t_per_w_per_m2 == pytest.approx(expected_kappa, rel=1.0e-15)
+    # Regression guard for the removed double-counting of E^2 = 2I/(c epsilon_0).
+    assert cfg.kappa_t_per_w_per_m2 != pytest.approx(2.0 * expected_kappa, rel=1.0e-12)
 
 
 def test_origin_jacobian_has_intended_quadrupole_signs_and_ratio() -> None:

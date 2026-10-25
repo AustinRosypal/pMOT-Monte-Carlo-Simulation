@@ -74,7 +74,10 @@ def calculate_loading_rate_from_spectrum(
 
     integrand = loading_integrand(velocity_m_per_s, capture_cross_section_m2)
     integral_value = float(np.trapezoid(integrand, velocity_m_per_s))
-    loading_rate = LOADING_RATE_PREFATOR * integral_value
+    # Use the correctly spelled canonical name internally.  Keep
+    # ``LOADING_RATE_PREFATOR`` only as a compatibility alias for callers that
+    # imported the original typo.
+    loading_rate = LOADING_RATE_PREFACTOR * integral_value
     return LoadingRateResult(
         loading_rate_atoms_per_s=loading_rate,
         integral_value_m5_per_s4=integral_value,

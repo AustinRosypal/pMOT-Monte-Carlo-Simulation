@@ -348,26 +348,39 @@ The default surrogate-field definition is in
 and the diagnostic trajectory cases and analysis are in
 [`src/pmot/mot_strange/surrogate_effective_field_study.py`](src/pmot/mot_strange/surrogate_effective_field_study.py).
 
-#### Longer capture and loading survey
+#### Historical capture and loading survey — invalid after field-conversion correction
 
-The repository also contains the completed campaign definition for 25
-full-sphere direction discs, 10 uniform-area points per disc, a 15-mm sampling
-disc, and a direct 1--100 m/s velocity mask:
+The saved 2026-10-02 `mot_strange` loading campaigns used a surrogate-field
+conversion coefficient that was too large by exactly a factor of two. Their
+trajectory classifications, cross sections, loading rates, and uncertainty
+plots are retained for provenance only and must not be cited or regenerated as
+current physical results. Because capture is a nonlinear binary outcome, the
+old loading rates cannot be repaired by rescaling them.
+
+The following command is therefore a historical runner, not an endorsed
+production campaign:
 
 ```bash
 uv run python scripts/run_mot_strange_centered_surrogate_capture_loading.py
 ```
 
-This launches 5,500 deterministic trajectories, uses eight worker processes,
-and permits up to 12 hours of wall time. It checkpoints and resumes in:
+It launched 5,500 deterministic trajectories, used eight worker processes,
+and permitted up to 12 hours of wall time. Its invalid output is retained in:
 
 ```text
 outputs/diagnostics/mot_strange/MOT testing with a strange defined magnetic field/centered field full-sphere capture loading 25x10 r15mm 20261002/
 ```
 
-Its fixed sampling, velocity, timestep, duration, and worker parameters are
-defined near the top of
+Do not resume that directory: its manifest intentionally prevents corrected
+field parameters from being mixed with the old trajectories. A corrected
+campaign must use a new run name, resolve every direct-mask classification with
+dual-timestep and duration checks, and compute uncertainty across independent
+direction discs separately at every parameter point. The historical fixed
+sampling, velocity, timestep, duration, and worker parameters are defined near
+the top of
 [`scripts/run_mot_strange_centered_surrogate_capture_loading.py`](scripts/run_mot_strange_centered_surrogate_capture_loading.py).
+The rerun acceptance gates and uncertainty equations are recorded in
+[`docs/mot_strange/LOADING_RERUN_AND_UNCERTAINTY_AUDIT.md`](docs/mot_strange/LOADING_RERUN_AND_UNCERTAINTY_AUDIT.md).
 
 #### Interpretation boundary
 

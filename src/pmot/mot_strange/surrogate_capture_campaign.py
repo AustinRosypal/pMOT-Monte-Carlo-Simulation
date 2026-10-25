@@ -386,24 +386,32 @@ def aggregate_results(rows: list[dict], config: CampaignConfig, output_dir: Path
 
     loading = {}
     speeds = np.asarray(config.speeds_m_per_s)
-    for category in ("origin", "off_origin", "total_trapped"):
-        rates = []
-        for disc in complete_discs:
-            sigma = np.asarray([disc_sigma[(disc, speed, category)] for speed in speeds])
-            integrand = sigma * speeds**3 * np.exp(-(speeds**2) / THERMAL_SCALE_M2_PER_S2)
-            integral = float(np.trapezoid(np.r_[0.0, integrand], np.r_[0.0, speeds]))
-            rates.append(LOADING_RATE_PREFACTOR * integral)
-        if rates:
-            mean, low, high = _mean_ci(rates)
-            loading[category] = {
-                "mean_rate_atoms_per_s": mean,
-                "ci95_low_atoms_per_s": max(0.0, low),
-                "ci95_high_atoms_per_s": high,
-                "independent_direction_discs": len(rates),
-                "velocity_range_m_per_s": [0.0, float(speeds[-1])],
-                "exact_zero_speed_integrand_anchor": 0.0,
-                "interpretation": "truncated preliminary aperture-limited loading integral",
-            }
+    unresolved_rows = [
+        row
+        for row in rows
+        if row["disc_index"] in complete_discs
+        and row["outcome"] == OUTCOME_INDETERMINATE
+    ]
+    loading_status = "withheld_unresolved_trajectories" if unresolved_rows else "calculated"
+    if not unresolved_rows:
+        for category in ("origin", "off_origin", "total_trapped"):
+            rates = []
+            for disc in complete_discs:
+                sigma = np.asarray([disc_sigma[(disc, speed, category)] for speed in speeds])
+                integrand = sigma * speeds**3 * np.exp(-(speeds**2) / THERMAL_SCALE_M2_PER_S2)
+                integral = float(np.trapezoid(np.r_[0.0, integrand], np.r_[0.0, speeds]))
+                rates.append(LOADING_RATE_PREFACTOR * integral)
+            if rates:
+                mean, low, high = _mean_ci(rates)
+                loading[category] = {
+                    "mean_rate_atoms_per_s": mean,
+                    "ci95_low_atoms_per_s": max(0.0, low),
+                    "ci95_high_atoms_per_s": high,
+                    "independent_direction_discs": len(rates),
+                    "velocity_range_m_per_s": [0.0, float(speeds[-1])],
+                    "exact_zero_speed_integrand_anchor": 0.0,
+                    "interpretation": "truncated preliminary aperture-limited loading integral",
+                }
 
     counts = {name: sum(row["outcome"] == name for row in rows) for name in (
         OUTCOME_ORIGIN, OUTCOME_OFF_ORIGIN, OUTCOME_ESCAPE, OUTCOME_INDETERMINATE
@@ -432,8 +440,14 @@ def aggregate_results(rows: list[dict], config: CampaignConfig, output_dir: Path
         "complete_direction_discs": len(complete_discs),
         "outcome_counts": counts,
         "loading": loading,
+        "loading_status": loading_status,
+        "loading_withheld_indeterminate_count": len(unresolved_rows),
         "maximum_sample_cross_section_m2": config.sample_area_m2,
-        "statistics_note": "direction discs are the independent clusters; intervals are 95% Student-t",
+        "statistics_note": (
+            "direction discs are the independent clusters; intervals are pointwise "
+            "95% Student-t; loading is withheld when any complete-disc trajectory "
+            "is indeterminate"
+        ),
     }
     (output_dir / "summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
     make_plots(rows, spectra, config, output_dir)
@@ -583,7 +597,7 @@ absent.
 
 ## Preliminary loading integral (0--{config.speeds_m_per_s[-1]:g} m/s only)
 
-{chr(10).join(loading_lines) if loading_lines else '- Not calculated: no complete direction clusters.'}
+{chr(10).join(loading_lines) if loading_lines else '- Withheld: the direct mask contains unresolved trajectories or no complete direction clusters.'}
 
 These are truncated, aperture-limited diagnostic integrals. The exact weighted
 integrand anchor g(0)=0 is used; no zero-speed cross section is imputed. If the
