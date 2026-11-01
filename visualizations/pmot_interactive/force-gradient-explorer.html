@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>pMOT Force and Force-Gradient Explorer</title>
+  <link rel="stylesheet" href="common.css">
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div>
+        <h1>Force and force-gradient explorer</h1>
+        <p class="subtitle">Live deterministic two-level pMOT radiation-pressure force; gravity excluded.</p>
+      </div>
+      <nav aria-label="Visualization pages">
+        <a href="index.html">Home</a>
+        <a href="polarizability-explorer.html">Polarizability</a>
+        <a href="force-gradient-explorer.html" aria-current="page">Force</a>
+        <a href="model-comparison-explorer.html">Comparison</a>
+        <a href="stark-geometry-explorer.html">Stark maps</a>
+        <a href="phase-space-explorer.html">Phase space</a>
+      </nav>
+    </header>
+
+    <div class="notice">
+      Negative same-axis force gradient is locally restoring. This remains a provisional effective F=2→F′=3 diagnostic and omits conservative 1529-nm forces and trapping-light scattering.
+    </div>
+
+    <section class="controls" aria-label="Force model controls">
+      <label>Wavelength pathway
+        <select id="pathway">
+          <option value="scalar_zero">Differential-scalar zero</option>
+          <option value="scalar_tensor_cancellation">Single-beam scalar–tensor cancellation</option>
+        </select>
+      </label>
+      <div class="wide legend" aria-label="Enabled differential Stark components">
+        <label><input id="component-s" type="checkbox" checked>Scalar (s)</label>
+        <label><input id="component-v" type="checkbox" checked>Vector (v)</label>
+        <label><input id="component-t" type="checkbox" checked>Tensor (t)</label>
+      </div>
+      <label>Line-cut axis
+        <select id="axis">
+          <option value="x">x</option>
+          <option value="y">y</option>
+          <option value="z">z</option>
+        </select>
+      </label>
+      <label id="offset-1-label">y offset [mm]
+        <input id="offset-1" type="number" value="0" step="0.25" min="-25" max="25">
+      </label>
+      <label id="offset-2-label">z offset [mm]
+        <input id="offset-2" type="number" value="0" step="0.25" min="-25" max="25">
+      </label>
+      <label>Cooling power [mW/component]
+        <input id="cooling-power" type="range" min="0.1" max="30" step="0.1" value="6">
+        <span id="cooling-power-value" class="muted">6.0</span>
+      </label>
+      <label>Cooling detuning [MHz]
+        <input id="cooling-detuning" type="range" min="-80" max="-1" step="0.5" value="-30">
+        <span id="cooling-detuning-value" class="muted">−30.0</span>
+      </label>
+      <label>x trapping power [mW/path]
+        <input id="trap-x" type="range" min="0" max="100" step="0.5" value="46">
+        <span id="trap-x-value" class="muted">46.0</span>
+      </label>
+      <label>y trapping power [mW/path]
+        <input id="trap-y" type="range" min="0" max="100" step="0.5" value="46">
+        <span id="trap-y-value" class="muted">46.0</span>
+      </label>
+      <label>z trapping power [mW/path]
+        <input id="trap-z" type="range" min="0" max="100" step="0.5" value="46">
+        <span id="trap-z-value" class="muted">46.0</span>
+      </label>
+      <label>Velocity along cut [m/s]
+        <input id="velocity" type="number" value="0" step="0.25" min="-100" max="100">
+      </label>
+      <label>Minimum position [mm]
+        <input id="minimum" type="number" value="-12.5" step="0.5" min="-50" max="50">
+      </label>
+      <label>Maximum position [mm]
+        <input id="maximum" type="number" value="12.5" step="0.5" min="-50" max="50">
+      </label>
+      <div class="control-actions">
+        <button id="calculate" class="button primary" type="button">Calculate curves</button>
+      </div>
+    </section>
+
+    <section class="charts">
+      <article class="chart-panel">
+        <h2 id="force-title">Force along x-axis</h2>
+        <div class="canvas-wrap">
+          <canvas id="force-chart" role="img" aria-label="Radiation-pressure force versus position"></canvas>
+          <div class="tooltip" role="tooltip"></div>
+        </div>
+      </article>
+      <article class="chart-panel">
+        <h2 id="gradient-title">Same-axis force gradient</h2>
+        <div class="canvas-wrap">
+          <canvas id="gradient-chart" role="img" aria-label="Force gradient versus position"></canvas>
+          <div class="tooltip" role="tooltip"></div>
+        </div>
+        <div id="metrics" class="metrics"></div>
+        <p id="status" class="status" aria-live="polite"></p>
+      </article>
+    </section>
+  </main>
+
+  <script src="common.js"></script>
+  <script>
+    const ids = ["pathway", "component-s", "component-v", "component-t", "axis", "offset-1", "offset-2", "cooling-power", "cooling-detuning", "trap-x", "trap-y", "trap-z", "velocity", "minimum", "maximum"];
+    const controls = Object.fromEntries(ids.map((id) => [id, document.getElementById(id)]));
+    const status = document.getElementById("status");
+    const button = document.getElementById("calculate");
+    let payload = null;
+
+    function componentCode() {
+      const code = ["s", "v", "t"]
+        .filter((letter) => controls[`component-${letter}`].checked)
+        .join("");
+      return code || "none";
+    }
+
+    function updateLabels() {
+      const axis = controls.axis.value;
+      const other = ["x", "y", "z"].filter((name) => name !== axis);
+      document.getElementById("offset-1-label").childNodes[0].nodeValue = `${other[0]} offset [mm] `;
+      document.getElementById("offset-2-label").childNodes[0].nodeValue = `${other[1]} offset [mm] `;
+      document.getElementById("cooling-power-value").textContent = Number(controls["cooling-power"].value).toFixed(1);
+      document.getElementById("cooling-detuning-value").textContent = Number(controls["cooling-detuning"].value).toFixed(1);
+      ["x", "y", "z"].forEach((name) => {
+        document.getElementById(`trap-${name}-value`).textContent = Number(controls[`trap-${name}`].value).toFixed(1);
+      });
+    }
+
+    function draw() {
+      if (!payload) return;
+      const bands = [{ x0: -12.5, x1: -7.5 }, { x0: 7.5, x1: 12.5 }];
+      const axis = payload.axis;
+      const offsetDescription = `${payload.offset_coordinates[0]}=${PmotViz.format(payload.offsets_mm[0])} mm, ${payload.offset_coordinates[1]}=${PmotViz.format(payload.offsets_mm[1])} mm`;
+      document.getElementById("force-title").textContent = `F${axis} along ${axis}-axis; ${offsetDescription}`;
+      document.getElementById("gradient-title").textContent = `∂F${axis}/∂${axis}; ${offsetDescription}`;
+      PmotViz.drawLineChart(document.getElementById("force-chart"), {
+        x: payload.coordinate_mm,
+        series: [{ label: `F${axis} [zN]`, values: payload.force_zN, color: PmotViz.css("--series-1") }],
+        bands,
+        xLabel: `${axis} position [mm]`,
+        yLabel: `F${axis} [zN]`,
+      });
+      PmotViz.drawLineChart(document.getElementById("gradient-chart"), {
+        x: payload.coordinate_mm,
+        series: [{ label: `∂F${axis}/∂${axis} [zN/mm]`, values: payload.gradient_zN_per_mm, color: PmotViz.css("--series-2") }],
+        bands,
+        xLabel: `${axis} position [mm]`,
+        yLabel: `∂F${axis}/∂${axis} [zN/mm]`,
+      });
+      document.getElementById("metrics").innerHTML = `
+        <span>Origin force: <strong>${PmotViz.format(payload.metrics.origin_force_zN)} zN</strong></span>
+        <span>Origin gradient: <strong>${PmotViz.format(payload.metrics.origin_gradient_zN_per_mm)} zN/mm</strong></span>
+        <span>Negative-gradient area over ±1 mm: <strong>${PmotViz.format(payload.metrics.negative_gradient_area_pm1mm_zN)} zN</strong></span>
+        <span>Model: <strong>${payload.model_label}</strong></span>
+        <span>λ: <strong>${payload.wavelength_nm.toFixed(12)} nm</strong></span>
+      `;
+    }
+
+    async function calculate() {
+      button.disabled = true;
+      PmotViz.setStatus(status, "Evaluating the live force model…");
+      try {
+        payload = await PmotViz.api("/api/force-line", {
+          pathway: controls.pathway.value,
+          components: componentCode(),
+          axis: controls.axis.value,
+          offset_1_mm: controls["offset-1"].value,
+          offset_2_mm: controls["offset-2"].value,
+          cooling_power_mw: controls["cooling-power"].value,
+          cooling_detuning_mhz: controls["cooling-detuning"].value,
+          trap_x_mw: controls["trap-x"].value,
+          trap_y_mw: controls["trap-y"].value,
+          trap_z_mw: controls["trap-z"].value,
+          velocity_m_per_s: controls.velocity.value,
+          min_mm: controls.minimum.value,
+          max_mm: controls.maximum.value,
+          points: 301,
+        });
+        draw();
+        PmotViz.setStatus(status, "Ready. Shaded bands mark the 5-mm-thick glass-wall regions centered at ±10 mm.");
+      } catch (error) {
+        PmotViz.setStatus(status, error.message, true);
+      } finally {
+        button.disabled = false;
+      }
+    }
+
+    controls.axis.addEventListener("change", updateLabels);
+    ["cooling-power", "cooling-detuning", "trap-x", "trap-y", "trap-z"].forEach((name) => controls[name].addEventListener("input", updateLabels));
+    button.addEventListener("click", calculate);
+    PmotViz.watchResize(draw);
+    updateLabels();
+    calculate();
+  </script>
+</body>
+</html>

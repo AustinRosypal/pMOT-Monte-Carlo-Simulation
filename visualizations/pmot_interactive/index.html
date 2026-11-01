@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>pMOT Interactive Diagnostics</title>
+  <link rel="stylesheet" href="common.css">
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div>
+        <h1>pMOT interactive diagnostics</h1>
+        <p class="subtitle">Explore the two effective two-level wavelength pathways using the live project implementation.</p>
+      </div>
+    </header>
+
+    <div class="notice">
+      These are provisional transition-level diagnostics, not validated capture, loading-rate, or temperature predictions. The pages use the shared Python pMOT engine rather than a duplicated browser force model.
+    </div>
+
+    <section class="grid page-links" aria-label="Available visualizations">
+      <article class="card">
+        <h2>Effective polarizabilities</h2>
+        <p>Zoom through the Arora differential scalar, vector, and tensor data and inspect both selected wavelength conditions.</p>
+        <a href="polarizability-explorer.html">Open polarizability explorer →</a>
+      </article>
+      <article class="card">
+        <h2>Force and force gradient</h2>
+        <p>Vary wavelength pathway, cooling power and detuning, trapping powers, line-cut axis, offsets, and velocity.</p>
+        <a href="force-gradient-explorer.html">Open force explorer →</a>
+      </article>
+      <article class="card">
+        <h2>Four-model force comparison</h2>
+        <p>Overlay the multilevel MOT, mot_strange, full two-level pMOT, and vector-only pMOT while changing each model's powers, detunings, and field controls.</p>
+        <a href="model-comparison-explorer.html">Open model comparison →</a>
+      </article>
+      <article class="card">
+        <h2>Stark-shift geometry</h2>
+        <p>Map scalar, vector, tensor, common, and intensity fields in the Cartesian planes with local-axis arrows.</p>
+        <a href="stark-geometry-explorer.html">Open Stark geometry explorer →</a>
+      </article>
+      <article class="card">
+        <h2>Position–velocity force landscape</h2>
+        <p>See where the force cools, restores, accelerates, or forms barriers across a one-axis phase-space slice.</p>
+        <a href="phase-space-explorer.html">Open phase-space explorer →</a>
+      </article>
+    </section>
+
+    <section class="card" style="margin-top:14px">
+      <h2>Pathways in this suite</h2>
+      <div id="pathways" class="grid"></div>
+      <p id="status" class="status" aria-live="polite">Loading pathway definitions…</p>
+    </section>
+  </main>
+  <script src="common.js"></script>
+  <script>
+    (async () => {
+      const status = document.getElementById("status");
+      try {
+        const metadata = await PmotViz.api("/api/meta");
+        document.getElementById("pathways").innerHTML = metadata.pathways.map((pathway) => `
+          <div>
+            <h3>${pathway.display_name}</h3>
+            <p><strong>${pathway.wavelength_nm.toFixed(12)} nm</strong></p>
+            <p class="muted">${pathway.geometry_note}</p>
+          </div>
+        `).join("");
+        PmotViz.setStatus(status, "Live model connection ready.");
+      } catch (error) {
+        PmotViz.setStatus(status, `${error.message}. Start the local visualization server; do not open the HTML file directly.`, true);
+      }
+    })();
+  </script>
+</body>
+</html>

@@ -2,33 +2,19 @@
 
 from __future__ import annotations
 
-from functools import lru_cache
-
-import numpy as np
-
 from ..mot_strange.polarizability import DifferentialPolarizabilityTable
 from ..mot_strange.trapping_beams import TrappingBeam
 from ..pMOT_2Level.ac_stark import PMOT2LevelStarkSample
 from ..pMOT_2Level.ac_stark import evaluate_differential_ac_stark_shift
-from ..pMOT_2Level.ac_stark import load_pmot_2level_polarizability_table
+from ..pMOT_2Level.ac_stark import (
+    load_pmot_2level_component_polarizability_table,
+)
 
 
-@lru_cache(maxsize=1)
 def load_vector_only_polarizability_table() -> DifferentialPolarizabilityTable:
-    """Return the Arora table with scalar and tensor columns set identically zero."""
+    """Compatibility wrapper for the shared ``2Level_pMOT_v`` table."""
 
-    source = load_pmot_2level_polarizability_table()
-    scalar = np.zeros_like(source.scalar_si)
-    tensor = np.zeros_like(source.tensor_si)
-    scalar.setflags(write=False)
-    tensor.setflags(write=False)
-    return DifferentialPolarizabilityTable(
-        wavelengths_nm=source.wavelengths_nm,
-        scalar_si=scalar,
-        vector_si=source.vector_si,
-        tensor_si=tensor,
-        source_path=source.source_path,
-    )
+    return load_pmot_2level_component_polarizability_table("v")
 
 
 def evaluate_vector_only_ac_stark_shift(

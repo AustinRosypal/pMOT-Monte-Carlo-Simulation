@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>pMOT Stark-Shift Geometry Explorer</title>
+  <link rel="stylesheet" href="common.css">
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div>
+        <h1>Stark-shift geometry explorer</h1>
+        <p class="subtitle">Two-dimensional maps of the differential shift decomposition and local vector-shift axis.</p>
+      </div>
+      <nav aria-label="Visualization pages">
+        <a href="index.html">Home</a>
+        <a href="polarizability-explorer.html">Polarizability</a>
+        <a href="force-gradient-explorer.html">Force</a>
+        <a href="model-comparison-explorer.html">Comparison</a>
+        <a href="stark-geometry-explorer.html" aria-current="page">Stark maps</a>
+        <a href="phase-space-explorer.html">Phase space</a>
+      </nav>
+    </header>
+
+    <div class="notice">
+      Arrows show the in-plane quantization-axis projection. A dot denotes an out-of-plane component toward you; an × denotes away. At a vector zero, the displayed fallback axis is numerical rather than physical.
+    </div>
+
+    <section class="controls" aria-label="Stark map controls">
+      <label>Wavelength pathway
+        <select id="pathway">
+          <option value="scalar_zero">Differential-scalar zero</option>
+          <option value="scalar_tensor_cancellation">Single-beam scalar–tensor cancellation</option>
+        </select>
+      </label>
+      <label>Plane
+        <select id="plane">
+          <option value="xy">x–y</option>
+          <option value="xz">x–z</option>
+          <option value="yz">y–z</option>
+        </select>
+      </label>
+      <label id="slice-label">z offset [mm]
+        <input id="slice" type="number" value="0" step="0.25" min="-15" max="15">
+      </label>
+      <label>Half-width [mm]
+        <input id="extent" type="number" value="3" step="0.5" min="0.1" max="15">
+      </label>
+      <label>Displayed field
+        <select id="field">
+          <option value="vector_mhz">Vector shift [MHz]</option>
+          <option value="scalar_mhz">Scalar shift [MHz]</option>
+          <option value="tensor_mhz">Tensor shift [MHz]</option>
+          <option value="common_mhz">Scalar + tensor [MHz]</option>
+          <option value="intensity_w_per_m2">Total intensity [W/m²]</option>
+        </select>
+      </label>
+      <label>Color-scale central fraction
+        <input id="robust" type="range" min="90" max="100" step="0.5" value="99">
+        <span id="robust-value" class="muted">99%</span>
+      </label>
+      <label>x trapping power [mW/path]
+        <input id="trap-x" type="number" value="46" step="0.5" min="0" max="1000">
+      </label>
+      <label>y trapping power [mW/path]
+        <input id="trap-y" type="number" value="46" step="0.5" min="0" max="1000">
+      </label>
+      <label>z trapping power [mW/path]
+        <input id="trap-z" type="number" value="46" step="0.5" min="0" max="1000">
+      </label>
+      <label>vx [m/s]
+        <input id="vx" type="number" value="0" step="0.25" min="-100" max="100">
+      </label>
+      <label>vy [m/s]
+        <input id="vy" type="number" value="0" step="0.25" min="-100" max="100">
+      </label>
+      <label>vz [m/s]
+        <input id="vz" type="number" value="0" step="0.25" min="-100" max="100">
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;color:var(--fg)">
+        <input id="vectors" type="checkbox" checked style="width:auto"> Show quantization-axis vectors
+      </label>
+      <div class="control-actions">
+        <button id="calculate" class="button primary" type="button">Calculate map</button>
+      </div>
+    </section>
+
+    <section class="chart-panel heatmap">
+      <h2 id="map-title">Vector shift in x–y plane</h2>
+      <p id="map-subtitle" class="muted"></p>
+      <div class="canvas-wrap">
+        <canvas id="map" role="img" aria-label="Two-dimensional pMOT Stark-shift map"></canvas>
+        <div class="tooltip" role="tooltip"></div>
+      </div>
+      <p id="status" class="status" aria-live="polite"></p>
+    </section>
+  </main>
+
+  <script src="common.js"></script>
+  <script>
+    const controls = Object.fromEntries(["pathway", "plane", "slice", "extent", "field", "robust", "trap-x", "trap-y", "trap-z", "vx", "vy", "vz", "vectors"].map((id) => [id, document.getElementById(id)]));
+    const status = document.getElementById("status");
+    const button = document.getElementById("calculate");
+    const map = document.getElementById("map");
+    let payload = null;
+
+    const fieldLabels = {
+      vector_mhz: "Vector differential shift [MHz]",
+      scalar_mhz: "Scalar differential shift [MHz]",
+      tensor_mhz: "Tensor differential shift [MHz]",
+      common_mhz: "Scalar + tensor differential shift [MHz]",
+      intensity_w_per_m2: "Total trapping intensity [W/m²]",
+    };
+
+    function updatePlaneLabel() {
+      const sliceAxis = { xy: "z", xz: "y", yz: "x" }[controls.plane.value];
+      document.getElementById("slice-label").childNodes[0].nodeValue = `${sliceAxis} offset [mm] `;
+    }
+
+    function draw() {
+      if (!payload) return;
+      const field = controls.field.value;
+      const vectors = controls.vectors.checked ? {
+        u: payload.axis_u,
+        v: payload.axis_v,
+        out: payload.axis_out,
+        defined: payload.axis_defined,
+      } : null;
+      document.getElementById("map-title").textContent = `${fieldLabels[field]} in ${payload.horizontal_axis}–${payload.vertical_axis} plane`;
+      document.getElementById("map-subtitle").textContent = `${payload.slice_axis}=${PmotViz.format(payload.slice_mm)} mm · λ=${payload.wavelength_nm.toFixed(12)} nm · arrows are the local vector-shift axis`;
+      PmotViz.drawHeatmap(map, {
+        x: payload.coordinate_mm,
+        y: payload.coordinate_mm,
+        values: payload[field],
+        xLabel: `${payload.horizontal_axis} position [mm]`,
+        yLabel: `${payload.vertical_axis} position [mm]`,
+        valueLabel: fieldLabels[field],
+        robustFraction: Number(controls.robust.value) / 100,
+        diverging: field !== "intensity_w_per_m2",
+        vectors,
+      });
+    }
+
+    async function calculate() {
+      button.disabled = true;
+      PmotViz.setStatus(status, "Evaluating Stark shifts across the plane…");
+      try {
+        payload = await PmotViz.api("/api/stark-plane", {
+          pathway: controls.pathway.value,
+          plane: controls.plane.value,
+          slice_mm: controls.slice.value,
+          extent_mm: controls.extent.value,
+          trap_x_mw: controls["trap-x"].value,
+          trap_y_mw: controls["trap-y"].value,
+          trap_z_mw: controls["trap-z"].value,
+          vx_m_per_s: controls.vx.value,
+          vy_m_per_s: controls.vy.value,
+          vz_m_per_s: controls.vz.value,
+          points: 37,
+        });
+        draw();
+        PmotViz.setStatus(status, "Ready. Change the displayed field without recalculating; recalculate after changing physical parameters.");
+      } catch (error) {
+        PmotViz.setStatus(status, error.message, true);
+      } finally {
+        button.disabled = false;
+      }
+    }
+
+    controls.plane.addEventListener("change", updatePlaneLabel);
+    controls.field.addEventListener("change", draw);
+    controls.vectors.addEventListener("change", draw);
+    controls.robust.addEventListener("input", () => {
+      document.getElementById("robust-value").textContent = `${controls.robust.value}%`;
+      draw();
+    });
+    button.addEventListener("click", calculate);
+    PmotViz.watchResize(draw);
+    updatePlaneLabel();
+    calculate();
+  </script>
+</body>
+</html>

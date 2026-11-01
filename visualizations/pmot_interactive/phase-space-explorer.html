@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>pMOT Position–Velocity Force Landscape</title>
+  <link rel="stylesheet" href="common.css">
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div>
+        <h1>Position–velocity force landscape</h1>
+        <p class="subtitle">A phase-space slice of the live radiation-pressure force along one Cartesian axis.</p>
+      </div>
+      <nav aria-label="Visualization pages">
+        <a href="index.html">Home</a>
+        <a href="polarizability-explorer.html">Polarizability</a>
+        <a href="force-gradient-explorer.html">Force</a>
+        <a href="model-comparison-explorer.html">Comparison</a>
+        <a href="stark-geometry-explorer.html">Stark maps</a>
+        <a href="phase-space-explorer.html" aria-current="page">Phase space</a>
+      </nav>
+    </header>
+
+    <div class="notice">
+      For positive position, negative force is restoring; for positive velocity, negative force is damping. Compare both signs across the map to identify capture barriers, anti-restoring regions, and velocity ranges where cooling remains effective.
+    </div>
+
+    <section class="controls" aria-label="Phase-space controls">
+      <label>Wavelength pathway
+        <select id="pathway">
+          <option value="scalar_zero">Differential-scalar zero</option>
+          <option value="scalar_tensor_cancellation">Single-beam scalar–tensor cancellation</option>
+        </select>
+      </label>
+      <label>Axis
+        <select id="axis">
+          <option value="x">x</option>
+          <option value="y">y</option>
+          <option value="z">z</option>
+        </select>
+      </label>
+      <label id="offset-1-label">y offset [mm]
+        <input id="offset-1" type="number" value="0" step="0.25" min="-15" max="15">
+      </label>
+      <label id="offset-2-label">z offset [mm]
+        <input id="offset-2" type="number" value="0" step="0.25" min="-15" max="15">
+      </label>
+      <label>Cooling power [mW/component]
+        <input id="cooling-power" type="number" value="6" step="0.1" min="0" max="1000">
+      </label>
+      <label>Cooling detuning [MHz]
+        <input id="cooling-detuning" type="number" value="-30" step="0.5" min="-500" max="100">
+      </label>
+      <label>x trapping power [mW/path]
+        <input id="trap-x" type="number" value="46" step="0.5" min="0" max="1000">
+      </label>
+      <label>y trapping power [mW/path]
+        <input id="trap-y" type="number" value="46" step="0.5" min="0" max="1000">
+      </label>
+      <label>z trapping power [mW/path]
+        <input id="trap-z" type="number" value="46" step="0.5" min="0" max="1000">
+      </label>
+      <label>Position half-width [mm]
+        <input id="position-extent" type="number" value="5" step="0.5" min="0.1" max="15">
+      </label>
+      <label>Velocity half-width [m/s]
+        <input id="velocity-extent" type="number" value="25" step="1" min="0.1" max="100">
+      </label>
+      <label>Resolution
+        <select id="resolution">
+          <option value="31">Fast · 31 × 31</option>
+          <option value="41" selected>Balanced · 41 × 41</option>
+          <option value="55">Fine · 55 × 55</option>
+        </select>
+      </label>
+      <div class="control-actions">
+        <button id="calculate" class="button primary" type="button">Calculate landscape</button>
+      </div>
+    </section>
+
+    <section class="chart-panel heatmap">
+      <h2 id="map-title">F<sub>x</sub>(x,v<sub>x</sub>)</h2>
+      <p id="map-subtitle" class="muted"></p>
+      <div class="canvas-wrap">
+        <canvas id="map" role="img" aria-label="Position-velocity map of pMOT force"></canvas>
+        <div class="tooltip" role="tooltip"></div>
+      </div>
+      <div id="metrics" class="metrics"></div>
+      <p id="status" class="status" aria-live="polite"></p>
+    </section>
+  </main>
+
+  <script src="common.js"></script>
+  <script>
+    const controls = Object.fromEntries(["pathway", "axis", "offset-1", "offset-2", "cooling-power", "cooling-detuning", "trap-x", "trap-y", "trap-z", "position-extent", "velocity-extent", "resolution"].map((id) => [id, document.getElementById(id)]));
+    const status = document.getElementById("status");
+    const button = document.getElementById("calculate");
+    const map = document.getElementById("map");
+    let payload = null;
+
+    function updateOffsetLabels() {
+      const axis = controls.axis.value;
+      const other = ["x", "y", "z"].filter((name) => name !== axis);
+      document.getElementById("offset-1-label").childNodes[0].nodeValue = `${other[0]} offset [mm] `;
+      document.getElementById("offset-2-label").childNodes[0].nodeValue = `${other[1]} offset [mm] `;
+    }
+
+    function draw() {
+      if (!payload) return;
+      const axis = payload.axis;
+      document.getElementById("map-title").innerHTML = `F<sub>${axis}</sub>(${axis},v<sub>${axis}</sub>)`;
+      document.getElementById("map-subtitle").textContent = `λ=${payload.wavelength_nm.toFixed(12)} nm · blue is negative force · red is positive force`;
+      PmotViz.drawHeatmap(map, {
+        x: payload.position_mm,
+        y: payload.velocity_m_per_s,
+        values: payload.force_zN,
+        xLabel: `${axis} position [mm]`,
+        yLabel: `v${axis} [m/s]`,
+        valueLabel: `F${axis} [zN]`,
+        robustFraction: 0.99,
+        diverging: true,
+      });
+      const flat = payload.force_zN.flat();
+      document.getElementById("metrics").innerHTML = `
+        <span>Minimum force: <strong>${PmotViz.format(Math.min(...flat))} zN</strong></span>
+        <span>Maximum force: <strong>${PmotViz.format(Math.max(...flat))} zN</strong></span>
+        <span>Grid: <strong>${payload.position_mm.length} × ${payload.velocity_m_per_s.length}</strong></span>
+      `;
+    }
+
+    async function calculate() {
+      button.disabled = true;
+      PmotViz.setStatus(status, "Evaluating the force across position and velocity…");
+      try {
+        payload = await PmotViz.api("/api/phase-space", {
+          pathway: controls.pathway.value,
+          axis: controls.axis.value,
+          offset_1_mm: controls["offset-1"].value,
+          offset_2_mm: controls["offset-2"].value,
+          cooling_power_mw: controls["cooling-power"].value,
+          cooling_detuning_mhz: controls["cooling-detuning"].value,
+          trap_x_mw: controls["trap-x"].value,
+          trap_y_mw: controls["trap-y"].value,
+          trap_z_mw: controls["trap-z"].value,
+          position_extent_mm: controls["position-extent"].value,
+          velocity_extent_m_per_s: controls["velocity-extent"].value,
+          position_points: controls.resolution.value,
+          velocity_points: controls.resolution.value,
+        });
+        draw();
+        PmotViz.setStatus(status, "Ready. Hover to inspect the force at a specific position and velocity.");
+      } catch (error) {
+        PmotViz.setStatus(status, error.message, true);
+      } finally {
+        button.disabled = false;
+      }
+    }
+
+    controls.axis.addEventListener("change", updateOffsetLabels);
+    button.addEventListener("click", calculate);
+    PmotViz.watchResize(draw);
+    updateOffsetLabels();
+    calculate();
+  </script>
+</body>
+</html>

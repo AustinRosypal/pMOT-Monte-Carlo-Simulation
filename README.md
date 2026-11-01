@@ -7,7 +7,9 @@ Development is separated into explicit model branches:
 - `mot_multilevel`: Physical 24-state population-rate MOT kernel.
 - `mot_strange`: a conventional multilevel MOT whose coil field is replaced by
   a surrogate magnetic field shaped by the intended pMOT-beam intensities.
-- `pMOT_2Level`: the effective two-level, no-coil pMOT model.
+- `pMOT_2Level`: the effective two-level, no-coil pMOT model. Its shared
+  engine exposes separate `scalar_tensor_cancellation` and `scalar_zero`
+  trapping-wavelength pathways.
 - `pmot_vec_2Level`: a controlled vector-only variant of `pMOT_2Level` that
   sets the differential scalar and tensor polarizabilities to zero.
 - `pMOT_multilevel`: reserved placeholder for the future physical multilevel
@@ -17,7 +19,7 @@ Development is separated into explicit model branches:
 
 | Area | Two-level MOT | Physical multilevel MOT | MOT with pMOT Fields | 2-Level pMOT | Vector-only 2-Level pMOT |
 |---|---|---|---|---|---|
-| Source | `src/pmot/mot_simple` | `src/pmot/mot_multilevel` | `src/pmot/mot_strange/surrogate_effective_field*.py` | `src/pmot/pMOT_2Level` | `src/pmot/pmot_vec_2Level` |
+| Source | `src/pmot/mot_simple` | `src/pmot/mot_multilevel` | `src/pmot/mot_strange/surrogate_effective_field*.py` | `src/pmot/pMOT_2Level`, with wavelength paths under `scalar_tensor_cancellation/` and `scalar_zero/` | `src/pmot/pmot_vec_2Level` |
 | Primary entry points | `notebooks/mot_simple` and CLI | `notebooks/mot_multilevel` | `notebooks/mot_strange/mot_strange_trajectory_lab.ipynb` and CLI | `notebooks/pMOT_2Level/trajectory_simulation.ipynb` and Python API | `notebooks/model_comparison/updated_force_gradient_overlays.ipynb`, Python API, and plotting script |
 | Tests | `tests/mot_simple` | `tests/mot_multilevel` | surrogate-field tests under `tests/mot_strange` | `tests/pMOT_2Level` | `tests/pmot_vec_2Level` |
 | Documentation | `docs/mot_simple` | `docs/mot_multilevel` | `MOT_STRANGE_EFFECTIVE_FIELD_CODEX.md` and `docs/pmot` | package docstrings and `docs/pmot` | `src/pmot/pmot_vec_2Level/README.md` |
@@ -26,6 +28,23 @@ The non-surrogate modules under `src/pmot/mot_strange` and the corresponding
 notebooks are retained as provisional historical scaffolding and provenance.
 Future physical multilevel-pMOT work belongs under `pMOT_multilevel`, not
 `mot_strange`.
+
+The two `pMOT_2Level` wavelength branches are configuration pathways over one
+shared Stark/force/trajectory implementation; they are not duplicated physics
+engines. `scalar_tensor_cancellation` fixes 1529.268881 nm, the historical
+single-beam stretched-reference scalar--tensor cancellation point.
+`scalar_zero` fixes 1529.273195181438 nm, the nearby smooth zero of the supplied
+differential scalar polarizability. Select them with
+`get_pmot_2level_pathway(...)` or import their pathway-specific beam builders.
+
+Interactive wavelength, force-gradient, Stark-geometry, and position-velocity
+diagnostics for both pathways live in
+`visualizations/pmot_interactive`. Start the localhost-only suite from the
+repository root with:
+
+```bash
+uv run python visualizations/pmot_interactive/serve.py --open
+```
 
 Reusable apparatus, beam, anti-Helmholtz-field, launch-disc, capture-analysis,
 loading-rate, and plotting primitives remain directly under `src/pmot`;

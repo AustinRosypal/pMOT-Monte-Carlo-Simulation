@@ -12,6 +12,7 @@ matching :mod:`pmot.mot_simple`.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from functools import lru_cache
 from typing import Sequence
 
 import numpy as np
@@ -35,6 +36,8 @@ ORDINARY_FREQUENCY_EFFECTIVE_DETUNING_EQUATION = (
     "delta_nu_eff[b,q] = delta_nu_0[b] - dot(k_b,v)/(2*pi) "
     "- DeltaE_AC[q]/h"
 )
+PMOT_STARK_COMPONENT_ORDER = ("s", "v", "t")
+"""Canonical scalar/vector/tensor component-code order."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -98,6 +101,81 @@ def load_pmot_2level_polarizability_table() -> DifferentialPolarizabilityTable:
     """Preload the required narrow Arora CCSD differential table."""
 
     return load_differential_polarizability_table(default_polarizability_csv_path())
+
+
+def normalize_pmot_stark_component_code(components: str = "svt") -> str:
+    """Return a canonical component code such as ``svt``, ``sv``, or ``v``.
+
+    The letters mean scalar, vector, and tensor.  Input order is ignored, but
+    repeated or unknown letters are rejected. ``all``/``full`` map to ``svt``
+    and ``none`` maps to the empty no-Stark control.
+    """
+
+    raw = str(components).strip().lower().replace("_", "").replace("-", "")
+    aliases = {
+        "all": "svt",
+        "full": "svt",
+        "vectoronly": "v",
+        "none": "",
+        "off": "",
+    }
+    raw = aliases.get(raw, raw)
+    if any(letter not in PMOT_STARK_COMPONENT_ORDER for letter in raw):
+        raise ValueError(
+            "pMOT Stark components must contain only s, v, and t "
+            "(or use 'all'/'none')"
+        )
+    if len(set(raw)) != len(raw):
+        raise ValueError("pMOT Stark component letters must not be repeated")
+    return "".join(letter for letter in PMOT_STARK_COMPONENT_ORDER if letter in raw)
+
+
+def pmot_stark_component_model_label(components: str = "svt") -> str:
+    """Return the stable plot/model label for one component selection."""
+
+    code = normalize_pmot_stark_component_code(components)
+    return f"2Level_pMOT_{code or 'none'}"
+
+
+@lru_cache(maxsize=8)
+def _component_selected_polarizability_table(
+    canonical_components: str,
+) -> DifferentialPolarizabilityTable:
+    source = load_pmot_2level_polarizability_table()
+    if canonical_components == "svt":
+        return source
+
+    def selected(values: np.ndarray, letter: str) -> np.ndarray:
+        if letter in canonical_components:
+            return values
+        zeros = np.zeros_like(values)
+        zeros.setflags(write=False)
+        return zeros
+
+    return DifferentialPolarizabilityTable(
+        wavelengths_nm=source.wavelengths_nm,
+        scalar_si=selected(source.scalar_si, "s"),
+        vector_si=selected(source.vector_si, "v"),
+        tensor_si=selected(source.tensor_si, "t"),
+        source_path=source.source_path,
+    )
+
+
+def load_pmot_2level_component_polarizability_table(
+    components: str = "svt",
+) -> DifferentialPolarizabilityTable:
+    """Return the Arora table with unselected Stark ranks set to exact zero.
+
+    This is the shared implementation for all ``2Level_pMOT_<code>`` force,
+    trajectory, and plotting configurations.  When ``v`` is disabled, the
+    vector shift cannot define a local quantization axis; the existing
+    previous/fallback-axis prescription is therefore used by the Stark
+    evaluator for any retained tensor term.
+    """
+
+    return _component_selected_polarizability_table(
+        normalize_pmot_stark_component_code(components)
+    )
 
 
 def atom_frame_trapping_wavelengths_nm(
@@ -259,4 +337,8 @@ __all__ = [
     "atom_frame_trapping_wavelengths_nm",
     "evaluate_differential_ac_stark_shift",
     "load_pmot_2level_polarizability_table",
+    "load_pmot_2level_component_polarizability_table",
+    "normalize_pmot_stark_component_code",
+    "pmot_stark_component_model_label",
+    "PMOT_STARK_COMPONENT_ORDER",
 ]

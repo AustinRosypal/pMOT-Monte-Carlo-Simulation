@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MOT Model Comparison Explorer</title>
+  <link rel="stylesheet" href="common.css">
+  <style>
+    :root {
+      --model-mot: #2563eb;
+      --model-strange: #d97706;
+      --model-full: #be123c;
+      --model-vector: #0f766e;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --model-mot: #77a7ff;
+        --model-strange: #f0aa4a;
+        --model-full: #f07a99;
+        --model-vector: #5cc9bb;
+      }
+    }
+
+    .model-control-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .model-control {
+      min-width: 0;
+      margin: 0;
+      padding: 14px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--surface);
+    }
+
+    .model-control legend {
+      padding: 0 6px;
+      font-weight: 500;
+    }
+
+    .model-fields {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
+      gap: 9px 10px;
+    }
+
+    .model-note {
+      margin: 10px 0 0;
+      color: var(--muted);
+      font-size: 0.86rem;
+    }
+
+    .component-toggles {
+      grid-column: 1 / -1;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 16px;
+      padding: 8px 0 2px;
+    }
+
+    .component-toggles label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--fg);
+    }
+
+    .component-toggles input {
+      width: auto;
+      min-height: 0;
+    }
+
+    .comparison-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .comparison-grid .canvas-wrap,
+    .comparison-grid canvas {
+      min-height: 310px;
+      height: 310px;
+    }
+
+    .comparison-grid .chart-panel {
+      padding: 10px;
+    }
+
+    .comparison-grid h3 {
+      min-height: 46px;
+    }
+
+    .model-line {
+      width: 28px;
+      height: 2px;
+      background: var(--swatch);
+    }
+
+    .model-line.dashed {
+      background: repeating-linear-gradient(to right, var(--swatch) 0 8px, transparent 8px 13px);
+    }
+
+    .model-line.dashdot {
+      background: repeating-linear-gradient(to right, var(--swatch) 0 9px, transparent 9px 13px, var(--swatch) 13px 15px, transparent 15px 20px);
+    }
+
+    .model-line.dotted {
+      background: repeating-linear-gradient(to right, var(--swatch) 0 2px, transparent 2px 6px);
+    }
+
+    .wall-key {
+      width: 24px;
+      height: 14px;
+      background: var(--wall);
+    }
+
+    @media (max-width: 980px) {
+      .comparison-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .comparison-grid h3 {
+        min-height: 0;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .model-control-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div>
+        <h1>Force and force-gradient model comparison</h1>
+        <p class="subtitle">Live overlays from the multilevel MOT, mot_strange, and two independently configured effective two-level pMOT variants.</p>
+      </div>
+      <nav aria-label="Visualization pages">
+        <a href="index.html">Home</a>
+        <a href="polarizability-explorer.html">Polarizability</a>
+        <a href="force-gradient-explorer.html">Force</a>
+        <a href="model-comparison-explorer.html" aria-current="page">Comparison</a>
+        <a href="stark-geometry-explorer.html">Stark maps</a>
+        <a href="phase-space-explorer.html">Phase space</a>
+      </nav>
+    </header>
+
+    <div class="notice">
+      Each lower curve is the numerical spatial derivative of the force curve directly above it. Toggle scalar (s), vector (v), and tensor (t) independently for pMOT A and B. Gravity is excluded; the pMOT curves remain provisional transition-level diagnostics.
+    </div>
+
+    <section class="controls" aria-label="Shared comparison controls">
+      <label>Scan half-range [mm]
+        <input id="scan-limit" type="number" min="0.5" max="25" step="0.5" value="12.5">
+      </label>
+      <label>Samples per axis
+        <input id="points" type="number" min="31" max="201" step="10" value="61">
+      </label>
+      <label>First transverse offset [mm]
+        <input id="offset-1" type="number" min="-15" max="15" step="0.1" value="0">
+      </label>
+      <label>Second transverse offset [mm]
+        <input id="offset-2" type="number" min="-15" max="15" step="0.1" value="0">
+      </label>
+      <label>Velocity along scan axis [m/s]
+        <input id="velocity" type="number" min="-100" max="100" step="0.5" value="0">
+      </label>
+      <label><span>Glass-cell bands</span>
+        <span><input id="show-walls" type="checkbox" checked> Show centers ±10 mm, width 5 mm</span>
+      </label>
+      <div class="control-actions">
+        <button id="calculate" class="button primary" type="button">Recalculate all models</button>
+      </div>
+    </section>
+
+    <div class="model-control-grid">
+      <fieldset class="model-control">
+        <legend>Multilevel MOT</legend>
+        <div class="model-fields">
+          <label>Cooling power [mW/component]<input id="mot-cooling" type="number" min="0" step="0.1" value="27"></label>
+          <label>Repump power [mW/component]<input id="mot-repump" type="number" min="0" step="0.01" value="0.1"></label>
+          <label>Cooling detuning [MHz]<input id="mot-detuning" type="number" step="0.5" value="-15"></label>
+          <label>Repump detuning [MHz]<input id="mot-repump-detuning" type="number" step="0.5" value="0"></label>
+          <label>Axial |dBz/dz| [G/cm]<input id="mot-gradient" type="number" min="0" step="1" value="20"></label>
+        </div>
+        <p class="model-note">Anti-Helmholtz constraint: gradients are (+G/2, +G/2, −G).</p>
+      </fieldset>
+
+      <fieldset class="model-control">
+        <legend>mot_strange</legend>
+        <div class="model-fields">
+          <label>Cooling power [mW/component]<input id="strange-cooling" type="number" min="0" step="0.1" value="27"></label>
+          <label>Repump power [mW/component]<input id="strange-repump" type="number" min="0" step="0.01" value="0.1"></label>
+          <label>Cooling detuning [MHz]<input id="strange-detuning" type="number" step="0.5" value="-15"></label>
+          <label>Repump detuning [MHz]<input id="strange-repump-detuning" type="number" step="0.5" value="0"></label>
+          <label>x surrogate path power [mW]<input id="strange-x" type="number" min="0" step="0.1" value="10.8"></label>
+          <label>y surrogate path power [mW]<input id="strange-y" type="number" min="0" step="0.1" value="10.8"></label>
+          <label>z surrogate path power [mW]<input id="strange-z" type="number" min="0" step="0.1" value="21.6"></label>
+        </div>
+        <p class="model-note">The path powers set the intensity-derived surrogate magnetic field; no 1529-nm beams are propagated in this model.</p>
+      </fieldset>
+
+      <fieldset class="model-control">
+        <legend>Effective two-level pMOT A</legend>
+        <div class="model-fields">
+          <div class="component-toggles" aria-label="pMOT A Stark components">
+            <label><input id="full-s" type="checkbox" checked> Scalar (s)</label>
+            <label><input id="full-v" type="checkbox" checked> Vector (v)</label>
+            <label><input id="full-t" type="checkbox" checked> Tensor (t)</label>
+          </div>
+          <label>Wavelength condition
+            <select id="full-pathway">
+              <option value="scalar_zero" selected>Scalar zero</option>
+              <option value="scalar_tensor_cancellation">Scalar–tensor cancellation</option>
+            </select>
+          </label>
+          <label>Cooling power [mW/component]<input id="full-cooling" type="number" min="0" step="0.1" value="1.0571"></label>
+          <label>Cooling detuning [MHz]<input id="full-detuning" type="number" step="0.5" value="-15"></label>
+          <label>x trapping-path power [mW]<input id="full-x" type="number" min="0" step="0.1" value="31.5243"></label>
+          <label>y trapping-path power [mW]<input id="full-y" type="number" min="0" step="0.1" value="31.5243"></label>
+          <label>z trapping-path power [mW]<input id="full-z" type="number" min="0" step="0.1" value="31.5243"></label>
+        </div>
+        <p class="model-note">Default label: 2Level_pMOT_svt. External magnetic field is zero; repump geometry is dynamically passive in the strict F=2 → F′=3 closure.</p>
+      </fieldset>
+
+      <fieldset class="model-control">
+        <legend>Effective two-level pMOT B</legend>
+        <div class="model-fields">
+          <div class="component-toggles" aria-label="pMOT B Stark components">
+            <label><input id="vector-s" type="checkbox"> Scalar (s)</label>
+            <label><input id="vector-v" type="checkbox" checked> Vector (v)</label>
+            <label><input id="vector-t" type="checkbox"> Tensor (t)</label>
+          </div>
+          <label>Wavelength condition
+            <select id="vector-pathway">
+              <option value="scalar_tensor_cancellation" selected>Scalar–tensor cancellation</option>
+              <option value="scalar_zero">Scalar zero</option>
+            </select>
+          </label>
+          <label>Cooling power [mW/component]<input id="vector-cooling" type="number" min="0" step="0.1" value="1.0571"></label>
+          <label>Cooling detuning [MHz]<input id="vector-detuning" type="number" step="0.5" value="-15"></label>
+          <label>x trapping-path power [mW]<input id="vector-x" type="number" min="0" step="0.1" value="31.5243"></label>
+          <label>y trapping-path power [mW]<input id="vector-y" type="number" min="0" step="0.1" value="31.5243"></label>
+          <label>z trapping-path power [mW]<input id="vector-z" type="number" min="0" step="0.1" value="31.5243"></label>
+        </div>
+        <p class="model-note">Default label: 2Level_pMOT_v. If vector is off, no local vector-shift axis exists and the retained tensor term uses the existing previous/fallback-axis prescription.</p>
+      </fieldset>
+    </div>
+
+    <section class="controls" aria-label="Displayed comparison curves">
+      <div class="wide legend">
+        <label><input id="show-mot" type="checkbox" checked><span class="model-line" style="--swatch:var(--model-mot)"></span>Multilevel MOT</label>
+        <label><input id="show-strange" type="checkbox" checked><span class="model-line dashed" style="--swatch:var(--model-strange)"></span>mot_strange</label>
+        <label><input id="show-full" type="checkbox" checked><span class="model-line dashdot" style="--swatch:var(--model-full)"></span><span id="full-legend-label">2Level_pMOT_svt</span></label>
+        <label><input id="show-vector" type="checkbox" checked><span class="model-line dotted" style="--swatch:var(--model-vector)"></span><span id="vector-legend-label">2Level_pMOT_v</span></label>
+        <span class="wall-key" aria-hidden="true"></span><span>Glass-wall bands</span>
+      </div>
+      <p id="field-summary" class="wide muted"></p>
+      <p id="status" class="wide status" aria-live="polite">Ready to calculate.</p>
+    </section>
+
+    <section class="comparison-grid" aria-label="Force and force-gradient overlays">
+      <article class="chart-panel"><h3 id="force-title-x">Force along x-axis</h3><div class="canvas-wrap"><canvas id="force-x" role="img" aria-label="Force comparison along x-axis"></canvas><div class="tooltip" role="tooltip"></div></div></article>
+      <article class="chart-panel"><h3 id="force-title-y">Force along y-axis</h3><div class="canvas-wrap"><canvas id="force-y" role="img" aria-label="Force comparison along y-axis"></canvas><div class="tooltip" role="tooltip"></div></div></article>
+      <article class="chart-panel"><h3 id="force-title-z">Force along z-axis</h3><div class="canvas-wrap"><canvas id="force-z" role="img" aria-label="Force comparison along z-axis"></canvas><div class="tooltip" role="tooltip"></div></div></article>
+      <article class="chart-panel"><h3 id="gradient-title-x">Force gradient along x-axis</h3><div class="canvas-wrap"><canvas id="gradient-x" role="img" aria-label="Force-gradient comparison along x-axis"></canvas><div class="tooltip" role="tooltip"></div></div></article>
+      <article class="chart-panel"><h3 id="gradient-title-y">Force gradient along y-axis</h3><div class="canvas-wrap"><canvas id="gradient-y" role="img" aria-label="Force-gradient comparison along y-axis"></canvas><div class="tooltip" role="tooltip"></div></div></article>
+      <article class="chart-panel"><h3 id="gradient-title-z">Force gradient along z-axis</h3><div class="canvas-wrap"><canvas id="gradient-z" role="img" aria-label="Force-gradient comparison along z-axis"></canvas><div class="tooltip" role="tooltip"></div></div></article>
+    </section>
+  </main>
+
+  <script src="common.js"></script>
+  <script>
+    const axes = ["x", "y", "z"];
+    const status = document.getElementById("status");
+    let payload = null;
+
+    const models = [
+      { key: "mot_multilevel", label: "Multilevel MOT", color: "--model-mot", dash: [], toggle: "show-mot" },
+      { key: "mot_strange", label: "mot_strange", color: "--model-strange", dash: [8, 5], toggle: "show-strange" },
+      { key: "pMOT_2Level", color: "--model-full", dash: [10, 4, 2, 4], toggle: "show-full" },
+      { key: "pmot_vec_2Level", color: "--model-vector", dash: [2, 4], toggle: "show-vector" },
+    ];
+
+    function value(id) {
+      return document.getElementById(id).value;
+    }
+
+    function componentCode(prefix) {
+      const code = ["s", "v", "t"]
+        .filter((letter) => document.getElementById(`${prefix}-${letter}`).checked)
+        .join("");
+      return code || "none";
+    }
+
+    function parameters() {
+      return {
+        scan_limit_mm: value("scan-limit"), points: value("points"),
+        offset_1_mm: value("offset-1"), offset_2_mm: value("offset-2"),
+        velocity_m_per_s: value("velocity"),
+        mot_cooling_mw: value("mot-cooling"), mot_repump_mw: value("mot-repump"),
+        mot_detuning_mhz: value("mot-detuning"), mot_repump_detuning_mhz: value("mot-repump-detuning"),
+        mot_axial_gradient_g_per_cm: value("mot-gradient"),
+        strange_cooling_mw: value("strange-cooling"), strange_repump_mw: value("strange-repump"),
+        strange_detuning_mhz: value("strange-detuning"), strange_repump_detuning_mhz: value("strange-repump-detuning"),
+        strange_trap_x_mw: value("strange-x"), strange_trap_y_mw: value("strange-y"), strange_trap_z_mw: value("strange-z"),
+        full_pathway: value("full-pathway"), full_components: componentCode("full"), full_cooling_mw: value("full-cooling"), full_detuning_mhz: value("full-detuning"),
+        full_trap_x_mw: value("full-x"), full_trap_y_mw: value("full-y"), full_trap_z_mw: value("full-z"),
+        vector_pathway: value("vector-pathway"), vector_components: componentCode("vector"), vector_cooling_mw: value("vector-cooling"), vector_detuning_mhz: value("vector-detuning"),
+        vector_trap_x_mw: value("vector-x"), vector_trap_y_mw: value("vector-y"), vector_trap_z_mw: value("vector-z"),
+      };
+    }
+
+    function curveSeries(axis, quantity) {
+      return models.map((model) => ({
+        label: payload.models[model.key].label,
+        values: payload.models[model.key][quantity][axis],
+        color: PmotViz.css(model.color),
+        dash: model.dash,
+        width: 2.1,
+        visible: document.getElementById(model.toggle).checked,
+      }));
+    }
+
+    function lineTitle(axis) {
+      const names = payload.line.axis_offset_order[axis];
+      const first = PmotViz.format(payload.line.offset_1_mm, 5);
+      const second = PmotViz.format(payload.line.offset_2_mm, 5);
+      return `Along ${axis}-axis; ${names[0]}=${first} mm, ${names[1]}=${second} mm`;
+    }
+
+    function draw() {
+      if (!payload) return;
+      const bands = document.getElementById("show-walls").checked
+        ? payload.glass_wall_bands_mm.map((range) => ({ x0: range[0], x1: range[1], color: PmotViz.css("--wall") }))
+        : [];
+      axes.forEach((axis) => {
+        const title = lineTitle(axis);
+        document.getElementById(`force-title-${axis}`).textContent = `Force: ${title}`;
+        document.getElementById(`gradient-title-${axis}`).textContent = `Force gradient: ${title}`;
+        PmotViz.drawLineChart(document.getElementById(`force-${axis}`), {
+          x: payload.coordinate_mm,
+          series: curveSeries(axis, "force_zN"),
+          bands,
+          xLabel: `${axis} position [mm]`,
+          yLabel: `F${axis} [zN]`,
+          height: 310,
+        });
+        PmotViz.drawLineChart(document.getElementById(`gradient-${axis}`), {
+          x: payload.coordinate_mm,
+          series: curveSeries(axis, "gradient_1e19_n_per_m"),
+          bands,
+          xLabel: `${axis} position [mm]`,
+          yLabel: `∂F${axis}/∂${axis} [10⁻¹⁹ N/m]`,
+          height: 310,
+        });
+      });
+    }
+
+    function tuple(values) {
+      return `(${values.map((number) => PmotViz.format(number, 5)).join(", ")})`;
+    }
+
+    async function calculate() {
+      const button = document.getElementById("calculate");
+      button.disabled = true;
+      PmotViz.setStatus(status, "Evaluating four live force models across x, y, and z…");
+      try {
+        payload = await PmotViz.api("/api/model-comparison", parameters());
+        const motGradient = payload.parameters.mot_multilevel.field_gradient_g_per_cm_xyz;
+        const strangeGradient = payload.parameters.mot_strange.origin_effective_field_gradient_g_per_cm_xyz;
+        document.getElementById("full-legend-label").textContent = payload.models.pMOT_2Level.label;
+        document.getElementById("vector-legend-label").textContent = payload.models.pmot_vec_2Level.label;
+        document.getElementById("field-summary").textContent = `MOT field gradient ${tuple(motGradient)} G/cm; mot_strange origin effective-field gradient ${tuple(strangeGradient)} G/cm; both pMOT branches have zero external magnetic field.`;
+        draw();
+        PmotViz.setStatus(status, `Ready. ${payload.coordinate_mm.length} samples per axis; live evaluation ${payload.elapsed_seconds.toFixed(2)} s.`);
+      } catch (error) {
+        PmotViz.setStatus(status, error.message, true);
+      } finally {
+        button.disabled = false;
+      }
+    }
+
+    document.getElementById("calculate").addEventListener("click", calculate);
+    models.forEach((model) => document.getElementById(model.toggle).addEventListener("change", draw));
+    document.getElementById("show-walls").addEventListener("change", draw);
+    PmotViz.watchResize(draw);
+    calculate();
+  </script>
+</body>
+</html>

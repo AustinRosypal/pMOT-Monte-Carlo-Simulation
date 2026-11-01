@@ -34,8 +34,9 @@ from pmot.mot_strange.surrogate_effective_field import surrogate_effective_field
 from pmot.pMOT_2Level import build_pmot_2level_cooling_beams
 from pmot.pMOT_2Level import build_pmot_2level_trapping_beams
 from pmot.pMOT_2Level import evaluate_pmot_2level_local_observable
-from pmot.pMOT_2Level import load_pmot_2level_polarizability_table
-from pmot.pmot_vec_2Level import evaluate_pmot_vec_2level_local_observable
+from pmot.pMOT_2Level import load_pmot_2level_component_polarizability_table
+from pmot.pMOT_2Level import normalize_pmot_stark_component_code
+from pmot.pMOT_2Level import pmot_stark_component_model_label
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -57,6 +58,7 @@ MULTILEVEL_COOLING_POWER_MW = 27.0
 MULTILEVEL_REPUMP_POWER_MW = 0.1
 PMOT_COOLING_POWER_MW = 1.0571
 PMOT_TRAPPING_PATH_POWERS_MW = np.full(3, 31.524310589374092)
+PMOT_COMPONENT_CODES = ("svt", "v")
 FIGURE_DPI = 220
 GLASS_WALL_CENTERS_MM = (-10.0, 10.0)
 GLASS_WALL_WIDTH_MM = 5.0
@@ -64,21 +66,47 @@ GLASS_WALL_WIDTH_MM = 5.0
 MODEL_LABELS = {
     "mot_multilevel": "Multilevel MOT",
     "mot_strange": "mot_strange",
-    "pMOT_2Level": "2-level pMOT",
-    "pmot_vec_2Level": "Vector-only 2-level pMOT",
 }
 MODEL_COLORS = {
     "mot_multilevel": "#2563eb",
     "mot_strange": "#d97706",
-    "pMOT_2Level": "#be123c",
-    "pmot_vec_2Level": "#0f766e",
 }
 MODEL_STYLES = {
     "mot_multilevel": "-",
     "mot_strange": "--",
-    "pMOT_2Level": "-.",
-    "pmot_vec_2Level": ":",
 }
+PMOT_COLORS = ("#be123c", "#0f766e", "#7c3aed", "#0891b2", "#a16207", "#4f46e5", "#be185d", "#475569")
+PMOT_STYLES = ("-.", ":", "--", "-", (0, (5, 2, 1, 2)), (0, (3, 2)), (0, (7, 3)), (0, (1, 2)))
+LEGACY_MODEL_ALIASES = {
+    "pMOT_2Level": "2Level_pMOT_svt",
+    "pmot_vec_2Level": "2Level_pMOT_v",
+}
+
+
+def configure_pmot_component_models(component_codes) -> tuple[str, ...]:
+    """Register canonical ``2Level_pMOT_<components>`` plot models."""
+
+    global PMOT_COMPONENT_CODES
+    canonical = tuple(
+        normalize_pmot_stark_component_code(code) for code in component_codes
+    )
+    if len(set(canonical)) != len(canonical):
+        raise ValueError("--pmot-components selections must be unique")
+    for key in tuple(MODEL_LABELS):
+        if key.startswith("2Level_pMOT_"):
+            MODEL_LABELS.pop(key, None)
+            MODEL_COLORS.pop(key, None)
+            MODEL_STYLES.pop(key, None)
+    for index, code in enumerate(canonical):
+        key = pmot_stark_component_model_label(code)
+        MODEL_LABELS[key] = key
+        MODEL_COLORS[key] = PMOT_COLORS[index % len(PMOT_COLORS)]
+        MODEL_STYLES[key] = PMOT_STYLES[index % len(PMOT_STYLES)]
+    PMOT_COMPONENT_CODES = canonical
+    return tuple(pmot_stark_component_model_label(code) for code in canonical)
+
+
+configure_pmot_component_models(PMOT_COMPONENT_CODES)
 
 
 def display_path(path: Path) -> str:
@@ -160,7 +188,10 @@ def pmot_environment():
         simple,
         cooling,
         build_pmot_2level_trapping_beams(),
-        load_pmot_2level_polarizability_table(),
+        {
+            code: load_pmot_2level_component_polarizability_table(code)
+            for code in PMOT_COMPONENT_CODES
+        },
     )
 
 
@@ -172,7 +203,7 @@ def evaluate_models(scan_m: np.ndarray) -> pd.DataFrame:
     accelerated = prepare_accelerated(config=ml_config, coil=coil)
     rate_model = build_rate_equation_model()
     multilevel_beams = build_multilevel_mot_beams(config=ml_config)
-    simple, cooling, trapping, polarizability = pmot_environment()
+    simple, cooling, trapping, component_tables = pmot_environment()
     trapping_powers_w = 1.0e-3 * PMOT_TRAPPING_PATH_POWERS_MW
     fallback_axis = (0.0, 0.0, 1.0)
     velocity = np.zeros(3)
@@ -212,32 +243,21 @@ def evaluate_models(scan_m: np.ndarray) -> pd.DataFrame:
                 component
             ]
 
-            full_pmot = evaluate_pmot_2level_local_observable(
-                cooling,
-                trapping,
-                position,
-                velocity,
-                path_powers_w=trapping_powers_w,
-                previous_axis=fallback_axis,
-                simple_config=simple,
-                polarizability_table=polarizability,
-            )
-            force_by_model["pMOT_2Level"][axis][index] = full_pmot.force_n[
-                component
-            ]
-
-            vector_pmot = evaluate_pmot_vec_2level_local_observable(
-                cooling,
-                trapping,
-                position,
-                velocity,
-                path_powers_w=trapping_powers_w,
-                previous_axis=fallback_axis,
-                simple_config=simple,
-            )
-            force_by_model["pmot_vec_2Level"][axis][index] = vector_pmot.force_n[
-                component
-            ]
+            for code, polarizability in component_tables.items():
+                model_name = pmot_stark_component_model_label(code)
+                pmot = evaluate_pmot_2level_local_observable(
+                    cooling,
+                    trapping,
+                    position,
+                    velocity,
+                    path_powers_w=trapping_powers_w,
+                    previous_axis=fallback_axis,
+                    simple_config=simple,
+                    polarizability_table=polarizability,
+                )
+                force_by_model[model_name][axis][index] = pmot.force_n[
+                    component
+                ]
         print(
             f"completed {axis}-axis ({len(scan_m)} points); "
             f"elapsed={perf_counter() - start:.1f} s",
@@ -275,6 +295,10 @@ def plot_overlay(
     title: str,
     output_path: Path,
 ) -> None:
+    models = tuple(LEGACY_MODEL_ALIASES.get(model, model) for model in models)
+    unknown = [model for model in models if model not in MODEL_LABELS]
+    if unknown:
+        raise ValueError(f"unknown overlay models: {', '.join(unknown)}")
     figure, panels = plt.subplots(2, 3, figsize=(17.2, 9.7), sharex="col")
     for column, axis in enumerate(AXES):
         for model in models:
@@ -332,7 +356,9 @@ def plot_overlay(
         f"Two-level pMOTs: cooling {PMOT_COOLING_POWER_MW:g} mW/component, "
         "trapping paths ("
         + ", ".join(f"{power:.3f}" for power in PMOT_TRAPPING_PATH_POWERS_MW)
-        + ") mW; repump geometry passive.",
+        + ") mW; Stark selections "
+        + ", ".join(pmot_stark_component_model_label(code) for code in PMOT_COMPONENT_CODES)
+        + "; repump geometry passive.",
         ha="center",
         va="top",
         fontsize=10.8,
@@ -370,8 +396,8 @@ def plot_overlay(
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Recompute the current MOT, mot_strange, full two-level pMOT, and "
-            "vector-only two-level pMOT on-axis force/gradient overlays."
+            "Recompute MOT, mot_strange, and selectable scalar/vector/tensor "
+            "two-level pMOT on-axis force/gradient overlays."
         )
     )
     parser.add_argument(
@@ -420,6 +446,16 @@ def parse_args() -> argparse.Namespace:
         metavar=("PX", "PY", "PZ"),
         default=tuple(PMOT_TRAPPING_PATH_POWERS_MW),
         help="Three pMOT trapping-path powers in mW (default: 31.524 each).",
+    )
+    parser.add_argument(
+        "--pmot-components",
+        nargs="+",
+        default=PMOT_COMPONENT_CODES,
+        help=(
+            "One or more independent pMOT Stark selections, using s, v, t, "
+            "or none; for example: --pmot-components svt sv v "
+            "(default: svt v)."
+        ),
     )
     parser.add_argument(
         "--broad-samples",
@@ -483,6 +519,7 @@ def main() -> None:
     MULTILEVEL_REPUMP_POWER_MW = float(args.multilevel_repump_power_mw)
     PMOT_COOLING_POWER_MW = float(args.pmot_cooling_power_mw)
     PMOT_TRAPPING_PATH_POWERS_MW = powers
+    pmot_models = configure_pmot_component_models(args.pmot_components)
     FIGURE_DPI = int(args.dpi)
 
     output_directory = args.output_directory
@@ -499,33 +536,29 @@ def main() -> None:
     frame = evaluate_models(scan_m)
     frame.to_csv(data_path, index=False)
 
+    component_tag = "_vs_".join(code or "none" for code in PMOT_COMPONENT_CODES)
     outputs = {
-        "three_model": output_directory / "mot_strange_pmot2level_overlay.png",
-        "four_model": output_directory / "mot_strange_pmot2level_vector_overlay.png",
-        "pmot_pair": output_directory / "pmot2level_full_vs_vector_only_overlay.png",
+        "mot_strange_first_pmot": output_directory / "mot_strange_first_pmot_overlay.png",
+        "all_models": output_directory / f"all_models_{component_tag}_overlay.png",
+        "pmot_configurations": output_directory / f"pmot_{component_tag}_overlay.png",
     }
     plot_overlay(
         frame,
-        ("mot_multilevel", "mot_strange", "pMOT_2Level"),
-        title="Force and Force-Gradient Overlay: MOT, mot_strange, and 2-Level pMOT",
-        output_path=outputs["three_model"],
+        ("mot_multilevel", "mot_strange", pmot_models[0]),
+        title=f"Force and Force-Gradient Overlay: MOT, mot_strange, and {pmot_models[0]}",
+        output_path=outputs["mot_strange_first_pmot"],
     )
     plot_overlay(
         frame,
-        (
-            "mot_multilevel",
-            "mot_strange",
-            "pMOT_2Level",
-            "pmot_vec_2Level",
-        ),
-        title="Force and Force-Gradient Overlay: All Four Current Models",
-        output_path=outputs["four_model"],
+        ("mot_multilevel", "mot_strange", *pmot_models),
+        title="Force and Force-Gradient Overlay: All Selected Models",
+        output_path=outputs["all_models"],
     )
     plot_overlay(
         frame,
-        ("pMOT_2Level", "pmot_vec_2Level"),
-        title="Force and Force-Gradient Overlay: Full vs Vector-Only 2-Level pMOT",
-        output_path=outputs["pmot_pair"],
+        pmot_models,
+        title="Force and Force-Gradient Overlay: Selected 2-Level pMOT Components",
+        output_path=outputs["pmot_configurations"],
     )
 
     strange_gradient = 100.0 * np.diag(
@@ -553,6 +586,8 @@ def main() -> None:
             "cooling_power_mw_per_component": PMOT_COOLING_POWER_MW,
             "passive_repump_power_mw_per_component": MULTILEVEL_REPUMP_POWER_MW,
             "trapping_path_powers_mw_xyz": PMOT_TRAPPING_PATH_POWERS_MW.tolist(),
+            "component_codes": [code or "none" for code in PMOT_COMPONENT_CODES],
+            "model_labels": list(pmot_models),
         },
         "origin_force_gradient_1e19_n_per_m": {
             row["model"] + "_" + row["axis"]: row[

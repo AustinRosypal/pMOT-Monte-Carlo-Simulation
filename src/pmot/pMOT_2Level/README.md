@@ -19,7 +19,10 @@ does not alter the independently validated 20 mW default in `mot_simple`.
 
 Implemented here:
 
-- the existing single-frequency 1529.268881-nm trapping-light geometry;
+- two explicit single-frequency pathways over the same trapping-light
+  geometry and dynamics engine:
+  - `scalar_tensor_cancellation/` at 1529.268881 nm;
+  - `scalar_zero/` at 1529.273195181438 nm;
 - three Cartesian round-trip paths and six traveling components;
 - ideal Gaussian intensity at any finite 3D position;
 - explicit x/y/z launched powers, in watts;
@@ -54,6 +57,33 @@ validated two-level pMOT design conclusion.
 Physical trapping power is still unspecified, so the point evaluator requires
 the caller to supply `path_powers_w=(P_x, P_y, P_z)`. Use `(1, 1, 1)` only when
 an intensity-per-launched-watt geometry normalization is intended.
+
+## Wavelength pathways
+
+The package separates wavelength selection from the shared physics engine:
+
+| Pathway key | Subpackage | Wavelength | Defining condition |
+|---|---|---:|---|
+| `scalar_tensor_cancellation` | `pmot.pMOT_2Level.scalar_tensor_cancellation` | 1529.268881 nm | Scalar and tensor differential shifts cancel for the single circular-beam stretched reference with quantization axis parallel to propagation. |
+| `scalar_zero` | `pmot.pMOT_2Level.scalar_zero` | 1529.273195181438 nm | Differential scalar polarizability is zero; vector and tensor polarizabilities remain nonzero. |
+
+The historical default remains `scalar_tensor_cancellation`; existing callers
+of `build_pmot_2level_trapping_beams()` therefore retain their wavelength.
+New comparisons should name the pathway explicitly:
+
+```python
+from pmot.pMOT_2Level import get_pmot_2level_pathway
+
+pathway = get_pmot_2level_pathway("scalar_zero")
+trapping_beams = pathway.build_trapping_beams()
+```
+
+The scalar--tensor cancellation is a single-beam angular condition. In the
+balanced three-axis core, the tensor sum cancels geometrically and leaves the
+scalar shift from that pathway. At the scalar-zero wavelength, both the scalar
+shift and the balanced three-axis tensor sum vanish at the origin, while the
+signed vector shift has the desired first-order spatial gradient. Tensor
+residue reappears away from equal x/y/z path intensity.
 
 ## Equations and conventions
 

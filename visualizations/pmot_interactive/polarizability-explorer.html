@@ -1,0 +1,503 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Effective Polarizability Explorer</title>
+  <link rel="stylesheet" href="common.css">
+  <style>
+    :root {
+      --polar-scalar: #1769d2;
+      --polar-vector: #d43d3d;
+      --polar-tensor: #18864b;
+      --marker-cancellation: #8a52c7;
+      --marker-scalar-zero: #c87913;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --polar-scalar: #71a9ff;
+        --polar-vector: #ff7e7e;
+        --polar-tensor: #61cf8d;
+        --marker-cancellation: #c29af2;
+        --marker-scalar-zero: #f4ae52;
+      }
+    }
+
+    .polarizability-canvas-wrap {
+      min-height: 620px;
+    }
+
+    #chart {
+      height: 620px;
+    }
+
+    .series-patch {
+      width: 16px;
+      height: 12px;
+      background: var(--swatch);
+    }
+
+    .line-key {
+      width: 28px;
+      height: 0;
+      border-top: 2px solid var(--fg);
+    }
+
+    .line-key.negative {
+      border-top-style: dashed;
+    }
+
+    .vertical-key {
+      width: 0;
+      height: 18px;
+      border-left: 2px dashed var(--swatch);
+    }
+
+    @media (max-width: 720px) {
+      .polarizability-canvas-wrap,
+      #chart {
+        min-height: 500px;
+        height: 500px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div>
+        <h1>Effective differential polarizabilities</h1>
+        <p class="subtitle">Arora CCSD data in the signed-log representation used for the pMOT design analysis.</p>
+      </div>
+      <nav aria-label="Visualization pages">
+        <a href="index.html">Home</a>
+        <a href="polarizability-explorer.html" aria-current="page">Polarizability</a>
+        <a href="force-gradient-explorer.html">Force</a>
+        <a href="model-comparison-explorer.html">Comparison</a>
+        <a href="stark-geometry-explorer.html">Stark maps</a>
+        <a href="phase-space-explorer.html">Phase space</a>
+      </nav>
+    </header>
+
+    <div class="notice">
+      The logarithmic vertical axis shows magnitude. Solid segments are positive and dashed segments are negative. Drag horizontally or use the mouse wheel to zoom; every CSV row in the selected interval is retained.
+    </div>
+
+    <section class="controls" aria-label="Polarizability controls">
+      <label>Minimum wavelength [nm]
+        <input id="min-nm" type="number" step="0.000001" value="1529.124000">
+      </label>
+      <label>Maximum wavelength [nm]
+        <input id="max-nm" type="number" step="0.000001" value="1529.476000">
+      </label>
+      <div class="control-actions">
+        <button id="apply" class="button primary" type="button">Apply interval</button>
+        <button id="reset" class="button" type="button">Reset full range</button>
+      </div>
+      <div class="wide legend" aria-label="Displayed series and sign convention">
+        <label><input id="show-scalar" type="checkbox" checked><span class="series-patch" style="--swatch:var(--polar-scalar)"></span>Scalar α<sub>eff</sub><sup>(0)</sup></label>
+        <label><input id="show-vector" type="checkbox" checked><span class="series-patch" style="--swatch:var(--polar-vector)"></span>Vector α<sub>eff</sub><sup>(1)</sup></label>
+        <label><input id="show-tensor" type="checkbox" checked><span class="series-patch" style="--swatch:var(--polar-tensor)"></span>Tensor α<sub>eff</sub><sup>(2)</sup></label>
+        <span class="line-key" aria-hidden="true"></span><span>Positive</span>
+        <span class="line-key negative" aria-hidden="true"></span><span>Negative</span>
+        <span class="vertical-key" style="--swatch:var(--marker-cancellation)" aria-hidden="true"></span><span>Scalar–tensor cancellation: 1529.268881 nm</span>
+        <span class="vertical-key" style="--swatch:var(--marker-scalar-zero)" aria-hidden="true"></span><span>Scalar zero: 1529.273195 nm</span>
+      </div>
+    </section>
+
+    <section class="chart-panel">
+      <h2>Scalar, vector, and tensor effective differential polarizabilities</h2>
+      <p id="summary" class="muted"></p>
+      <div class="canvas-wrap polarizability-canvas-wrap">
+        <canvas id="chart" role="img" aria-label="Signed scalar, vector, and tensor effective differential polarizabilities versus optical frequency, with wavelength on the secondary axis"></canvas>
+        <div class="tooltip" role="tooltip"></div>
+      </div>
+      <p id="status" class="status" aria-live="polite"></p>
+    </section>
+
+    <section class="card" style="margin-top:14px">
+      <h2>Selected wavelength conditions</h2>
+      <div id="marker-details" class="grid"></div>
+    </section>
+  </main>
+
+  <script src="common.js"></script>
+  <script>
+    const SPEED_OF_LIGHT = 299792458.0;
+    const LOG_FLOOR = 1e-5;
+    const controls = {
+      min: document.getElementById("min-nm"),
+      max: document.getElementById("max-nm"),
+      scalar: document.getElementById("show-scalar"),
+      vector: document.getElementById("show-vector"),
+      tensor: document.getElementById("show-tensor"),
+    };
+    const chart = document.getElementById("chart");
+    const tooltip = chart.parentElement.querySelector(".tooltip");
+    const status = document.getElementById("status");
+    let payload = null;
+    let chartState = null;
+    let baseLayer = null;
+    let dragStart = null;
+
+    function frequencyFromWavelength(wavelengthNm) {
+      return SPEED_OF_LIGHT / (wavelengthNm * 1e-9) / 1e12;
+    }
+
+    function wavelengthFromFrequency(frequencyThz) {
+      return SPEED_OF_LIGHT / (frequencyThz * 1e12) * 1e9;
+    }
+
+    function series() {
+      return [
+        { label: "Scalar", values: payload.scalar, color: PmotViz.css("--polar-scalar"), visible: controls.scalar.checked },
+        { label: "Vector", values: payload.vector, color: PmotViz.css("--polar-vector"), visible: controls.vector.checked },
+        { label: "Tensor", values: payload.tensor, color: PmotViz.css("--polar-tensor"), visible: controls.tensor.checked },
+      ];
+    }
+
+    function niceLinearTicks(minimum, maximum, maximumTicks) {
+      const rawStep = (maximum - minimum) / Math.max(1, maximumTicks - 1);
+      const power = 10 ** Math.floor(Math.log10(rawStep));
+      const scaled = rawStep / power;
+      const multiplier = scaled <= 1 ? 1 : scaled <= 2 ? 2 : scaled <= 5 ? 5 : 10;
+      const step = multiplier * power;
+      const first = Math.ceil(minimum / step - 1e-10) * step;
+      const result = [];
+      for (let value = first; value <= maximum + step * 1e-8; value += step) result.push(value);
+      return { values: result, step };
+    }
+
+    function fixedDigits(step) {
+      return Math.max(0, Math.min(8, -Math.floor(Math.log10(step))));
+    }
+
+    function nearestWavelengthIndex(target) {
+      const values = payload.wavelength_nm;
+      let low = 0;
+      let high = values.length - 1;
+      while (low < high) {
+        const middle = Math.floor((low + high) / 2);
+        if (values[middle] < target) low = middle + 1;
+        else high = middle;
+      }
+      if (low > 0 && Math.abs(values[low - 1] - target) < Math.abs(values[low] - target)) return low - 1;
+      return low;
+    }
+
+    function setupLayer(canvasElement, width, height, dpr) {
+      canvasElement.width = Math.round(width * dpr);
+      canvasElement.height = Math.round(height * dpr);
+      const context = canvasElement.getContext("2d");
+      context.setTransform(dpr, 0, 0, dpr, 0, 0);
+      return context;
+    }
+
+    function drawSignedSegment(context, state, values, sign, color) {
+      context.strokeStyle = color;
+      context.lineWidth = 1.8;
+      context.setLineDash(sign > 0 ? [] : [7, 5]);
+      context.beginPath();
+      let started = false;
+      for (let index = 0; index < values.length; index += 1) {
+        const value = values[index];
+        const magnitude = Math.abs(value);
+        const matchesSign = sign > 0 ? value > 0 : value < 0;
+        if (!matchesSign || !Number.isFinite(magnitude) || magnitude < state.yMin || magnitude > state.yMax) {
+          started = false;
+          continue;
+        }
+        const x = state.xToPixel(payload.frequency_thz[index]);
+        const y = state.yToPixel(magnitude);
+        if (started) context.lineTo(x, y);
+        else {
+          context.moveTo(x, y);
+          started = true;
+        }
+      }
+      context.stroke();
+      context.setLineDash([]);
+    }
+
+    function drawBase() {
+      if (!payload) return;
+      const width = Math.max(320, chart.parentElement.clientWidth);
+      const height = window.matchMedia("(max-width: 720px)").matches ? 500 : 620;
+      const dpr = Math.max(1, window.devicePixelRatio || 1);
+      chart.style.height = `${height}px`;
+      setupLayer(chart, width, height, dpr);
+      baseLayer = document.createElement("canvas");
+      const context = setupLayer(baseLayer, width, height, dpr);
+      const compact = width < 720;
+      const margin = { left: compact ? 82 : 112, right: 28, top: compact ? 78 : 84, bottom: 68 };
+      const plot = { left: margin.left, right: width - margin.right, top: margin.top, bottom: height - margin.bottom };
+      const frequencies = payload.frequency_thz;
+      const xMin = Math.min(...frequencies);
+      const xMax = Math.max(...frequencies);
+      const visible = series().filter((item) => item.visible);
+      let maximumMagnitude = LOG_FLOOR * 10;
+      visible.forEach((item) => item.values.forEach((value) => {
+        if (Number.isFinite(value)) maximumMagnitude = Math.max(maximumMagnitude, Math.abs(value));
+      }));
+      const yMin = LOG_FLOOR;
+      const yMax = 10 ** Math.ceil(Math.log10(maximumMagnitude));
+      const logMin = Math.log10(yMin);
+      const logMax = Math.log10(yMax);
+      const xToPixel = (value) => plot.left + ((value - xMin) / (xMax - xMin)) * (plot.right - plot.left);
+      const xFromPixel = (pixel) => xMin + ((pixel - plot.left) / (plot.right - plot.left)) * (xMax - xMin);
+      const yToPixel = (value) => plot.bottom - ((Math.log10(value) - logMin) / (logMax - logMin)) * (plot.bottom - plot.top);
+      const state = { width, height, dpr, plot, xMin, xMax, yMin, yMax, xToPixel, xFromPixel, yToPixel, visible };
+
+      context.fillStyle = PmotViz.css("--surface");
+      context.fillRect(0, 0, width, height);
+      context.font = "12px system-ui, sans-serif";
+
+      for (let exponent = Math.ceil(logMin); exponent <= Math.floor(logMax); exponent += 1) {
+        for (let multiplier = 1; multiplier <= 9; multiplier += 1) {
+          const value = multiplier * 10 ** exponent;
+          if (value < yMin || value > yMax) continue;
+          const y = yToPixel(value);
+          context.strokeStyle = PmotViz.css("--grid");
+          context.globalAlpha = multiplier === 1 ? 0.95 : 0.4;
+          context.setLineDash([4, 4]);
+          context.beginPath();
+          context.moveTo(plot.left, y);
+          context.lineTo(plot.right, y);
+          context.stroke();
+          if (multiplier === 1) {
+            context.globalAlpha = 1;
+            context.fillStyle = PmotViz.css("--muted");
+            context.textAlign = "right";
+            context.textBaseline = "middle";
+            context.fillText(`10${String(exponent).replace("-", "−")}`, plot.left - 10, y);
+          }
+        }
+      }
+      context.globalAlpha = 1;
+      context.setLineDash([]);
+
+      const xTicks = niceLinearTicks(xMin, xMax, compact ? 5 : 7);
+      const frequencyDigits = fixedDigits(xTicks.step);
+      const wavelengthRange = payload.range_nm[1] - payload.range_nm[0];
+      const wavelengthDigits = wavelengthRange < 0.01 ? 5 : wavelengthRange < 0.1 ? 4 : 2;
+      xTicks.values.forEach((tick) => {
+        const x = xToPixel(tick);
+        context.strokeStyle = PmotViz.css("--grid");
+        context.setLineDash([4, 4]);
+        context.beginPath();
+        context.moveTo(x, plot.top);
+        context.lineTo(x, plot.bottom);
+        context.stroke();
+        context.setLineDash([]);
+        context.fillStyle = PmotViz.css("--muted");
+        context.textAlign = "center";
+        context.textBaseline = "top";
+        context.fillText(tick.toFixed(frequencyDigits), x, plot.bottom + 8);
+        context.textBaseline = "bottom";
+        context.fillText(wavelengthFromFrequency(tick).toFixed(wavelengthDigits), x, plot.top - 9);
+      });
+
+      visible.forEach((item) => {
+        drawSignedSegment(context, state, item.values, 1, item.color);
+        drawSignedSegment(context, state, item.values, -1, item.color);
+      });
+
+      payload.markers.forEach((marker, index) => {
+        if (marker.frequency_thz < xMin || marker.frequency_thz > xMax) return;
+        const x = xToPixel(marker.frequency_thz);
+        context.strokeStyle = index === 0
+          ? PmotViz.css("--marker-cancellation")
+          : PmotViz.css("--marker-scalar-zero");
+        context.lineWidth = 1.8;
+        context.setLineDash(index === 0 ? [7, 5] : [3, 4]);
+        context.beginPath();
+        context.moveTo(x, plot.top);
+        context.lineTo(x, plot.bottom);
+        context.stroke();
+        context.setLineDash([]);
+      });
+
+      payload.resonances.forEach((resonance, index) => {
+        if (resonance.frequency_thz < xMin || resonance.frequency_thz > xMax) return;
+        const x = xToPixel(resonance.frequency_thz);
+        const annotationMagnitude = Math.min(1e5, yMax / 3);
+        const y = yToPixel(Math.max(yMin, annotationMagnitude));
+        context.fillStyle = PmotViz.css("--fg");
+        context.textAlign = index === 0 ? "right" : "left";
+        context.textBaseline = "bottom";
+        context.fillText(resonance.label, x + (index === 0 ? -5 : 5), y);
+      });
+
+      context.strokeStyle = PmotViz.css("--border");
+      context.strokeRect(plot.left, plot.top, plot.right - plot.left, plot.bottom - plot.top);
+      context.fillStyle = PmotViz.css("--fg");
+      context.font = "13px system-ui, sans-serif";
+      context.textAlign = "center";
+      context.textBaseline = "bottom";
+      context.fillText("Optical frequency ν (THz)", (plot.left + plot.right) / 2, height - 4);
+      context.textBaseline = "top";
+      context.fillText("Wavelength λ (nm)", (plot.left + plot.right) / 2, 7);
+      context.save();
+      context.translate(16, (plot.top + plot.bottom) / 2);
+      context.rotate(-Math.PI / 2);
+      context.textBaseline = "middle";
+      context.fillText("α_eff^(i) = α′^(i)/(hcε₀)", 0, 0);
+      context.restore();
+      context.save();
+      context.translate(compact ? 37 : 43, (plot.top + plot.bottom) / 2);
+      context.rotate(-Math.PI / 2);
+      context.textBaseline = "middle";
+      context.fillText("|Effective differential polarizability|  [MHz/(mW/(100 μm)²)]", 0, 0);
+      context.restore();
+
+      chartState = state;
+      restoreBase();
+    }
+
+    function restoreBase() {
+      if (!baseLayer || !chartState) return;
+      const context = chart.getContext("2d");
+      context.setTransform(1, 0, 0, 1, 0, 0);
+      context.clearRect(0, 0, chart.width, chart.height);
+      context.drawImage(baseLayer, 0, 0);
+      context.setTransform(chartState.dpr, 0, 0, chartState.dpr, 0, 0);
+    }
+
+    function drawHover(index, pointerX) {
+      restoreBase();
+      const state = chartState;
+      const context = chart.getContext("2d");
+      const x = state.xToPixel(payload.frequency_thz[index]);
+      context.strokeStyle = PmotViz.css("--fg");
+      context.globalAlpha = 0.55;
+      context.beginPath();
+      context.moveTo(pointerX, state.plot.top);
+      context.lineTo(pointerX, state.plot.bottom);
+      context.stroke();
+      context.globalAlpha = 1;
+      state.visible.forEach((item) => {
+        const magnitude = Math.abs(item.values[index]);
+        if (!Number.isFinite(magnitude) || magnitude < state.yMin || magnitude > state.yMax) return;
+        context.fillStyle = item.color;
+        context.beginPath();
+        context.arc(x, state.yToPixel(magnitude), 3.5, 0, Math.PI * 2);
+        context.fill();
+      });
+    }
+
+    function draw() {
+      drawBase();
+    }
+
+    async function loadRange() {
+      document.getElementById("apply").disabled = true;
+      PmotViz.setStatus(status, "Loading selected wavelength interval…");
+      try {
+        payload = await PmotViz.api("/api/polarizability", {
+          min_nm: controls.min.value,
+          max_nm: controls.max.value,
+          max_points: 100000,
+        });
+        controls.min.value = payload.range_nm[0].toFixed(9);
+        controls.max.value = payload.range_nm[1].toFixed(9);
+        document.getElementById("summary").textContent = `${payload.display_rows.toLocaleString()} exact CSV samples; median Δλ=${payload.median_sample_spacing_nm.toExponential(3)} nm. The plotted ordinate is |value| on a log scale; line style retains the original sign.`;
+        document.getElementById("marker-details").innerHTML = payload.markers.map((marker) => `
+          <div>
+            <h3>${marker.label}</h3>
+            <p><strong>${marker.wavelength_nm.toFixed(12)} nm</strong> · ${marker.frequency_thz.toFixed(9)} THz</p>
+            <p class="muted">Scalar ${PmotViz.format(marker.scalar)} · Vector ${PmotViz.format(marker.vector)} · Tensor ${PmotViz.format(marker.tensor)}</p>
+          </div>
+        `).join("");
+        draw();
+        PmotViz.setStatus(status, "Ready. Full-resolution signed-log data are displayed.");
+      } catch (error) {
+        PmotViz.setStatus(status, error.message, true);
+      } finally {
+        document.getElementById("apply").disabled = false;
+      }
+    }
+
+    document.getElementById("apply").addEventListener("click", loadRange);
+    document.getElementById("reset").addEventListener("click", () => {
+      controls.min.value = (payload?.full_range_nm?.[0] ?? 1529.124).toFixed(9);
+      controls.max.value = (payload?.full_range_nm?.[1] ?? 1529.476).toFixed(9);
+      loadRange();
+    });
+    [controls.scalar, controls.vector, controls.tensor].forEach((control) => control.addEventListener("change", draw));
+
+    chart.addEventListener("mousemove", (event) => {
+      if (!chartState || !payload) return;
+      const rectangle = chart.getBoundingClientRect();
+      const px = event.clientX - rectangle.left;
+      const py = event.clientY - rectangle.top;
+      if (px < chartState.plot.left || px > chartState.plot.right || py < chartState.plot.top || py > chartState.plot.bottom) {
+        tooltip.style.display = "none";
+        restoreBase();
+        return;
+      }
+      const frequency = chartState.xFromPixel(px);
+      const index = nearestWavelengthIndex(wavelengthFromFrequency(frequency));
+      drawHover(index, px);
+      const rows = chartState.visible.map((item) => `${item.label}: <strong>${PmotViz.format(item.values[index], 7)}</strong>`).join("<br>");
+      tooltip.innerHTML = `Frequency: <strong>${payload.frequency_thz[index].toFixed(9)} THz</strong><br>Wavelength: <strong>${payload.wavelength_nm[index].toFixed(9)} nm</strong><br>${rows}`;
+      tooltip.style.display = "block";
+      tooltip.style.left = `${Math.min(rectangle.width - tooltip.offsetWidth - 8, px + 14)}px`;
+      tooltip.style.top = `${Math.max(6, py - tooltip.offsetHeight - 8)}px`;
+    });
+    chart.addEventListener("mouseleave", () => {
+      tooltip.style.display = "none";
+      restoreBase();
+    });
+    chart.addEventListener("pointerdown", (event) => {
+      if (!chartState) return;
+      const rectangle = chart.getBoundingClientRect();
+      dragStart = event.clientX - rectangle.left;
+      chart.setPointerCapture(event.pointerId);
+    });
+    chart.addEventListener("pointerup", (event) => {
+      if (dragStart === null || !chartState) return;
+      const rectangle = chart.getBoundingClientRect();
+      const end = event.clientX - rectangle.left;
+      if (Math.abs(end - dragStart) > 12) {
+        const left = Math.max(chartState.plot.left, Math.min(dragStart, end));
+        const right = Math.min(chartState.plot.right, Math.max(dragStart, end));
+        if (right > left) {
+          const wavelengths = [
+            wavelengthFromFrequency(chartState.xFromPixel(left)),
+            wavelengthFromFrequency(chartState.xFromPixel(right)),
+          ];
+          controls.min.value = Math.min(...wavelengths).toFixed(9);
+          controls.max.value = Math.max(...wavelengths).toFixed(9);
+          loadRange();
+        }
+      }
+      dragStart = null;
+    });
+
+    const zoomFromWheel = PmotViz.debounce((clientX, deltaY) => {
+      if (!chartState || !payload) return;
+      const rectangle = chart.getBoundingClientRect();
+      const center = chartState.xFromPixel(clientX - rectangle.left);
+      const factor = deltaY > 0 ? 1.7 : 0.58;
+      let lowerFrequency = center - (center - chartState.xMin) * factor;
+      let upperFrequency = center + (chartState.xMax - center) * factor;
+      const fullLower = frequencyFromWavelength(payload.full_range_nm[1]);
+      const fullUpper = frequencyFromWavelength(payload.full_range_nm[0]);
+      lowerFrequency = Math.max(fullLower, lowerFrequency);
+      upperFrequency = Math.min(fullUpper, upperFrequency);
+      const wavelengths = [wavelengthFromFrequency(lowerFrequency), wavelengthFromFrequency(upperFrequency)];
+      controls.min.value = Math.min(...wavelengths).toFixed(9);
+      controls.max.value = Math.max(...wavelengths).toFixed(9);
+      loadRange();
+    }, 120);
+    chart.addEventListener("wheel", (event) => {
+      event.preventDefault();
+      zoomFromWheel(event.clientX, event.deltaY);
+    }, { passive: false });
+
+    PmotViz.watchResize(draw);
+    loadRange();
+  </script>
+</body>
+</html>

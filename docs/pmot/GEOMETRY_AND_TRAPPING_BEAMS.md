@@ -15,17 +15,19 @@ The provisional mapping, its equations, first short trajectories, and the data
 missing for a state-resolved Hamiltonian are recorded in
 `docs/pmot/PROVISIONAL_AC_STARK_MODEL.md`.
 
-The current pMOT design has one configurable trapping-light frequency. Its
-default wavelength is
+The effective two-level pMOT simulation now exposes two mutually exclusive
+single-frequency pathways over the same optical geometry and dynamics engine.
+The historical/default pathway uses
 
 \[
 \lambda_{\mathrm{trap}}=1529.268881\ \mathrm{nm}.
 \]
 
 This wavelength replaces the former two-tone proposal. It is selected as the
-single-frequency point at which the scalar and tensor shifts cancel while a
-vector shift remains. The wavelength must be a named configuration parameter,
-not a constant embedded in field or plotting code.
+single-beam stretched-reference point at which the scalar and tensor shifts
+cancel while a vector shift remains when the quantization axis is parallel to
+the beam. The wavelength must be a named configuration parameter, not a
+constant embedded in field or plotting code.
 
 Interpolating the repository's Arora CCSD differential-polarizability table at
 this wavelength gives scalar, vector, and tensor coefficients of approximately
@@ -34,6 +36,21 @@ this wavelength gives scalar, vector, and tensor coefficients of approximately
 -0.000653 in the same units, or (4.8\times10^{-6}) of the vector magnitude.
 This checks the stored differential-coefficient cancellation; the production
 physics stage must still apply the correct hyperfine-state angular factors.
+
+The alternative `scalar_zero` pathway uses
+
+\[
+\lambda_{\Delta\alpha^{(0)}=0}=1529.273195181438\ \mathrm{nm},
+\]
+
+the nearby smooth zero of the tabulated differential scalar polarizability.
+The vector and tensor coefficients remain nonzero there. In the ideal balanced
+three-axis core, the three tensor contributions cancel geometrically. Thus the
+scalar-zero pathway removes the common scalar detuning at the center, while
+the vector shift supplies the leading spatially odd term. Unequal path
+intensities away from the center restore a tensor residue. These are
+provisional effective-two-level alternatives, not validated physical pMOT
+design conclusions.
 
 The pMOT has no anti-Helmholtz coils and no applied external magnetic field:
 
