@@ -34,6 +34,11 @@
           <option value="scalar_tensor_cancellation">Single-beam scalar–tensor cancellation</option>
         </select>
       </label>
+      <div class="wide legend" aria-label="Enabled differential Stark components">
+        <label><input id="component-s" type="checkbox" checked>Scalar (s)</label>
+        <label><input id="component-v" type="checkbox" checked>Vector (v)</label>
+        <label><input id="component-t" type="checkbox" checked>Tensor (t)</label>
+      </div>
       <label>Plane
         <select id="plane">
           <option value="xy">x–y</option>
@@ -128,7 +133,7 @@
         defined: payload.axis_defined,
       } : null;
       document.getElementById("map-title").textContent = `${fieldLabels[field]} in ${payload.horizontal_axis}–${payload.vertical_axis} plane`;
-      document.getElementById("map-subtitle").textContent = `${payload.slice_axis}=${PmotViz.format(payload.slice_mm)} mm · λ=${payload.wavelength_nm.toFixed(12)} nm · arrows are the local vector-shift axis`;
+      document.getElementById("map-subtitle").textContent = `${payload.model_label} · ${payload.slice_axis}=${PmotViz.format(payload.slice_mm)} mm · λ=${payload.wavelength_nm.toFixed(12)} nm · vector off/zero uses a numerical fallback axis`;
       PmotViz.drawHeatmap(map, {
         x: payload.coordinate_mm,
         y: payload.coordinate_mm,
@@ -148,6 +153,7 @@
       try {
         payload = await PmotViz.api("/api/stark-plane", {
           pathway: controls.pathway.value,
+          components: ["s", "v", "t"].filter((letter) => document.getElementById(`component-${letter}`).checked).join("") || "none",
           plane: controls.plane.value,
           slice_mm: controls.slice.value,
           extent_mm: controls.extent.value,

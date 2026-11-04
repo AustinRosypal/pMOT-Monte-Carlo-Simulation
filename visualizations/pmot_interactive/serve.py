@@ -141,6 +141,14 @@ def _pathway_name(query: dict[str, list[str]]) -> str:
     return name
 
 
+def _component_metadata(query: dict[str, list[str]]) -> dict[str, str]:
+    code = normalize_pmot_stark_component_code(_one(query, "components", "svt"))
+    return {
+        "stark_components": code or "none",
+        "model_label": pmot_stark_component_model_label(code),
+    }
+
+
 def _path_powers_mw(query: dict[str, list[str]]) -> tuple[float, float, float]:
     return tuple(
         _float(query, f"trap_{axis}_mw", 46.0, minimum=0.0, maximum=1000.0)
@@ -389,15 +397,7 @@ def api_force_line(query: dict[str, list[str]]) -> dict[str, Any]:
     )
     return {
         "pathway": pathway.key,
-        "stark_components": (
-            normalize_pmot_stark_component_code(
-                _one(query, "components", "svt")
-            )
-            or "none"
-        ),
-        "model_label": pmot_stark_component_model_label(
-            _one(query, "components", "svt")
-        ),
+        **_component_metadata(query),
         "wavelength_nm": pathway.trapping_wavelength_nm,
         "axis": axis_name,
         "offset_coordinates": other_names,
@@ -485,6 +485,7 @@ def api_stark_plane(query: dict[str, list[str]]) -> dict[str, Any]:
         "axis_v": axes[:, :, vertical_index],
         "axis_out": axes[:, :, slice_index],
         "axis_defined": axis_defined,
+        **_component_metadata(query),
     }
 
 
@@ -538,6 +539,7 @@ def api_phase_space(query: dict[str, list[str]]) -> dict[str, Any]:
         "position_mm": positions_mm,
         "velocity_m_per_s": velocities,
         "force_zN": force_z_n,
+        **_component_metadata(query),
     }
 
 

@@ -176,7 +176,9 @@
       <label><span>Glass-cell bands</span>
         <span><input id="show-walls" type="checkbox" checked> Show centers ±10 mm, width 5 mm</span>
       </label>
-      <div class="control-actions">
+      <div class="control-actions wide">
+        <button id="compare-svt-sv" class="button" type="button">Compare svt vs sv (match A settings)</button>
+        <button id="compare-svt-v" class="button" type="button">Compare svt vs v (match A settings)</button>
         <button id="calculate" class="button primary" type="button">Recalculate all models</button>
       </div>
     </section>
@@ -319,6 +321,20 @@
       };
     }
 
+    function compareComponents(secondCode) {
+      // Copy physical settings so the only difference is the retained ranks.
+      ["pathway", "cooling", "detuning", "x", "y", "z"].forEach((suffix) => {
+        document.getElementById(`vector-${suffix}`).value = value(`full-${suffix}`);
+      });
+      ["s", "v", "t"].forEach((letter) => {
+        document.getElementById(`full-${letter}`).checked = true;
+        document.getElementById(`vector-${letter}`).checked = secondCode.includes(letter);
+      });
+      document.getElementById("show-full").checked = true;
+      document.getElementById("show-vector").checked = true;
+      calculate();
+    }
+
     function curveSeries(axis, quantity) {
       return models.map((model) => ({
         label: payload.models[model.key].label,
@@ -372,6 +388,8 @@
     async function calculate() {
       const button = document.getElementById("calculate");
       button.disabled = true;
+      document.getElementById("compare-svt-sv").disabled = true;
+      document.getElementById("compare-svt-v").disabled = true;
       PmotViz.setStatus(status, "Evaluating four live force models across x, y, and z…");
       try {
         payload = await PmotViz.api("/api/model-comparison", parameters());
@@ -379,17 +397,23 @@
         const strangeGradient = payload.parameters.mot_strange.origin_effective_field_gradient_g_per_cm_xyz;
         document.getElementById("full-legend-label").textContent = payload.models.pMOT_2Level.label;
         document.getElementById("vector-legend-label").textContent = payload.models.pmot_vec_2Level.label;
-        document.getElementById("field-summary").textContent = `MOT field gradient ${tuple(motGradient)} G/cm; mot_strange origin effective-field gradient ${tuple(strangeGradient)} G/cm; both pMOT branches have zero external magnetic field.`;
+        const a = payload.parameters.pMOT_2Level;
+        const b = payload.parameters.pmot_vec_2Level;
+        document.getElementById("field-summary").textContent = `MOT field gradient ${tuple(motGradient)} G/cm; mot_strange origin effective-field gradient ${tuple(strangeGradient)} G/cm. A: ${a.model_label}, λ=${a.trapping_wavelength_nm.toFixed(9)} nm; B: ${b.model_label}, λ=${b.trapping_wavelength_nm.toFixed(9)} nm. Both pMOT branches have zero external magnetic field.`;
         draw();
         PmotViz.setStatus(status, `Ready. ${payload.coordinate_mm.length} samples per axis; live evaluation ${payload.elapsed_seconds.toFixed(2)} s.`);
       } catch (error) {
         PmotViz.setStatus(status, error.message, true);
       } finally {
         button.disabled = false;
+        document.getElementById("compare-svt-sv").disabled = false;
+        document.getElementById("compare-svt-v").disabled = false;
       }
     }
 
     document.getElementById("calculate").addEventListener("click", calculate);
+    document.getElementById("compare-svt-sv").addEventListener("click", () => compareComponents("sv"));
+    document.getElementById("compare-svt-v").addEventListener("click", () => compareComponents("v"));
     models.forEach((model) => document.getElementById(model.toggle).addEventListener("change", draw));
     document.getElementById("show-walls").addEventListener("change", draw);
     PmotViz.watchResize(draw);

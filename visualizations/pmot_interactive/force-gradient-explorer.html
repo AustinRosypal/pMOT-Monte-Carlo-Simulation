@@ -142,14 +142,14 @@
       document.getElementById("gradient-title").textContent = `∂F${axis}/∂${axis}; ${offsetDescription}`;
       PmotViz.drawLineChart(document.getElementById("force-chart"), {
         x: payload.coordinate_mm,
-        series: [{ label: `F${axis} [zN]`, values: payload.force_zN, color: PmotViz.css("--series-1") }],
+        series: [{ label: `${payload.model_label}: F${axis} [zN]`, values: payload.force_zN, color: PmotViz.css("--series-1") }],
         bands,
         xLabel: `${axis} position [mm]`,
         yLabel: `F${axis} [zN]`,
       });
       PmotViz.drawLineChart(document.getElementById("gradient-chart"), {
         x: payload.coordinate_mm,
-        series: [{ label: `∂F${axis}/∂${axis} [zN/mm]`, values: payload.gradient_zN_per_mm, color: PmotViz.css("--series-2") }],
+        series: [{ label: `${payload.model_label}: ∂F${axis}/∂${axis} [zN/mm]`, values: payload.gradient_zN_per_mm, color: PmotViz.css("--series-2") }],
         bands,
         xLabel: `${axis} position [mm]`,
         yLabel: `∂F${axis}/∂${axis} [zN/mm]`,

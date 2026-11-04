@@ -274,6 +274,14 @@ canvas {
   font-size: 0.88rem;
 }
 
+.legend input[type="checkbox"] {
+  width: 18px;
+  min-height: 18px;
+  height: 18px;
+  padding: 0;
+  flex-shrink: 0;
+}
+
 .swatch {
   width: 20px;
   height: 3px;

@@ -14,6 +14,7 @@ from pmot.mot_strange.surrogate_effective_field import (
     surrogate_component_intensities_w_per_m2,
     surrogate_effective_field_t,
     surrogate_field_jacobians_t_per_m,
+    calibrated_surrogate_field_config,
 )
 
 
@@ -24,6 +25,23 @@ def test_component_intensities_and_vector_field_have_expected_shapes() -> None:
     points = np.asarray((point, -point))
     assert surrogate_component_intensities_w_per_m2(points).shape == (2, 6)
     assert surrogate_effective_field_t(points).shape == (2, 3)
+
+
+def test_calibrated_powers_produce_requested_gradients_without_extra_factor_two() -> None:
+    cfg = calibrated_surrogate_field_config()
+    np.testing.assert_allclose(
+        100.0 * numerical_field_jacobian_t_per_m(step_m=1e-8, config=cfg),
+        np.diag((10.0, 10.0, -20.0)), atol=1e-7, rtol=1e-8,
+    )
+    assert cfg.x_path_power_w == pytest.approx(0.02171913895741201, rel=1e-12)
+    assert cfg.y_path_power_w == cfg.x_path_power_w
+    assert cfg.z_path_power_w == 2.0 * cfg.x_path_power_w
+    # Center intensities refer to each traveling component, not their sum.
+    np.testing.assert_allclose(
+        surrogate_component_intensities_w_per_m2((0, 0, 0), cfg),
+        np.asarray((1, 1, 1, 1, 2, 2)) * 2567.635622196321,
+        rtol=1e-10,
+    )
 
 
 def test_field_is_exactly_zero_outside_closed_cubic_cell() -> None:

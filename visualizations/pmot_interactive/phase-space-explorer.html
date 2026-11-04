@@ -34,6 +34,11 @@
           <option value="scalar_tensor_cancellation">Single-beam scalar–tensor cancellation</option>
         </select>
       </label>
+      <div class="wide legend" aria-label="Enabled differential Stark components">
+        <label><input id="component-s" type="checkbox" checked>Scalar (s)</label>
+        <label><input id="component-v" type="checkbox" checked>Vector (v)</label>
+        <label><input id="component-t" type="checkbox" checked>Tensor (t)</label>
+      </div>
       <label>Axis
         <select id="axis">
           <option value="x">x</option>
@@ -111,7 +116,7 @@
       if (!payload) return;
       const axis = payload.axis;
       document.getElementById("map-title").innerHTML = `F<sub>${axis}</sub>(${axis},v<sub>${axis}</sub>)`;
-      document.getElementById("map-subtitle").textContent = `λ=${payload.wavelength_nm.toFixed(12)} nm · blue is negative force · red is positive force`;
+      document.getElementById("map-subtitle").textContent = `${payload.model_label} · λ=${payload.wavelength_nm.toFixed(12)} nm · blue is negative force · red is positive force`;
       PmotViz.drawHeatmap(map, {
         x: payload.position_mm,
         y: payload.velocity_m_per_s,
@@ -136,6 +141,7 @@
       try {
         payload = await PmotViz.api("/api/phase-space", {
           pathway: controls.pathway.value,
+          components: ["s", "v", "t"].filter((letter) => document.getElementById(`component-${letter}`).checked).join("") || "none",
           axis: controls.axis.value,
           offset_1_mm: controls["offset-1"].value,
           offset_2_mm: controls["offset-2"].value,

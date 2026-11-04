@@ -292,8 +292,9 @@ From the repository root, regenerate the three standard overlay figures with:
 uv run python scripts/plot_updated_force_gradient_overlays.py
 ```
 
-The default output directory is
-`outputs/diagnostics/updated_force_gradient_overlays_20261023/`. It receives
+The default output directory includes the selected wavelength pathway and Stark
+component codes, e.g.
+`outputs/diagnostics/force_gradient_scalar_tensor_cancellation_svt_vs_v/`. It receives
 the three PNG figures, the sampled force/gradient CSV, and a JSON file recording
 all settings. The default figures compare (1) MOT, strange MOT, and
 `2Level_pMOT_svt`; (2) those three plus `2Level_pMOT_v`; and (3) the two
@@ -308,6 +309,19 @@ This example compares the full scalar/vector/tensor closure with the
 scalar-plus-vector closure. Other valid selections are `s`, `v`, `t`, `st`,
 `vt`, and `none`; input order is canonicalized in generated labels and
 metadata.
+
+Select any Stark subsets with `--pmot-components`, for example:
+
+```bash
+uv run python scripts/plot_updated_force_gradient_overlays.py --pmot-components svt sv v --pathway scalar_tensor_cancellation
+```
+
+Here `s`, `v`, and `t` enable scalar, vector, and tensor differential shifts.
+Labels such as `2Level_pMOT_svt` and `2Level_pMOT_sv` appear in figures, CSV
+rows, and metadata; `none` supplies the all-off control. All pMOT curves share
+the selected wavelength, powers, and detuning. The HTML comparison page offers
+independent A/B checkboxes and matched-settings presets; see the
+[interactive suite guide](visualizations/pmot_interactive/README.md).
 
 Show every control and its default with:
 

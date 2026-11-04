@@ -87,3 +87,21 @@ hide that choice inside a statistical error bar.
 7. No quantitative result while any required node remains indeterminate.
 8. Explicit statement that `mot_strange` is a surrogate-field conventional MOT,
    not a physical pMOT prediction.
+
+## Explicit finite-observation definition selected on 2026-10-25
+
+The user selected satisfaction of the unchanged central 2 mm capture rule by
+2 s, with atoms retained off-center at that horizon reported separately. For
+this observable, two numerically converged trajectories that both reach 2 s
+without the core event have a definitive horizon-retention outcome; they are
+neither wall escapes nor evidence about eventual capture. A short timeout,
+failure to reach the horizon, nonfinite endpoint, or disagreement between
+numerical settings remains indeterminate and fails closed. Preserve raw event
+codes and endpoint evidence alongside the separate finite-horizon outcome.
+
+This finite-observation choice supersedes the requirement for eventual
+terminal capture/escape in this specific campaign. It does not waive timestep,
+velocity-grid, longer central-retention, precision, aperture or launch-placement
+checks, and does not establish 3D trapping of off-center survivors. Current
+revision and provenance are recorded in
+`CORRECTED_LOADING_CAMPAIGN_20261025.md`; prior censored masks remain unchanged.

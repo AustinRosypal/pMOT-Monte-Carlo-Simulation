@@ -20,9 +20,10 @@ from .rate_equations import build_rate_equation_model
 from .simulation import build_multilevel_mot_beams
 
 
-def prepare(config=None, coil=None):
+def prepare(config=None, coil=None, *, external_field=False):
     cfg = config or default_multilevel_mot_config()
-    coil = coil or default_anti_helmholtz_config()
+    if not external_field:
+        coil = coil or default_anti_helmholtz_config()
     model = build_rate_equation_model()
     beams = build_multilevel_mot_beams(config=cfg)
     directions = np.array([b.direction for b in beams])
@@ -47,8 +48,9 @@ def prepare(config=None, coil=None):
         strengths[i, mask] = (2*model.transition_dipole_c_m[mask]**2 /
             (SPEED_OF_LIGHT_M_PER_S*VACUUM_PERMITTIVITY_F_PER_M*HBAR_J_S**2))
         offsets[i] = omega - model.transition_angular_frequency_rad_per_s
-    controls = np.array([coil.radius_m, coil.half_separation_m,
-        VACUUM_PERMEABILITY_H_PER_M*coil.turns_per_coil*coil.current_a/(2*np.pi),
+    coil_controls = ([0., 0., 0.] if external_field else [coil.radius_m, coil.half_separation_m,
+        VACUUM_PERMEABILITY_H_PER_M*coil.turns_per_coil*coil.current_a/(2*np.pi)])
+    controls = np.array([*coil_controls,
         cfg.magnetic_field_epsilon_t, 9.80665 if cfg.include_gravity else 0.0,
         cfg.steady_state_relative_tolerance, cfg.population_absolute_tolerance])
     return (directions, optical, strengths, offsets,
@@ -103,8 +105,18 @@ def magnetic_field(position, controls):
 
 @njit(cache=True)
 def observable(position, velocity, previous_axis, data):
+    return observable_with_field(position, velocity, previous_axis, data,
+                                 magnetic_field(position, data[-1]))
+
+
+@njit(cache=True)
+def observable_with_field(position, velocity, previous_axis, data, field):
+    """Physical population kernel with an explicit local field vector [T].
+
+    External environment models use this entry point instead of duplicating
+    stimulated rates, population solves, or the net photon-momentum force.
+    """
     directions, optical, strengths, offsets, gi, ei, qs, zc, gamma, decay, ctrl = data
-    field = magnetic_field(position, ctrl)
     magnitude = np.sqrt(np.sum(field*field))
     axis = previous_axis if magnitude <= ctrl[3] else field/magnitude
     bw = np.zeros_like(strengths)

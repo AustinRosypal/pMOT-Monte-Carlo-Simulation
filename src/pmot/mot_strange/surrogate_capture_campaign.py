@@ -15,6 +15,7 @@ import math
 import os
 import shutil
 import time
+from functools import partial
 from concurrent.futures import FIRST_COMPLETED, ProcessPoolExecutor, wait
 from dataclasses import asdict, dataclass, replace
 from pathlib import Path
@@ -29,6 +30,7 @@ from scipy.stats import t as student_t
 
 from ..launch_geometry import sample_disc_points, sample_incident_disc_full_sphere
 from ..loading import LOADING_RATE_PREFACTOR, THERMAL_SCALE_M2_PER_S2
+from .surrogate_effective_field import SurrogateEffectiveFieldConfig
 
 
 OUTCOME_ORIGIN = "origin_trapped"
@@ -60,6 +62,9 @@ class CampaignConfig:
     # trajectories, summaries, plots, and representative convergence audits.
     submission_budget_s: float = 4.9 * 3600.0
     absolute_wall_budget_s: float = 5.5 * 3600.0
+    # Explicit opt-in keeps historical run specifications distinguishable.
+    in_cell_launches: bool = False
+    effective_field_config: SurrogateEffectiveFieldConfig | None = None
 
     @property
     def sample_area_m2(self) -> float:
@@ -76,6 +81,7 @@ class LaunchTask:
     phi_rad: float
     initial_position_m: tuple[float, float, float]
     incident_unit_vector: tuple[float, float, float]
+    launch_area_m2: float | None = None
 
     @property
     def key(self) -> str:
@@ -110,13 +116,17 @@ def build_launch_tasks(config: CampaignConfig) -> list[LaunchTask]:
             config.launch_radius_m,
             rng,
         )
-        points = sample_disc_points(
-            disc,
-            config.points_per_disc,
-            config.disc_radius_m,
-            False,
-            rng,
-        )
+        if config.in_cell_launches:
+            from .cell_launch_sampling import sample_disc_points_inside_cell
+            points, launch_area, _ = sample_disc_points_inside_cell(
+                disc, config.points_per_disc, config.disc_radius_m, rng,
+                config.effective_field_config,
+            )
+        else:
+            points = sample_disc_points(
+                disc, config.points_per_disc, config.disc_radius_m, False, rng,
+            )
+            launch_area = config.sample_area_m2
         for point in points:
             for speed in config.speeds_m_per_s:
                 tasks.append(
@@ -129,6 +139,7 @@ def build_launch_tasks(config: CampaignConfig) -> list[LaunchTask]:
                         phi_rad=point.phi_rad,
                         initial_position_m=point.initial_position_m,
                         incident_unit_vector=point.incident_unit_vector,
+                        launch_area_m2=launch_area,
                     )
                 )
     return tasks
@@ -215,7 +226,7 @@ def _run_task(task: LaunchTask, config: CampaignConfig, history_dir: str) -> dic
         RateEquationTrajectoryConfig,
         simulate_rate_equation_trajectory,
     )
-    from .surrogate_effective_field import inside_surrogate_cell, pmot_effective_B
+    from .surrogate_effective_field import inside_surrogate_cell, surrogate_effective_field_t
 
     model, beams, mot_config = _worker_context()
     initial_velocity = tuple(
@@ -230,8 +241,12 @@ def _run_task(task: LaunchTask, config: CampaignConfig, history_dir: str) -> dic
         model=model,
         config=mot_config,
         trajectory_config=RateEquationTrajectoryConfig(time_step_s=config.time_step_s),
-        magnetic_field_function=pmot_effective_B,
-        spatial_domain_function=inside_surrogate_cell,
+        magnetic_field_function=partial(
+            surrogate_effective_field_t, config=config.effective_field_config
+        ),
+        spatial_domain_function=partial(
+            inside_surrogate_cell, config=config.effective_field_config
+        ),
     )
     times = np.asarray(record.times_s)
     positions = np.asarray(record.positions_m)
@@ -258,6 +273,8 @@ def _run_task(task: LaunchTask, config: CampaignConfig, history_dir: str) -> dic
         "point_index": task.point_index,
         "speed_m_per_s": task.speed_m_per_s,
         "impact_parameter_m": task.impact_parameter_m,
+        "launch_area_m2": (task.launch_area_m2 if task.launch_area_m2 is not None
+                           else config.sample_area_m2),
         "theta_rad": task.theta_rad,
         "phi_rad": task.phi_rad,
         "initial_x_m": task.initial_position_m[0],
@@ -288,6 +305,7 @@ RESULT_COLUMNS = [
     "final_centroid_radius_m", "final_window_max_excursion_m",
     "final_window_rms_speed_m_per_s", "history_file",
     "final_window_net_displacement_m",
+    "launch_area_m2",
 ]
 
 
@@ -362,7 +380,14 @@ def aggregate_results(rows: list[dict], config: CampaignConfig, output_dir: Path
                     row for row in rows
                     if row["disc_index"] == disc and row["speed_m_per_s"] == speed
                 ]
-                sigma = config.sample_area_m2 * sum(test(row["outcome"]) for row in subset) / len(subset)
+                if config.in_cell_launches and any("launch_area_m2" not in row for row in subset):
+                    raise ValueError("in-cell sampling requires the clipped launch area")
+                areas = [row.get("launch_area_m2", config.sample_area_m2) for row in subset]
+                if not np.allclose(areas, areas[0], rtol=1e-12, atol=0.0):
+                    raise ValueError("each direction disc must have one consistent launch area")
+                if not 0 < areas[0] <= config.sample_area_m2 * (1.0 + 1e-12):
+                    raise ValueError("launch area is outside the disc bounds")
+                sigma = areas[0] * sum(test(row["outcome"]) for row in subset) / len(subset)
                 disc_sigma[(disc, speed, category)] = sigma
                 values.append(sigma)
             if values:
@@ -443,6 +468,8 @@ def aggregate_results(rows: list[dict], config: CampaignConfig, output_dir: Path
         "loading_status": loading_status,
         "loading_withheld_indeterminate_count": len(unresolved_rows),
         "maximum_sample_cross_section_m2": config.sample_area_m2,
+        "launch_area_weighting": ("disc intersection with cell" if config.in_cell_launches
+                                  else "full disc"),
         "statistics_note": (
             "direction discs are the independent clusters; intervals are pointwise "
             "95% Student-t; loading is withheld when any complete-disc trajectory "
@@ -580,6 +607,7 @@ absent.
 - {config.direction_discs} full-sphere direction discs, sampled uniformly in solid angle.
 - {config.points_per_disc} independent uniform-area points per disc; all velocities on a disc are parallel.
 - Launch radius {1e3*config.launch_radius_m:.3f} mm; disc radius {1e3*config.disc_radius_m:.3f} mm; sampled area {1e6*config.sample_area_m2:.6f} mm^2.
+- In-cell resampling: {config.in_cell_launches}. When enabled, this nominal area is an upper bound; every disc is weighted by its own intersection area with the cell.
 - Direct speed mask: {', '.join(f'{value:g}' for value in config.speeds_m_per_s)} m/s; no scalar capture-boundary assumption.
 - Origin capture uses the established 2 mm core rule: 5 ms continuous residence or two entries with an intervening exit.
 - Off-origin capture is conservative: no origin capture or wall loss, plus a final 5 ms centroid beyond 2 mm, maximum excursion <= {1e3*config.off_origin_max_excursion_m:.3f} mm, RMS speed <= {config.off_origin_max_rms_speed_m_per_s:.3f} m/s, and net displacement <= {1e3*config.off_origin_max_net_displacement_m:.3f} mm.
@@ -646,7 +674,7 @@ def run_campaign(output_dir: Path, config: CampaignConfig | None = None) -> dict
     current_manifest["sample_area_m2"] = config.sample_area_m2
     current_manifest["scientific_status"] = "preliminary surrogate-field diagnostic"
     current_manifest["effective_field_configuration"] = (
-        DEFAULT_SURROGATE_EFFECTIVE_FIELD_CONFIG.metadata()
+        (config.effective_field_config or DEFAULT_SURROGATE_EFFECTIVE_FIELD_CONFIG).metadata()
     )
     if manifest_path.exists():
         prior = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -792,6 +820,7 @@ def run_representative_audits(
             phi_rad=baseline["phi_rad"],
             initial_position_m=(baseline["initial_x_m"], baseline["initial_y_m"], baseline["initial_z_m"]),
             incident_unit_vector=(baseline["incident_x"], baseline["incident_y"], baseline["incident_z"]),
+            launch_area_m2=baseline.get("launch_area_m2", config.sample_area_m2),
         )
         for case_name, audit_config in cases:
             history_dir = audit_root / case_name

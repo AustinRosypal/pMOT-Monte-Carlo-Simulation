@@ -12,6 +12,7 @@ import csv
 import json
 from dataclasses import replace
 from pathlib import Path
+from textwrap import fill
 
 import matplotlib
 
@@ -22,7 +23,8 @@ import numpy as np
 from pmot.mot_simple.configuration import default_simple_mot_apparatus
 from pmot.mot_simple.configuration import default_simple_mot_config
 from pmot.pMOT_2Level import build_pmot_2level_cooling_beams
-from pmot.pMOT_2Level import build_pmot_2level_trapping_beams
+from pmot.pMOT_2Level import get_pmot_2level_pathway
+from pmot.pMOT_2Level import PMOT_2LEVEL_PATHWAYS
 from pmot.pMOT_2Level import evaluate_pmot_2level_local_observable
 from pmot.pMOT_2Level import load_pmot_2level_component_polarizability_table
 from pmot.pMOT_2Level import normalize_pmot_stark_component_code
@@ -30,12 +32,6 @@ from pmot.pMOT_2Level import pmot_stark_component_model_label
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_OUTPUT_DIRECTORY = (
-    PROJECT_ROOT
-    / "outputs"
-    / "diagnostics"
-    / "pmot_2level_candidate_6mW_m30MHz_46mW_20261028"
-)
 FALLBACK_AXIS = (0.0, 0.0, 1.0)
 VELOCITY_M_PER_S = np.zeros(3)
 
@@ -107,6 +103,7 @@ def main() -> None:
     parser.add_argument("--cooling-power-mw", type=float, default=6.0)
     parser.add_argument("--cooling-detuning-mhz", type=float, default=-30.0)
     parser.add_argument("--trapping-power-mw", type=float, default=46.0)
+    parser.add_argument("--pathway", choices=tuple(PMOT_2LEVEL_PATHWAYS), default="scalar_tensor_cancellation")
     parser.add_argument(
         "--components",
         default="svt",
@@ -118,7 +115,7 @@ def main() -> None:
     parser.add_argument(
         "--output-directory",
         type=Path,
-        default=DEFAULT_OUTPUT_DIRECTORY,
+        default=None,
     )
     args = parser.parse_args()
     if args.cooling_power_mw <= 0.0 or args.trapping_power_mw <= 0.0:
@@ -128,7 +125,9 @@ def main() -> None:
     components = normalize_pmot_stark_component_code(args.components)
     model_label = pmot_stark_component_model_label(components)
 
-    output_directory = args.output_directory.resolve()
+    output_directory = (args.output_directory or (
+        PROJECT_ROOT / "outputs" / "diagnostics" / f"candidate_{args.pathway}_{model_label}"
+    )).resolve()
     output_directory.mkdir(parents=True, exist_ok=True)
 
     baseline_apparatus = default_simple_mot_apparatus()
@@ -149,7 +148,8 @@ def main() -> None:
         apparatus_config=apparatus,
         simple_config=simple,
     )
-    trapping_beams = build_pmot_2level_trapping_beams()
+    pathway = get_pmot_2level_pathway(args.pathway)
+    trapping_beams = pathway.build_trapping_beams()
     polarizability_table = load_pmot_2level_component_polarizability_table(
         components
     )
@@ -204,13 +204,14 @@ def main() -> None:
     figure.text(
         0.5,
         0.94,
-        (
+        fill((
             f"Pcool = {args.cooling_power_mw:g} mW/component; "
             f"detuning = {args.cooling_detuning_mhz:g} MHz; "
             f"Ptrap = ({args.trapping_power_mw:g}, {args.trapping_power_mw:g}, "
-            f"{args.trapping_power_mw:g}) mW/path"
-        ),
+            f"{args.trapping_power_mw:g}) mW/path; λ = {pathway.trapping_wavelength_nm:.9f} nm; gravity excluded"
+        ), width=115),
         ha="center",
+        va="top",
         fontsize=10.5,
     )
     figure.text(
@@ -227,7 +228,7 @@ def main() -> None:
         ha="center",
         fontsize=10.0,
     )
-    figure.tight_layout(rect=(0.04, 0.06, 0.98, 0.90), h_pad=1.3)
+    figure.tight_layout(rect=(0.04, 0.06, 0.98, 0.86), h_pad=1.3)
     figure_path = output_directory / f"{model_label}_force_gradient.png"
     figure.savefig(figure_path, dpi=220, bbox_inches="tight")
     plt.close(figure)
@@ -260,6 +261,8 @@ def main() -> None:
         "parameters": {
             "model_label": model_label,
             "stark_components": components or "none",
+            "pathway": pathway.key,
+            "trapping_wavelength_nm": pathway.trapping_wavelength_nm,
             "cooling_power_mw_per_component": args.cooling_power_mw,
             "cooling_detuning_mhz": args.cooling_detuning_mhz,
             "trapping_power_mw_per_path_xyz": [args.trapping_power_mw] * 3,
@@ -269,11 +272,11 @@ def main() -> None:
         },
         "metrics_over_plus_minus_5mm": metrics,
         "outputs": {
-            "figure": str(figure_path.relative_to(PROJECT_ROOT)),
-            "curves": str(curves_path.relative_to(PROJECT_ROOT)),
+            "figure": str(figure_path),
+            "curves": str(curves_path),
         },
     }
-    manifest_path = output_directory / "manifest.json"
+    manifest_path = output_directory / f"{model_label}_manifest.json"
     manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(manifest, indent=2))
 

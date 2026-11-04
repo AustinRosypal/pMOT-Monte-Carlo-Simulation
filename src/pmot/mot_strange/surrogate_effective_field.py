@@ -14,7 +14,7 @@ double count the intensity conversion.
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 
 import numpy as np
 
@@ -80,6 +80,48 @@ class SurrogateEffectiveFieldConfig:
 
 
 DEFAULT_SURROGATE_EFFECTIVE_FIELD_CONFIG = SurrogateEffectiveFieldConfig()
+
+
+def calibrated_surrogate_field_config(
+    gradient_magnitudes_g_per_cm=(10.0, 10.0, 20.0),
+    *,
+    config: SurrogateEffectiveFieldConfig | None = None,
+) -> SurrogateEffectiveFieldConfig:
+    """Set path powers from exact on-axis Gaussian derivatives at the origin.
+
+    Signs follow the configured helicities; default signs are (+,+,-).
+    Each power is that of EACH traveling component on its round-trip path.
+    This calibration uses the surrogate's stored wavelength and coefficient;
+    it does not infer a physical multilevel AC-Stark Hamiltonian.
+    """
+    cfg = config or DEFAULT_SURROGATE_EFFECTIVE_FIELD_CONFIG
+    targets = np.asarray(gradient_magnitudes_g_per_cm, dtype=float)
+    if targets.shape != (3,) or not np.all(np.isfinite(targets)) or np.any(targets <= 0):
+        raise ValueError("three finite positive gradient magnitudes are required")
+
+    def intensity_derivative_per_w(waist, rayleigh):
+        return 4.0 * rayleigh * waist / (
+            cfg.wavelength_m * (waist**2 + rayleigh**2)**2
+        )
+
+    forward = intensity_derivative_per_w(
+        cfg.forward_waist_position_m, cfg.forward_rayleigh_range_m
+    )
+    returned = intensity_derivative_per_w(
+        cfg.return_waist_position_m, cfg.return_rayleigh_range_m
+    )
+    positive = np.asarray((cfg.helicity_positive_x, cfg.helicity_positive_y,
+                           cfg.helicity_positive_z))
+    negative = np.asarray((cfg.helicity_negative_x, cfg.helicity_negative_y,
+                           cfg.helicity_negative_z))
+    gradient_per_w_g_per_cm = 100.0 * cfg.kappa_t_per_w_per_m2 * (
+        positive * forward - negative * returned
+    )
+    if np.any(np.abs(gradient_per_w_g_per_cm) < 1.0e-15):
+        raise ValueError("configured helicities cannot produce the requested gradients")
+    powers = targets / np.abs(gradient_per_w_g_per_cm)
+    return replace(cfg, x_path_power_w=float(powers[0]),
+                   y_path_power_w=float(powers[1]), z_path_power_w=float(powers[2]))
 
 # Retain the exact earlier specification so the September 2026 asymmetric
 # diagnostic can still be reproduced explicitly after the centered pair became
@@ -276,6 +318,7 @@ __all__ = [
     "LEGACY_ASYMMETRIC_SURROGATE_EFFECTIVE_FIELD_CONFIG",
     "PLANCK_CONSTANT_J_S",
     "SurrogateEffectiveFieldConfig",
+    "calibrated_surrogate_field_config",
     "inside_surrogate_cell",
     "numerical_field_jacobian_t_per_m",
     "pmot_effective_B",
