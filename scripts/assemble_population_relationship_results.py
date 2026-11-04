@@ -13,7 +13,8 @@ import argparse,hashlib,json,shutil,datetime
 import numpy as np
 import matplotlib.pyplot as plt
 from pmot.mot_multilevel.relationship_campaign import (
-    paths,loading_points,source_digest,cluster_interval,write_json,write_csv)
+    paths,loading_points,source_digest,cluster_interval,write_json,write_csv,
+    REFERENCE_GAMMA)
 
 
 def sha(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
@@ -73,7 +74,7 @@ def assemble(available=False):
     labels={'01_radius':('Sampling-disc radius [mm]','loading_vs_radius',8),
         '02_raw_saturation':('Single-beam center saturation s₀','loading_vs_saturation',24),
         '03_effective_saturation':('Single-beam center effective saturation','loading_vs_effective_saturation',20),
-        '04_detuning':('Cooling detuning Δ/Γ','loading_vs_detuning',23)}
+        '04_detuning':('Normalized angular detuning Δω/Γ','loading_vs_detuning',23)}
     emitted=[]
     for study,(xlabel,stem,count) in labels.items():
         group=[r for r in rows if r['study']==study]
@@ -83,6 +84,14 @@ def assemble(available=False):
         ax.errorbar([r['coordinate'] for r in group],[r['loading_rate_atoms_per_s'] for r in group],
             yerr=[r['loading_95_half_width_atoms_per_s'] for r in group],fmt='o-',capsize=3)
         ax.set(xlabel=xlabel,ylabel='Loading rate [atoms/s]',title='Corrected population-rate MOT · 95% direction-cluster intervals')
+        if study == '04_detuning':
+            linewidth_mhz=REFERENCE_GAMMA/(2*np.pi*1e6)
+            secondary=ax.secondary_xaxis('top',functions=(
+                lambda normalized: normalized*linewidth_mhz,
+                lambda detuning_mhz: detuning_mhz/linewidth_mhz))
+            secondary.set_xlabel(
+                f'Ordinary-frequency detuning Δν=Δω/(2π) [MHz]  '
+                f'(Γ/(2π)={linewidth_mhz:g} MHz)')
         ax.grid(alpha=.25)
         for ext in ('png','pdf'):fig.savefig(figures/f'{stem}.{ext}',dpi=180)
         plt.close(fig);emitted.append(stem)

@@ -1925,8 +1925,9 @@ def calculate_disc_clustered_loading_with_overrides(
         "zero_speed_cross_section_imputed": False,
         "quadrature_method": "trapezoid",
         "formula": (
-            "R = 9.1196e5 * integral sigma_capture(v) * v^3 * "
-            "exp[-v^2/(5.667e4)] dv"
+            f"R = {LOADING_RATE_PREFACTOR:.12g} * integral "
+            "sigma_capture(v) * v^3 * "
+            f"exp[-v^2/({THERMAL_SCALE_M2_PER_S2:.12g})] dv"
         ),
         "raw_integral_units": "m^6/s^4",
         "loading_rate_prefactor": LOADING_RATE_PREFACTOR,

@@ -325,12 +325,7 @@ rpds-py==2026.9.1
     # via
     #   jsonschema
     #   referencing
-scipy==1.17.1 ; python_full_version < '3.12'
-    # via
-    #   arc-alkali-rydberg-calculator
-    #   lmfit
-    #   pmot-simulation
-scipy==1.18.1 ; python_full_version >= '3.12'
+scipy==1.16.3
     # via
     #   arc-alkali-rydberg-calculator
     #   lmfit

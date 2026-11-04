@@ -33,10 +33,13 @@ from .simulation import (
 )
 from .loading import (
     calculate_loading_rate_from_spectrum,
+    DEFAULT_RB87_PARTIAL_PRESSURE_TORR,
+    DEFAULT_VAPOR_TEMPERATURE_K,
     load_capture_spectrum,
     LOADING_RATE_PREFACTOR,
     LoadingRateResult,
     SPEED_DISTRIBUTION_PREFACTOR_S3_PER_M3,
+    VaporLoadingParameters,
     save_loading_rate_result,
 )
 __all__ = [
@@ -58,6 +61,8 @@ __all__ = [
     "beam_intensity",
     "build_simple_mot_beams",
     "calculate_loading_rate_from_spectrum",
+    "DEFAULT_RB87_PARTIAL_PRESSURE_TORR",
+    "DEFAULT_VAPOR_TEMPERATURE_K",
     "doppler_shift_hz",
     "load_capture_spectrum",
     "LOADING_RATE_PREFACTOR",
@@ -68,6 +73,7 @@ __all__ = [
     "rk4_step",
     "save_loading_rate_result",
     "SPEED_DISTRIBUTION_PREFACTOR_S3_PER_M3",
+    "VaporLoadingParameters",
     "simulate_simple_mot_trajectory",
     "wavevector_magnitude_m_inv",
     "zeeman_shift_hz",

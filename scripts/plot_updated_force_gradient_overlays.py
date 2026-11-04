@@ -196,7 +196,7 @@ def pmot_environment():
 
 
 def evaluate_models(scan_m: np.ndarray) -> pd.DataFrame:
-    """Evaluate all four current force laws on identical on-axis positions."""
+    """Evaluate the MOTs and selected pMOT force laws on identical line cuts."""
 
     ml_config = multilevel_config()
     coil = default_anti_helmholtz_config(target_gradient_g_per_cm=20.0)
@@ -357,7 +357,10 @@ def plot_overlay(
         "trapping paths ("
         + ", ".join(f"{power:.3f}" for power in PMOT_TRAPPING_PATH_POWERS_MW)
         + ") mW; Stark selections "
-        + ", ".join(pmot_stark_component_model_label(code) for code in PMOT_COMPONENT_CODES)
+        + ", ".join(
+            pmot_stark_component_model_label(code)
+            for code in PMOT_COMPONENT_CODES
+        )
         + "; repump geometry passive.",
         ha="center",
         va="top",

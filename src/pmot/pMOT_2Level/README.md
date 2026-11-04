@@ -32,6 +32,8 @@ Implemented here:
 - a local quantization axis with explicit handling of vector-shift zeros;
 - one Doppler-shifted trapping wavelength and interpolated scalar, vector, and
   tensor differential polarizability per trapping component;
+- independent scalar/vector/tensor selection through component codes such as
+  `svt`, `sv`, or `v`, with stable labels such as `2Level_pMOT_sv`;
 - the effective differential scalar/vector/tensor energy shifts;
 - decomposition of every 780-nm cooling beam into local
   `sigma-`/`pi`/`sigma+` weights;
@@ -77,6 +79,21 @@ from pmot.pMOT_2Level import get_pmot_2level_pathway
 pathway = get_pmot_2level_pathway("scalar_zero")
 trapping_beams = pathway.build_trapping_beams()
 ```
+
+Stark-rank selection is independent of wavelength-pathway selection:
+
+```python
+from pmot.pMOT_2Level import load_pmot_2level_component_polarizability_table
+
+polarizability_table = load_pmot_2level_component_polarizability_table("sv")
+```
+
+The canonical letter order is scalar/vector/tensor (`s`, `v`, `t`), and
+unselected ranks are set to exact zero in the shared polarizability table.
+`none` provides a no-Stark control. The existing `pmot_vec_2Level` package is a
+backward-compatible wrapper for the `v` selection. If `v` is absent while `t`
+is retained, the tensor calculation uses the existing previous/fallback-axis
+prescription because no vector shift is available to define the local axis.
 
 The scalar--tensor cancellation is a single-beam angular condition. In the
 balanced three-axis core, the tensor sum cancels geometrically and leaves the

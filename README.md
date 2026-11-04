@@ -9,9 +9,11 @@ Development is separated into explicit model branches:
   a surrogate magnetic field shaped by the intended pMOT-beam intensities.
 - `pMOT_2Level`: the effective two-level, no-coil pMOT model. Its shared
   engine exposes separate `scalar_tensor_cancellation` and `scalar_zero`
-  trapping-wavelength pathways.
+  trapping-wavelength pathways and independently selectable scalar (`s`),
+  vector (`v`), and tensor (`t`) differential Stark terms.
 - `pmot_vec_2Level`: a controlled vector-only variant of `pMOT_2Level` that
-  sets the differential scalar and tensor polarizabilities to zero.
+  sets the differential scalar and tensor polarizabilities to zero. It is the
+  backward-compatible wrapper for the general `2Level_pMOT_v` selection.
 - `pMOT_multilevel`: reserved placeholder for the future physical multilevel
   pMOT; no simulation is implemented there yet.
 
@@ -45,6 +47,12 @@ repository root with:
 ```bash
 uv run python visualizations/pmot_interactive/serve.py --open
 ```
+
+The force page exposes scalar/vector/tensor switches for one pMOT curve. The
+comparison page exposes two independently configured pMOT curves, making
+comparisons such as `2Level_pMOT_svt` versus `2Level_pMOT_sv` direct. Labels
+are canonicalized in `s`, `v`, `t` order; clearing all components creates the
+`2Level_pMOT_none` no-Stark control.
 
 Reusable apparatus, beam, anti-Helmholtz-field, launch-disc, capture-analysis,
 loading-rate, and plotting primitives remain directly under `src/pmot`;
@@ -189,6 +197,28 @@ Calculate the loading rate from that run with:
 uv run python -m pmot.mot_simple.loading --spectrum-csv outputs/statistics/mot_simple/example/capture_velocity_spectrum.csv --output-json outputs/statistics/mot_simple/example/loading_rate_result.json
 ```
 
+The default absolute-rate normalization uses an Rb-87 partial pressure of
+`1e-10 Torr` at `296.483 K`, corresponding to
+`n_Rb87 = 3.2569585e12 m^-3`. These are vapor assumptions, not total chamber
+pressure. Change them without editing source by adding, for example,
+`--rb87-pressure-torr 2e-10 --temperature-k 296.483`. The Maxwell speed
+distribution, thermal scale, number density, and loading prefactor are derived
+from those inputs rather than independently hard-coded.
+
+Historical machine-readable loading results corrected for the former Maxwell
+normalization error are mirrored under
+`outputs/loading_normalization_corrected_20261103`; the original products are
+preserved for provenance. Recreate that mirror with:
+
+```bash
+uv run python scripts/migrate_loading_normalization.py --source-root outputs/statistics --apply
+```
+
+The migration manifest records the source and corrected hashes, vapor
+parameters, and the applied multiplicative factor. Existing PNG/SVG/PDF plots
+are deliberately not silently altered; regenerate them from the corrected
+data.
+
 The sampler's command-line options control sampling and numerics; its physical
 defaults are the documented 12.7-mm, 20-mW-per-beam, -15-MHz, 10-G/cm
 two-level MOT.
@@ -197,9 +227,10 @@ two-level MOT.
 
 The comparison script recomputes the stationary-atom radiation-pressure force
 and its spatial derivative from the live implementations of the conventional
-multilevel MOT, `mot_strange`, the effective `pMOT_2Level`, and the controlled
-vector-only `pmot_vec_2Level` variant. Gravity is excluded from these force-law
-comparisons.
+multilevel MOT, `mot_strange`, and any requested scalar/vector/tensor selection
+of the effective `pMOT_2Level`. The historical `pmot_vec_2Level` branch remains
+the compatibility name for `2Level_pMOT_v`. Gravity is excluded from these
+force-law comparisons.
 
 #### Interactive comparison notebook
 
@@ -264,9 +295,19 @@ uv run python scripts/plot_updated_force_gradient_overlays.py
 The default output directory is
 `outputs/diagnostics/updated_force_gradient_overlays_20261023/`. It receives
 the three PNG figures, the sampled force/gradient CSV, and a JSON file recording
-all settings. The default figures compare (1) MOT, strange MOT, and full
-two-level pMOT; (2) those three plus the vector-only two-level pMOT; and (3)
-the full and vector-only two-level pMOT branches directly.
+all settings. The default figures compare (1) MOT, strange MOT, and
+`2Level_pMOT_svt`; (2) those three plus `2Level_pMOT_v`; and (3) the two
+selected pMOT configurations directly. Choose any one or more component masks
+with `--pmot-components`:
+
+```bash
+uv run python scripts/plot_updated_force_gradient_overlays.py --pmot-components svt sv
+```
+
+This example compares the full scalar/vector/tensor closure with the
+scalar-plus-vector closure. Other valid selections are `s`, `v`, `t`, `st`,
+`vt`, and `none`; input order is canonicalized in generated labels and
+metadata.
 
 Show every control and its default with:
 
@@ -282,14 +323,25 @@ uv run python scripts/plot_updated_force_gradient_overlays.py --output-directory
 ```
 
 The multilevel MOT and strange MOT share the values selected by
-`--multilevel-cooling-power-mw` and `--multilevel-repump-power-mw`. The full
-and vector-only two-level pMOT branches share `--pmot-cooling-power-mw` and the
+`--multilevel-cooling-power-mw` and `--multilevel-repump-power-mw`. All selected
+two-level pMOT component configurations share `--pmot-cooling-power-mw` and the
 three x/y/z path powers supplied to `--pmot-trapping-powers-mw`. Use
 `--scan-limit-mm` to change the symmetric spatial range. The
 `--broad-samples`, `--center-samples`, and `--focus-samples` options control
 the numerical resolution used both for the force curves and their directly
 computed spatial derivatives. The default +/-12.5-mm range stays inside the
 hard transverse-support boundary of the current strange-MOT surrogate field.
+
+For a single pMOT force/gradient candidate plot, use the same component syntax:
+
+```bash
+uv run python scripts/plot_pmot_2level_candidate_force_gradient.py --components sv
+```
+
+When vector is disabled but tensor remains enabled, no vector-defined local
+quantization axis exists. Such tensor-containing curves use the model's
+previous/fallback-axis prescription and must be treated as axis-dependent
+provisional diagnostics.
 
 ### MOT with pMOT Fields
 

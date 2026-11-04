@@ -4,9 +4,11 @@ The source tree has five explicit model packages:
 
 - `mot_simple`: deterministic effective two-level MOT;
 - `mot_multilevel`: authoritative 24-state, repumper-enabled rate-equation MOT;
-- `pMOT_2Level`: effective no-coil F=2 to F'=3 pseudo-MOT model;
+- `pMOT_2Level`: effective no-coil F=2 to F'=3 pseudo-MOT model with
+  independently selectable scalar/vector/tensor differential Stark ranks;
 - `pmot_vec_2Level`: controlled variant of `pMOT_2Level` with scalar and
-  tensor differential polarizabilities set to zero;
+  tensor differential polarizabilities set to zero (the compatibility wrapper
+  for the general `2Level_pMOT_v` selection);
 - `mot_strange`: conventional multilevel MOT with the intensity-derived
   surrogate magnetic field, plus retained provisional historical scaffolding;
   and
@@ -32,7 +34,9 @@ but `mot_simple` and `mot_multilevel` must not import from one another.
   points, independent of any force model.
 - `capture_statistics.py`: capture-threshold records, cross-section
   aggregation, persistence, and plots.
-- `loading.py`: loading-rate integration from a capture cross section.
+- `loading.py`: loading-rate integration from a capture cross section, with a
+  normalized Maxwell distribution and configurable Rb-87 partial pressure and
+  vapor temperature.
 - `beam_plotting.py`: model-neutral beam-volume mesh construction.
 
 ## Model-owned code

@@ -926,13 +926,20 @@ def smoke_test() -> None:
         "polarizability": api_polarizability(
             {"min_nm": ["1529.267"], "max_nm": ["1529.275"], "max_points": ["600"]}
         ),
-        "force-line": api_force_line({"points": ["31"]}),
+        "force-line-sv": api_force_line(
+            {"points": ["31"], "components": ["sv"]}
+        ),
         "stark-plane": api_stark_plane({"points": ["15"], "extent_mm": ["1"]}),
         "phase-space": api_phase_space(
             {"position_points": ["15"], "velocity_points": ["15"]}
         ),
-        "model-comparison": api_model_comparison(
-            {"points": ["31"], "scan_limit_mm": ["2"]}
+        "model-comparison-svt-vs-sv": api_model_comparison(
+            {
+                "points": ["31"],
+                "scan_limit_mm": ["2"],
+                "full_components": ["svt"],
+                "vector_components": ["sv"],
+            }
         ),
     }
     print(

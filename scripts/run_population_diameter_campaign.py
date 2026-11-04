@@ -251,7 +251,12 @@ def run(args):
         'sampling_disc_radius_mm':15.,'repump_diameter_mm':12.7,'repump_power_w_per_beam':.0001,
         'pilot_seed':ce.PILOT_SEED,'production_seed':ce.PRODUCTION_SEED,
         'pilot_discs':PILOT_N,'pilot_points_per_disc':PILOT_P,'loading_95_relative_half_width_target':TARGET,
-        'normalization':'unchanged historical 9.1196e5; also report R/n87 using normalized Maxwell distribution; absolute vapor density unresolved',
+        'normalization':(
+            f'normalized Maxwell distribution; loading prefactor '
+            f'{ce.LOADING_RATE_PREFACTOR:.12g}; thermal scale '
+            f'{ce.THERMAL_SCALE_M2_PER_S2:.12g} m2/s2; absolute rate uses '
+            'the configured Rb-87 partial-pressure assumption'
+        ),
         'old_validation_root':str(old),'numerics':'unchanged dual adaptive integration, fixed RK4 edge/fallback checks, dense speed masks, fixed RK4 retention ladder',
         'geometry_adapter':'cooling waist and Rayleigh length only; repump waist fixed; worker cache cleared to prevent reuse across diameters',
         'sampling_scope':'fixed 15 mm incident disc; no infinite-area loading claim'}
@@ -328,7 +333,7 @@ def run(args):
                 err='loading_coefficient_95_half_width_m3_per_s' if coefficient else 'loading_95_half_width_atoms_per_s'
                 fig,ax=plt.subplots(figsize=(9,6),layout='constrained')
                 ax.errorbar(DIAMETERS,[r[y] for r in rows],yerr=[r[err] for r in rows],fmt='o-',capsize=3)
-                ax.set(xlabel='Cooling-beam Gaussian 1/e² diameter [mm]',ylabel='Loading coefficient R/n87 [m³/s]' if coefficient else 'Loading rate [atoms/s; historical vapor normalization]',
+                ax.set(xlabel='Cooling-beam Gaussian 1/e² diameter [mm]',ylabel='Loading coefficient R/n87 [m³/s]' if coefficient else 'Loading rate [atoms/s; configured Rb-87 vapor normalization]',
                     title=f'Population-rate MOT · 15 mm sampling radius · 95% disc-cluster intervals\n{args.power_mode.replace("_"," ")} · detuning {detuning/1e6:g} MHz · repump diameter 12.7 mm')
                 ax.grid(alpha=.25)
                 if not ready:ax.text(.02,.98,'Precision qualification pending',transform=ax.transAxes,va='top',color='darkred')

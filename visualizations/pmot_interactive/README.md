@@ -40,12 +40,17 @@ network.
   coefficient magnitudes use a logarithmic axis, and solid/dashed segments
   encode positive/negative coefficients.
 - `force-gradient-explorer.html`: force and same-axis spatial derivative with
-  adjustable pathway, powers, detuning, axis, offsets, velocity, and range.
+  adjustable pathway, powers, detuning, axis, offsets, velocity, range, and
+  independent scalar/vector/tensor checkboxes. The displayed model name uses
+  the canonical `2Level_pMOT_<components>` convention.
 - `model-comparison-explorer.html`: live 2-by-3 force and force-gradient
-  overlays for the multilevel MOT, `mot_strange`, full effective two-level
-  pMOT, and vector-only pMOT. Model-specific controls expose cooling and
-  repump powers, detunings, conventional field gradient, surrogate-field path
-  powers, pMOT trapping powers, and wavelength pathways.
+  overlays for the multilevel MOT, `mot_strange`, and two independently
+  configured effective two-level pMOT curves. Each pMOT curve has its own
+  scalar/vector/tensor switches, powers, detuning, and wavelength pathway, so
+  configurations such as `2Level_pMOT_svt` and `2Level_pMOT_sv` can be
+  compared directly. Model-specific controls also expose multilevel cooling
+  and repump powers, the conventional field gradient, and surrogate-field
+  path powers.
 - `stark-geometry-explorer.html`: Cartesian-plane maps of scalar, vector,
   tensor, scalar-plus-tensor, and total-intensity fields with quantization-axis
   arrows and out-of-plane symbols.
@@ -57,6 +62,13 @@ All force visualizations exclude gravity and remain provisional. They do not
 include a state-resolved Stark Hamiltonian, conservative trapping-light force,
 1529-nm scattering/heating, recoil diffusion, or validated capture/loading
 physics.
+
+The component code is always written in scalar/vector/tensor order: `s`, `v`,
+and `t`. Clearing all three checkboxes produces the `2Level_pMOT_none`
+no-Stark control. If `v` is disabled while `t` remains enabled, the vector
+shift cannot define a local quantization axis; the tensor diagnostic therefore
+uses the existing previous/fallback-axis prescription and is explicitly
+axis-prescription dependent.
 
 ## Validation
 
