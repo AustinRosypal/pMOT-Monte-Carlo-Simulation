@@ -84,6 +84,7 @@ class CaptureSearchConfig:
     analysis_velocity_max_m_per_s: float = 30.0
     seed: int = 0
     save_every: int = 25
+    trajectory_backend: str = "reference"
 
 
 def classify_trajectory(
@@ -95,6 +96,16 @@ def classify_trajectory(
     search_config: CaptureSearchConfig,
 ) -> TrajectoryClassification:
     """Classify a launch trajectory as trapped, escaped, or timed out."""
+
+    if search_config.trajectory_backend == "numba":
+        from .accelerated import classify_trajectory as compiled_classifier
+
+        return compiled_classifier(
+            beams, point, incident_speed_m_per_s, coil_config,
+            simple_config, search_config,
+        )
+    if search_config.trajectory_backend != "reference":
+        raise ValueError("trajectory_backend must be reference or numba")
 
     atom_state = AtomState(
         position_m=point.initial_position_m,

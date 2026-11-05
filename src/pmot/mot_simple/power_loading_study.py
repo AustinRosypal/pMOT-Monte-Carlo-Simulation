@@ -53,6 +53,7 @@ from .sampling import sample_disc_points
 from .sampling import sample_incident_disc
 from .sampling import velocity_grid_from_samples
 from .simulation import build_simple_mot_beams
+from .campaign_io import replace_with_retry
 
 
 STUDY_NAME = "loading_rate_27mW_50_discs_50_points"
@@ -324,7 +325,7 @@ def _atomic_write_text(path: Path, contents: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_name(f".{path.name}.tmp")
     temporary.write_text(contents, encoding="utf-8", newline="")
-    temporary.replace(path)
+    replace_with_retry(temporary, path)
 
 
 def _atomic_write_json(path: Path, payload: object) -> None:

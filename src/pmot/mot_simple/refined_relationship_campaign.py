@@ -52,6 +52,7 @@ from .configuration import (
     simple_mot_paths,
 )
 from .batched_sampling import classify_trajectory_batch
+from .campaign_io import replace_with_retry
 from .power_loading_study import (
     LOADING_BY_DISC_FIELDNAMES,
     SPECTRUM_FIELDNAMES,
@@ -523,7 +524,7 @@ def _atomic_write_text(path: Path, contents: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_name(f".{path.name}.tmp")
     temporary.write_text(contents, encoding="utf-8", newline="")
-    temporary.replace(path)
+    replace_with_retry(temporary, path)
 
 
 def _atomic_write_json(path: Path, payload: object) -> None:
@@ -563,6 +564,8 @@ def _source_hashes() -> dict[str, str]:
         mot_simple_directory / "loading.py",
         mot_simple_directory / "timeout_audit.py",
         mot_simple_directory / "batched_sampling.py",
+        mot_simple_directory / "accelerated.py",
+        mot_simple_directory / "campaign_io.py",
         package_directory / "configuration.py",
         package_directory / "beams.py",
         package_directory / "fields.py",

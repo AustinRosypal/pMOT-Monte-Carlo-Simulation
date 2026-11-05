@@ -206,6 +206,15 @@ def classify_initial_conditions_batch(
         raise ValueError("bounded_core_residence_s must be non-negative")
     if len(initial_positions) == 0:
         return ()
+    if search_config.trajectory_backend == "numba":
+        from .accelerated import classify_initial_conditions_batch as compiled_classifier
+
+        return compiled_classifier(
+            beams, initial_positions, initial_velocities, coil_config,
+            simple_config, search_config,
+        )
+    if search_config.trajectory_backend != "reference":
+        raise ValueError("trajectory_backend must be reference or numba")
 
     count = len(initial_positions)
     positions = np.array(initial_positions, dtype=float, copy=True)
