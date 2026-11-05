@@ -14,6 +14,9 @@ the repository with `uv run python -u -m
 pmot.mot_multilevel.matched_fast.campaign all --workers 20`. All Python commands
 use `uv run python`.
 
+The completed standalone HTML exports are in the
+[MOT loading report catalog](../../visualizations/mot_loading/README.md).
+
 The existing public physical Section-12 population-rate kernel supplies every
 adaptive or fixed force stage. No state truncation, interpolation, force-law
 change or historical invalid multilevel result is used. Adaptive DP5(4)

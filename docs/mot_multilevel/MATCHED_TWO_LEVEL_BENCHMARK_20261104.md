@@ -133,10 +133,11 @@ to the verified current process and logs. Never stop unrelated lab processes.
 The campaign name is `matched_two_level_exact_D2_20261104`:
 
 - Statistics: `outputs/statistics/mot_multilevel_population_rate_v1/<name>`.
-- Multilevel figures and `multilevel_loading_scans.html`:
+- Multilevel figures:
   `outputs/figures/mot_multilevel_population_rate_v1/<name>`.
-- Comparison figures and `two_level_multilevel_comparison.html`:
+- Comparison figures:
   `outputs/figures/mot_comparison/<name>`.
+- HTML previews: [MOT loading report archive](../../visualizations/mot_loading/archive/2026-11-04_original_multilevel/).
 - Notebook: `notebooks/mot_multilevel/<name>.ipynb`.
 - Comparison notebook: `notebooks/mot_comparison/<name>.ipynb`.
 

@@ -39,6 +39,10 @@ single-beam stretched-reference scalar--tensor cancellation point.
 differential scalar polarizability. Select them with
 `get_pmot_2level_pathway(...)` or import their pathway-specific beam builders.
 
+The [MOT loading reports](visualizations/mot_loading/README.md) are standalone
+HTML files for the two-level benchmark, physical multilevel campaign, and
+matched comparison. Open the downloaded files directly in a browser.
+
 Interactive wavelength, force-gradient, Stark-geometry, and position-velocity
 diagnostics for both pathways live in
 `visualizations/pmot_interactive`. Start the localhost-only suite from the
