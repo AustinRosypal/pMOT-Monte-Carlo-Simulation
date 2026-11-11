@@ -16,6 +16,9 @@ from pathlib import Path
 
 import numpy as np
 
+from ..comparison_paths import COMPARISON_FIGURES as COMPARISON_FIGURE_ROOT
+from ..comparison_paths import COMPARISON_NOTEBOOKS, COMPARISON_NOTEBOOK_NAMES
+
 from ..configuration import default_mot_apparatus_config
 from ..magnetic_fields import default_anti_helmholtz_config
 from .accelerated import prepare
@@ -29,10 +32,10 @@ NAME="matched_two_level_exact_D2_20261104"
 BENCHMARK=ROOT/"outputs/statistics/mot_simple/loading_scans_exact_D2_20261103"
 STATISTICS=ROOT/"outputs/statistics/mot_multilevel_population_rate_v1"/NAME
 FIGURES=ROOT/"outputs/figures/mot_multilevel_population_rate_v1"/NAME
-COMPARISON_FIGURES=ROOT/"outputs/figures/mot_comparison"/NAME
+COMPARISON_FIGURES=COMPARISON_FIGURE_ROOT/NAME
 CACHE=Path(os.environ.get("LOCALAPPDATA",tempfile.gettempdir()))/"pmot-campaigns"/NAME
 NOTEBOOK=ROOT/"notebooks/mot_multilevel"/f"{NAME}.ipynb"
-COMPARISON_NOTEBOOK=ROOT/"notebooks/mot_comparison"/f"{NAME}.ipynb"
+COMPARISON_NOTEBOOK=COMPARISON_NOTEBOOKS/COMPARISON_NOTEBOOK_NAMES["loading_two"]
 WAVELENGTH_M=780.241209686e-9
 REPUMP_WAVELENGTH_M=780.232684e-9
 VELOCITIES=np.arange(0.,80.0001,.25)

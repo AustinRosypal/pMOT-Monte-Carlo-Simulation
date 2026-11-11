@@ -1,0 +1,384 @@
+{
+  "reason": "User-authorized consolidation and descriptive naming of comparison presentation artifacts; original simulation data and historical audit records remain unchanged.",
+  "moved_files": [
+    {
+      "old_path": "notebooks/model_comparison/README.md",
+      "new_path": "notebooks/model_comparisons/README.md",
+      "original_sha256": "44dc0e3e94562076d029896f0f6f41ec97cae09a81586322ef50f141e06913b8",
+      "current_sha256": "97285a3b42e5fdb8e20d4bdc6fd608b9546723eae070b38212ad5393e12a4cdb"
+    },
+    {
+      "old_path": "notebooks/model_comparison/three_model_force_gradient_comparison.ipynb",
+      "new_path": "notebooks/model_comparisons/force_and_gradient_multilevel_mot_strange_mot_2level_pmot_20261020.ipynb",
+      "original_sha256": "411777c0befd5b162ff13654014b9bc35f607093b9ea52e54956ae1a2f80a7f4",
+      "current_sha256": "1dc4e02b00b5a28ab821d647253b4b1db69c65159a12dc7279b93526c744fd2e"
+    },
+    {
+      "old_path": "notebooks/model_comparison/updated_force_gradient_overlays.ipynb",
+      "new_path": "notebooks/model_comparisons/force_and_gradient_multilevel_mot_strange_mot_2level_pmot_svt_vs_vector.ipynb",
+      "original_sha256": "88f98f8514e5024e57d9aa835b0708ba297655a5d3dc5dbcd718bd3c0ef48f62",
+      "current_sha256": "28b4ef9e6715cdd11455523c579bdee68d7e9c79e94efd68f4e8231fa2d30390"
+    },
+    {
+      "old_path": "notebooks/model_comparison/.ipynb_checkpoints/updated_force_gradient_overlays-checkpoint.ipynb",
+      "new_path": "notebooks/model_comparisons/.ipynb_checkpoints/force_and_gradient_multilevel_mot_strange_mot_2level_pmot_svt_vs_vector-checkpoint.ipynb",
+      "original_sha256": "ae898f0ba34a946d05ecb6bad02abf2412a33b87a6d11631edfa246b06fd11b3",
+      "current_sha256": "64cb6701bc12acfbd780c77ff3beaaebec743eebdc9adad3e2e4b58525450f9e"
+    },
+    {
+      "old_path": "notebooks/mot_comparison/matched_two_level_exact_D2_20261104.ipynb",
+      "new_path": "notebooks/model_comparisons/loading_2level_mot_vs_multilevel_mot_exact_d2_20261104.ipynb",
+      "original_sha256": "993563b13ebe04587d3d0c81316e665b8f16e66cbdacdcbd184f7cdb0f3dbd5b",
+      "current_sha256": "457e5b6aca12b29edca4ff9129e5d2beca49144c578d708ff6857f6943773d32"
+    },
+    {
+      "old_path": "notebooks/mot_comparison/matched_two_level_exact_D2_fast_20261104.ipynb",
+      "new_path": "notebooks/model_comparisons/loading_2level_mot_vs_multilevel_mot_exact_d2_refined_20261104.ipynb",
+      "original_sha256": "928f4f9f720a0ff25b4b9f2f7903af042d5b48cb0032578792ec516c84ee7a65",
+      "current_sha256": "c266665bcf76ad15fe235a41cd2fa43a3589d968391b7d570f6206840454279d"
+    },
+    {
+      "old_path": "notebooks/mot_comparisons/four_model_loading_20261111.ipynb",
+      "new_path": "notebooks/model_comparisons/loading_gradient_2level_mot_multilevel_mot_strange_mot_2level_pmot_20261111.ipynb",
+      "original_sha256": "4d0a0a214d117982eae8bf4de7f516260c2d4eeacc080e3796854731f67cd3a3",
+      "current_sha256": "4d0a0a214d117982eae8bf4de7f516260c2d4eeacc080e3796854731f67cd3a3"
+    },
+    {
+      "old_path": "notebooks/mot_comparisons/three_model_loading_20261111.ipynb",
+      "new_path": "notebooks/model_comparisons/loading_gradient_detuning_diameter_2level_mot_multilevel_mot_strange_mot_20261111.ipynb",
+      "original_sha256": "9dc53945e9057d7931687f6bd03fca7a52a0e253678d44358439a7f05e70308b",
+      "current_sha256": "9dc53945e9057d7931687f6bd03fca7a52a0e253678d44358439a7f05e70308b"
+    },
+    {
+      "old_path": "outputs/figures/mot_comparison/matched_two_level_exact_D2_20261104/loading_vs_cooling_detuning.png",
+      "new_path": "outputs/figures/model_comparisons/matched_two_level_exact_D2_20261104/loading_vs_cooling_detuning.png",
+      "original_sha256": "220a19e0100609dbaea061c4316867fac402b40c0386d9769608cb3a04c16ed1",
+      "current_sha256": "220a19e0100609dbaea061c4316867fac402b40c0386d9769608cb3a04c16ed1"
+    },
+    {
+      "old_path": "outputs/figures/mot_comparison/matched_two_level_exact_D2_20261104/loading_vs_cooling_detuning.svg",
+      "new_path": "outputs/figures/model_comparisons/matched_two_level_exact_D2_20261104/loading_vs_cooling_detuning.svg",
+      "original_sha256": "d369899fd3688c5cfbc964d3ceea9e7ef84db21b2d3f9c41e2fe2bd27931d68c",
+      "current_sha256": "d369899fd3688c5cfbc964d3ceea9e7ef84db21b2d3f9c41e2fe2bd27931d68c"
+    },
+    {
+      "old_path": "outputs/figures/mot_comparison/matched_two_level_exact_D2_20261104/loading_vs_cooling_diameter_fixed_repump.png",
+      "new_path": "outputs/figures/model_comparisons/matched_two_level_exact_D2_20261104/loading_vs_cooling_diameter_fixed_repump.png",
+      "original_sha256": "c047a1866537500024b4e8514d09f999ac405682d2d9baa895766cc956673d3e",
+      "current_sha256": "c047a1866537500024b4e8514d09f999ac405682d2d9baa895766cc956673d3e"
+    },
+    {
+      "old_path": "outputs/figures/mot_comparison/matched_two_level_exact_D2_20261104/loading_vs_cooling_diameter_fixed_repump.svg",
+      "new_path": "outputs/figures/model_comparisons/matched_two_level_exact_D2_20261104/loading_vs_cooling_diameter_fixed_repump.svg",
+      "original_sha256": "037abcb62c99dac82ada358d23028532dd5f4417a804fe0e8c6e1f262858a2f5",
+      "current_sha256": "037abcb62c99dac82ada358d23028532dd5f4417a804fe0e8c6e1f262858a2f5"
+    },
+    {
+      "old_path": "outputs/figures/mot_comparison/matched_two_level_exact_D2_20261104/loading_vs_cooling_diameter_matched_repump.png",
+      "new_path": "outputs/figures/model_comparisons/matched_two_level_exact_D2_20261104/loading_vs_cooling_diameter_matched_repump.png",
+      "original_sha256": "73dd54e9f7914c8506c24418b41327a8b5abc380d6bc4f81515f0e5a8122aea0",
+      "current_sha256": "73dd54e9f7914c8506c24418b41327a8b5abc380d6bc4f81515f0e5a8122aea0"
+    },
+    {
+      "old_path": "outputs/figures/mot_comparison/matched_two_level_exact_D2_20261104/loading_vs_cooling_diameter_matched_repump.svg",
+      "new_path": "outputs/figures/model_comparisons/matched_two_level_exact_D2_20261104/loading_vs_cooling_diameter_matched_repump.svg",
+      "original_sha256": "36aa71baa8f2803a5f54150048ce86b508ac929b77673b6cb28e02d1cbc5f144",
+      "current_sha256": "36aa71baa8f2803a5f54150048ce86b508ac929b77673b6cb28e02d1cbc5f144"
+    },
+    {
+      "old_path": "outputs/figures/mot_comparison/matched_two_level_exact_D2_20261104/loading_vs_cooling_effective_saturation.png",
+      "new_path": "outputs/figures/model_comparisons/matched_two_level_exact_D2_20261104/loading_vs_cooling_effective_saturation.png",
+      "original_sha256": "260a63094746ca3e180a7aae6c6ca5e8fe4bf7e259871f756488c20d583b2222",
+      "current_sha256": "260a63094746ca3e180a7aae6c6ca5e8fe4bf7e259871f756488c20d583b2222"
+    },
+    {
+      "old_path": "outputs/figures/mot_comparison/matched_two_level_exact_D2_20261104/loading_vs_cooling_effective_saturation.svg",
+      "new_path": "outputs/figures/model_comparisons/matched_two_level_exact_D2_20261104/loading_vs_cooling_effective_saturation.svg",
+      "original_sha256": "140dc3e77ec7af284b03312b4152a2fafec12a3e3539025c09f300f617550ba4",
+      "current_sha256": "140dc3e77ec7af284b03312b4152a2fafec12a3e3539025c09f300f617550ba4"
+    },
+    {
+      "old_path": "outputs/figures/mot_comparison/matched_two_level_exact_D2_20261104/loading_vs_cooling_gradient.png",
+      "new_path": "outputs/figures/model_comparisons/matched_two_level_exact_D2_20261104/loading_vs_cooling_gradient.png",
+      "original_sha256": "96ba30af01f1c3839cbd2c21a2736ffb4896d0516ee3de0082fe8f1e602f9c6e",
+      "current_sha256": "96ba30af01f1c3839cbd2c21a2736ffb4896d0516ee3de0082fe8f1e602f9c6e"
+    },
+    {
+      "old_path": "outputs/figures/mot_comparison/matched_two_level_exact_D2_20261104/loading_vs_cooling_gradient.svg",
+      "new_path": "outputs/figures/model_comparisons/matched_two_level_exact_D2_20261104/loading_vs_cooling_gradient.svg",
+      "original_sha256": "2e17b010eef48234740e0070c57fa1a1149b016efe939024a8b42c621d5a3a4f",
+      "current_sha256": "2e17b010eef48234740e0070c57fa1a1149b016efe939024a8b42c621d5a3a4f"
+    },
+    {
+      "old_path": "outputs/figures/mot_comparison/matched_two_level_exact_D2_20261104/loading_vs_cooling_saturation.png",
+      "new_path": "outputs/figures/model_comparisons/matched_two_level_exact_D2_20261104/loading_vs_cooling_saturation.png",
+      "original_sha256": "d93e40d75c1389595e31579f439ff1a2d07fa19e264b46b496601fa2a1486a28",
+      "current_sha256": "d93e40d75c1389595e31579f439ff1a2d07fa19e264b46b496601fa2a1486a28"
+    },
+    {
+      "old_path": "outputs/figures/mot_comparison/matched_two_level_exact_D2_20261104/loading_vs_cooling_saturation.svg",
+      "new_path": "outputs/figures/model_comparisons/matched_two_level_exact_D2_20261104/loading_vs_cooling_saturation.svg",
+      "original_sha256": "3fa43fa1e269d7d0771371f8cf6e5b9301ac6fd832efe043239d658609a0cee2",
+      "current_sha256": "3fa43fa1e269d7d0771371f8cf6e5b9301ac6fd832efe043239d658609a0cee2"
+    },
+    {
+      "old_path": "outputs/figures/mot_comparison/matched_two_level_exact_D2_fast_20261104/loading_vs_cooling_detuning.png",
+      "new_path": "outputs/figures/model_comparisons/matched_two_level_exact_D2_fast_20261104/loading_vs_cooling_detuning.png",
+      "original_sha256": "b3831c8e591ecf07b8830b856e875b45fcb04db31fbc26e7c9703a697c28ebbc",
+      "current_sha256": "b3831c8e591ecf07b8830b856e875b45fcb04db31fbc26e7c9703a697c28ebbc"
+    },
+    {
+      "old_path": "outputs/figures/mot_comparison/matched_two_level_exact_D2_fast_20261104/loading_vs_cooling_detuning.svg",
+      "new_path": "outputs/figures/model_comparisons/matched_two_level_exact_D2_fast_20261104/loading_vs_cooling_detuning.svg",
+      "original_sha256": "f8ffaa1217680466e4eb3353c77900138cc6968e8ba330fc3a87c691a3a30439",
+      "current_sha256": "f8ffaa1217680466e4eb3353c77900138cc6968e8ba330fc3a87c691a3a30439"
+    },
+    {
+      "old_path": "outputs/figures/mot_comparison/matched_two_level_exact_D2_fast_20261104/loading_vs_cooling_diameter_fixed_repump.png",
+      "new_path": "outputs/figures/model_comparisons/matched_two_level_exact_D2_fast_20261104/loading_vs_cooling_diameter_fixed_repump.png",
+      "original_sha256": "e77a50f28311f069810f227ae6c8d9032ce815106761dddb436d8c535ad4387c",
+      "current_sha256": "e77a50f28311f069810f227ae6c8d9032ce815106761dddb436d8c535ad4387c"
+    },
+    {
+      "old_path": "outputs/figures/mot_comparison/matched_two_level_exact_D2_fast_20261104/loading_vs_cooling_diameter_fixed_repump.svg",
+      "new_path": "outputs/figures/model_comparisons/matched_two_level_exact_D2_fast_20261104/loading_vs_cooling_diameter_fixed_repump.svg",
+      "original_sha256": "c2750f5ed63dadf83d5dfc34d09a6f6d4226d89c40cda1f9269148014c558f7c",
+      "current_sha256": "c2750f5ed63dadf83d5dfc34d09a6f6d4226d89c40cda1f9269148014c558f7c"
+    },
+    {
+      "old_path": "outputs/figures/mot_comparison/matched_two_level_exact_D2_fast_20261104/loading_vs_cooling_diameter_matched_repump.png",
+      "new_path": "outputs/figures/model_comparisons/matched_two_level_exact_D2_fast_20261104/loading_vs_cooling_diameter_matched_repump.png",
+      "original_sha256": "80d77395a91fc11de59b1a74ec04757360db1e851efd09f7bbec78b6dcc807fd",
+      "current_sha256": "80d77395a91fc11de59b1a74ec04757360db1e851efd09f7bbec78b6dcc807fd"
+    },
+    {
+      "old_path": "outputs/figures/mot_comparison/matched_two_level_exact_D2_fast_20261104/loading_vs_cooling_diameter_matched_repump.svg",
+      "new_path": "outputs/figures/model_comparisons/matched_two_level_exact_D2_fast_20261104/loading_vs_cooling_diameter_matched_repump.svg",
+      "original_sha256": "04b59618d1cfd386a2bf3fce8825ca21febf0b1d4e9f8f61061fec2cd30f8c16",
+      "current_sha256": "04b59618d1cfd386a2bf3fce8825ca21febf0b1d4e9f8f61061fec2cd30f8c16"
+    },
+    {
+      "old_path": "outputs/figures/mot_comparison/matched_two_level_exact_D2_fast_20261104/loading_vs_cooling_effective_saturation.png",
+      "new_path": "outputs/figures/model_comparisons/matched_two_level_exact_D2_fast_20261104/loading_vs_cooling_effective_saturation.png",
+      "original_sha256": "9165df2b0e279c4070e9a9248484f13e43aabade2c5b32529bd056bdc87bdc4a",
+      "current_sha256": "9165df2b0e279c4070e9a9248484f13e43aabade2c5b32529bd056bdc87bdc4a"
+    },
+    {
+      "old_path": "outputs/figures/mot_comparison/matched_two_level_exact_D2_fast_20261104/loading_vs_cooling_effective_saturation.svg",
+      "new_path": "outputs/figures/model_comparisons/matched_two_level_exact_D2_fast_20261104/loading_vs_cooling_effective_saturation.svg",
+      "original_sha256": "2ca9214be41939586d22bb7e427212121063df784dc82057182967338fe2435d",
+      "current_sha256": "2ca9214be41939586d22bb7e427212121063df784dc82057182967338fe2435d"
+    },
+    {
+      "old_path": "outputs/figures/mot_comparison/matched_two_level_exact_D2_fast_20261104/loading_vs_cooling_gradient.png",
+      "new_path": "outputs/figures/model_comparisons/matched_two_level_exact_D2_fast_20261104/loading_vs_cooling_gradient.png",
+      "original_sha256": "67af3a70c38529b980944819bff2abbadc7ceb8690ff730994b4bf5924b06bd7",
+      "current_sha256": "67af3a70c38529b980944819bff2abbadc7ceb8690ff730994b4bf5924b06bd7"
+    },
+    {
+      "old_path": "outputs/figures/mot_comparison/matched_two_level_exact_D2_fast_20261104/loading_vs_cooling_gradient.svg",
+      "new_path": "outputs/figures/model_comparisons/matched_two_level_exact_D2_fast_20261104/loading_vs_cooling_gradient.svg",
+      "original_sha256": "495d2a9c499efbdb0d8d89eec7de69b142ef8b717513398689d3b08b140ed2f6",
+      "current_sha256": "495d2a9c499efbdb0d8d89eec7de69b142ef8b717513398689d3b08b140ed2f6"
+    },
+    {
+      "old_path": "outputs/figures/mot_comparison/matched_two_level_exact_D2_fast_20261104/loading_vs_cooling_saturation.png",
+      "new_path": "outputs/figures/model_comparisons/matched_two_level_exact_D2_fast_20261104/loading_vs_cooling_saturation.png",
+      "original_sha256": "8950edb5bd15fe178d28514263c65b0b60663ddfad18f3ad532001f70c0bafa9",
+      "current_sha256": "8950edb5bd15fe178d28514263c65b0b60663ddfad18f3ad532001f70c0bafa9"
+    },
+    {
+      "old_path": "outputs/figures/mot_comparison/matched_two_level_exact_D2_fast_20261104/loading_vs_cooling_saturation.svg",
+      "new_path": "outputs/figures/model_comparisons/matched_two_level_exact_D2_fast_20261104/loading_vs_cooling_saturation.svg",
+      "original_sha256": "50d1f0e725097838aaac19a8e04e44788a596f6a7a6876a76d5a00eaacd58565",
+      "current_sha256": "50d1f0e725097838aaac19a8e04e44788a596f6a7a6876a76d5a00eaacd58565"
+    },
+    {
+      "old_path": "outputs/figures/mot_loading/extended_comparison_20261111/four_model_gradient_axial_svt_1529p268881048958.png",
+      "new_path": "outputs/figures/model_comparisons/extended_loading_40gcm_20261111/four_model_gradient_axial_svt_1529p268881048958.png",
+      "original_sha256": "016bb9dd42f2f8f68b7112aa6a5841a535a3150560e5cf8866ce527c0257fbb2",
+      "current_sha256": "016bb9dd42f2f8f68b7112aa6a5841a535a3150560e5cf8866ce527c0257fbb2"
+    },
+    {
+      "old_path": "outputs/figures/mot_loading/extended_comparison_20261111/four_model_gradient_axial_svt_1529p273195181438.png",
+      "new_path": "outputs/figures/model_comparisons/extended_loading_40gcm_20261111/four_model_gradient_axial_svt_1529p273195181438.png",
+      "original_sha256": "4070903bdf80a93116736714ca7572cb0baddbb3a153af99780d291a62960df6",
+      "current_sha256": "4070903bdf80a93116736714ca7572cb0baddbb3a153af99780d291a62960df6"
+    },
+    {
+      "old_path": "outputs/figures/mot_loading/extended_comparison_20261111/four_model_gradient_axial_sv_1529p268881048958.png",
+      "new_path": "outputs/figures/model_comparisons/extended_loading_40gcm_20261111/four_model_gradient_axial_sv_1529p268881048958.png",
+      "original_sha256": "19b5a71942dd53d96fafc69b1801e2a5bb328014a209a6b729b64ecf9d518f97",
+      "current_sha256": "19b5a71942dd53d96fafc69b1801e2a5bb328014a209a6b729b64ecf9d518f97"
+    },
+    {
+      "old_path": "outputs/figures/mot_loading/extended_comparison_20261111/four_model_gradient_axial_sv_1529p273195181438.png",
+      "new_path": "outputs/figures/model_comparisons/extended_loading_40gcm_20261111/four_model_gradient_axial_sv_1529p273195181438.png",
+      "original_sha256": "bf662ca7ebca20914c0bced4f0a094df02730361b62f65b546d116bf9069e0ee",
+      "current_sha256": "bf662ca7ebca20914c0bced4f0a094df02730361b62f65b546d116bf9069e0ee"
+    },
+    {
+      "old_path": "outputs/figures/mot_loading/extended_comparison_20261111/four_model_gradient_axial_v_1529p268881048958.png",
+      "new_path": "outputs/figures/model_comparisons/extended_loading_40gcm_20261111/four_model_gradient_axial_v_1529p268881048958.png",
+      "original_sha256": "8c26d3d807a8bfbbdbf6b2a4ec3fd3b6d1c637020cec7c2150a3ec7107150f26",
+      "current_sha256": "8c26d3d807a8bfbbdbf6b2a4ec3fd3b6d1c637020cec7c2150a3ec7107150f26"
+    },
+    {
+      "old_path": "outputs/figures/mot_loading/extended_comparison_20261111/four_model_gradient_axial_v_1529p273195181438.png",
+      "new_path": "outputs/figures/model_comparisons/extended_loading_40gcm_20261111/four_model_gradient_axial_v_1529p273195181438.png",
+      "original_sha256": "85188c218780466ba793c2aec85f6d472bbd6b8d47ed3c6ec518946b878e03aa",
+      "current_sha256": "85188c218780466ba793c2aec85f6d472bbd6b8d47ed3c6ec518946b878e03aa"
+    },
+    {
+      "old_path": "outputs/figures/mot_loading/extended_comparison_20261111/four_model_gradient_isotropic_svt_1529p268881048958.png",
+      "new_path": "outputs/figures/model_comparisons/extended_loading_40gcm_20261111/four_model_gradient_isotropic_svt_1529p268881048958.png",
+      "original_sha256": "0fd380b5431a92ffe9dbff656fdedd561ba075c1cbddd8c23b677aa81dcf1a2e",
+      "current_sha256": "0fd380b5431a92ffe9dbff656fdedd561ba075c1cbddd8c23b677aa81dcf1a2e"
+    },
+    {
+      "old_path": "outputs/figures/mot_loading/extended_comparison_20261111/four_model_gradient_isotropic_svt_1529p273195181438.png",
+      "new_path": "outputs/figures/model_comparisons/extended_loading_40gcm_20261111/four_model_gradient_isotropic_svt_1529p273195181438.png",
+      "original_sha256": "99e2332db0cccbdf975d7b46302cf010eea1b119c3b59732f736b8a74d70c19d",
+      "current_sha256": "99e2332db0cccbdf975d7b46302cf010eea1b119c3b59732f736b8a74d70c19d"
+    },
+    {
+      "old_path": "outputs/figures/mot_loading/extended_comparison_20261111/four_model_gradient_isotropic_sv_1529p268881048958.png",
+      "new_path": "outputs/figures/model_comparisons/extended_loading_40gcm_20261111/four_model_gradient_isotropic_sv_1529p268881048958.png",
+      "original_sha256": "c3648c11384e0bf8122b1d0ad09dac76cbd795925ccb431eabd37514b310eec6",
+      "current_sha256": "c3648c11384e0bf8122b1d0ad09dac76cbd795925ccb431eabd37514b310eec6"
+    },
+    {
+      "old_path": "outputs/figures/mot_loading/extended_comparison_20261111/four_model_gradient_isotropic_sv_1529p273195181438.png",
+      "new_path": "outputs/figures/model_comparisons/extended_loading_40gcm_20261111/four_model_gradient_isotropic_sv_1529p273195181438.png",
+      "original_sha256": "6ce8e810bc9381bdf6e4871f0c23e3c723d50c7eedbcf0e7e8bff7dfb448e14d",
+      "current_sha256": "6ce8e810bc9381bdf6e4871f0c23e3c723d50c7eedbcf0e7e8bff7dfb448e14d"
+    },
+    {
+      "old_path": "outputs/figures/mot_loading/extended_comparison_20261111/four_model_gradient_isotropic_v_1529p268881048958.png",
+      "new_path": "outputs/figures/model_comparisons/extended_loading_40gcm_20261111/four_model_gradient_isotropic_v_1529p268881048958.png",
+      "original_sha256": "a2e8cda658fa4d967d5eeaea85fc692f5eb9e4ba03058123d7bad4dedefa724a",
+      "current_sha256": "a2e8cda658fa4d967d5eeaea85fc692f5eb9e4ba03058123d7bad4dedefa724a"
+    },
+    {
+      "old_path": "outputs/figures/mot_loading/extended_comparison_20261111/four_model_gradient_isotropic_v_1529p273195181438.png",
+      "new_path": "outputs/figures/model_comparisons/extended_loading_40gcm_20261111/four_model_gradient_isotropic_v_1529p273195181438.png",
+      "original_sha256": "423548ba016d03f8a511ebc2df8d205a840c2ff819fc7921aa137eedc3289e72",
+      "current_sha256": "423548ba016d03f8a511ebc2df8d205a840c2ff819fc7921aa137eedc3289e72"
+    },
+    {
+      "old_path": "outputs/figures/mot_loading/extended_comparison_20261111/strange_trap_power_axial_through40G.png",
+      "new_path": "outputs/figures/model_comparisons/extended_loading_40gcm_20261111/strange_trap_power_axial_through40G.png",
+      "original_sha256": "59ec0f024f1a00ff15ab050f431ae80e1a8e93f534539c4cd2561d9188a8bef4",
+      "current_sha256": "59ec0f024f1a00ff15ab050f431ae80e1a8e93f534539c4cd2561d9188a8bef4"
+    },
+    {
+      "old_path": "outputs/figures/mot_loading/extended_comparison_20261111/strange_trap_power_isotropic_through40G.png",
+      "new_path": "outputs/figures/model_comparisons/extended_loading_40gcm_20261111/strange_trap_power_isotropic_through40G.png",
+      "original_sha256": "1228a8627835e74d675979a1bc17cb772868e421b76022be83fb0ff5d19566dd",
+      "current_sha256": "1228a8627835e74d675979a1bc17cb772868e421b76022be83fb0ff5d19566dd"
+    },
+    {
+      "old_path": "outputs/figures/mot_loading/extended_comparison_20261111/three_model_detuning_axial.png",
+      "new_path": "outputs/figures/model_comparisons/extended_loading_40gcm_20261111/three_model_detuning_axial.png",
+      "original_sha256": "f7cd726733443b2dc6f71725a13aeb70e1b0e6f01e4b65b3d22e231c9f950b39",
+      "current_sha256": "f7cd726733443b2dc6f71725a13aeb70e1b0e6f01e4b65b3d22e231c9f950b39"
+    },
+    {
+      "old_path": "outputs/figures/mot_loading/extended_comparison_20261111/three_model_diameter_axial.png",
+      "new_path": "outputs/figures/model_comparisons/extended_loading_40gcm_20261111/three_model_diameter_axial.png",
+      "original_sha256": "05f115ab26b0ba6a70b058c4675471bfe7b107fbcbf67aaebfcf5e8d90939773",
+      "current_sha256": "05f115ab26b0ba6a70b058c4675471bfe7b107fbcbf67aaebfcf5e8d90939773"
+    },
+    {
+      "old_path": "outputs/figures/mot_loading/extended_comparison_20261111/three_model_gradient_axial.png",
+      "new_path": "outputs/figures/model_comparisons/extended_loading_40gcm_20261111/three_model_gradient_axial.png",
+      "original_sha256": "0a2f523b265cd428b5673a686bde47c1ef000eb20cf9347149bf741978f01367",
+      "current_sha256": "0a2f523b265cd428b5673a686bde47c1ef000eb20cf9347149bf741978f01367"
+    },
+    {
+      "old_path": "outputs/figures/mot_loading/extended_comparison_20261111/three_model_gradient_isotropic.png",
+      "new_path": "outputs/figures/model_comparisons/extended_loading_40gcm_20261111/three_model_gradient_isotropic.png",
+      "original_sha256": "f2b85d30e04f2c0d5ae47cb06a3b38c4104118911b880860e631da352e108ee1",
+      "current_sha256": "f2b85d30e04f2c0d5ae47cb06a3b38c4104118911b880860e631da352e108ee1"
+    }
+  ],
+  "verification": {
+    "all_50_files_retained": true,
+    "figure_bytes_unchanged": true,
+    "embedded_notebook_images_unchanged": true,
+    "all_notebook_code_cells_compile": true,
+    "canonical_generator_paths_verified": true,
+    "historical_verification_record_unchanged": true,
+    "clean_kernel_verification": "relocation_verification_20261111.json"
+  },
+  "source_and_documentation_edits": [
+    {
+      "path": "AGENTS.md",
+      "before_sha256": "cb5e09d57bf489796649be7af6d3dbb7697a6f7dbdcb4344887f5f16130c71ed",
+      "after_sha256": "eed871782c338ddbe3fa5ca4066d208dc1d62b76965adfcf035eee31806d3456"
+    },
+    {
+      "path": "README.md",
+      "before_sha256": "f71498d670271c1baa493f0f740b32512ab65093350b15461f7a8581d7518220",
+      "after_sha256": "ee2cc9fab4c1924f35caf51309863f1cebecb90480b1cee34d42f8afb3e5cd2b"
+    },
+    {
+      "path": "docs/mot_multilevel/MATCHED_TWO_LEVEL_BENCHMARK_20261104.md",
+      "before_sha256": "566447108a067771ea656c01a519639c167f4484ea5dde9bc6f42e8dd2df9038",
+      "after_sha256": "402f7670f098bc81dd033c216d096dac38e1292d3cc721a5b5054e1999ebe17e"
+    },
+    {
+      "path": "scripts/compare_strange_pmot_matched_gradients.py",
+      "before_sha256": "c7b1ae68d65982fe2bdd2bb4f3c22d7c6354148d80e325d0e7123b85a48f0ab8",
+      "after_sha256": "d61a7d210d286be02fbe652eadd31768e005944ffccab804db8f5bb815cdf380"
+    },
+    {
+      "path": "scripts/compare_three_model_force_field_gradients.py",
+      "before_sha256": "f1dd3fa8812f3a6356b17cc1cf70c66e1c5f0b40477b1083e224097a38827c17",
+      "after_sha256": "c875706233185f2a0217bb75c9795fcb269ff2d663c220bac6e08ce4802389a2"
+    },
+    {
+      "path": "scripts/plot_pmot_derived_strange_overlay.py",
+      "before_sha256": "0116f3b5715bf038beb1146f95b1065529191fe40dfe5a3887072b573a9398d0",
+      "after_sha256": "05cf8505e3d04ea48a4cb87d6e99f89f76da6964f9b3ec7b495074bcc6a06aae"
+    },
+    {
+      "path": "scripts/plot_three_model_equal_cooling_overlays.py",
+      "before_sha256": "7f898bfba5f766adac20ed8d4a0f55b484a043314f5a4e48feb228f6cc7a20b5",
+      "after_sha256": "f690685d802220e3105c188e0498c1b383dc2ea1b4a417c979cde3583c37686a"
+    },
+    {
+      "path": "scripts/plot_three_model_force_gradient_overlay.py",
+      "before_sha256": "8062aaafb8fbf0c3abc4fc4ac21f13199244d63918a2cce1291a82ee9d79791a",
+      "after_sha256": "c2f76bdd194a10416b6152ab06131d625089e33010e7571b0e2572bf6c4538eb"
+    },
+    {
+      "path": "scripts/plot_updated_force_gradient_overlays.py",
+      "before_sha256": "6ac741c4d13e5cb2384f3901b5fd1acf3ed726f3e0ec5a8fdd2e3c29f54926ee",
+      "after_sha256": "e05544f324179661d775ba75f6837ab507457663af9ff19003ba0d4bcfbd18a7"
+    },
+    {
+      "path": "scripts/report_extended_mot_loading.py",
+      "before_sha256": "ee97a6e2ffd2a6ee34c67c1e01bfeebc3c48ef2321be025ed8acfd12e8704456",
+      "after_sha256": "5800a1fa29064aef22c6fb0928f1b1de38b7ce32fd34609621e55c25b8400e94"
+    },
+    {
+      "path": "scripts/verify_extended_mot_loading.py",
+      "before_sha256": "0abb35f516002e863c1bebe395422a50f4bc1a6818e2ab78e1b7dc60c4e0598f",
+      "after_sha256": "44a70bec33128bcda3879304ca785e2f412329ef150298554969bda78c7393ba"
+    },
+    {
+      "path": "src/pmot/mot_multilevel/matched_benchmark.py",
+      "before_sha256": "77d9d99b2b2e1e4e6682a4e3e0055a1b70b31f10c42eb5161945ddf87dc57afc",
+      "after_sha256": "157e0757f28af0e398e09c9a911b7f7484fbf5117ad5355b05312eb1835eeb07"
+    },
+    {
+      "path": "src/pmot/mot_multilevel/matched_fast/config.py",
+      "before_sha256": "ae4cbff9280d754a1589ccb90be9a4069873df066209db8eac7fb0541c8efc42",
+      "after_sha256": "5b560e2baae116a5bbd3773dedfdeb82779e16417557abd3350cc6a8c6621d34"
+    }
+  ],
+  "canonical_paths_module": "src/pmot/comparison_paths.py",
+  "canonical_paths_module_sha256": "e30d904f795c3778a4d130ce7f15323b391459a571d4abb080957640a2aa7e5b",
+  "completed_local": "2026-11-11T10:56:11.611494-06:00"
+}

@@ -49,7 +49,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 OUTPUT_DIRECTORY = (
     PROJECT_ROOT
     / "outputs"
-    / "diagnostics"
+    / "figures"
+    / "model_comparisons"
     / "strange_pmot_reciprocal_gradient_match_20261023"
 )
 

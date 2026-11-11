@@ -20,6 +20,7 @@ from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 import numpy as np
 import pandas as pd
+from pmot.comparison_paths import COMPARISON_FIGURES
 
 from pmot.mot_simple.configuration import default_simple_mot_config
 from pmot.mot_strange.surrogate_effective_field import (
@@ -40,9 +41,7 @@ SOURCE_CSV = (
     / "extended_force_gradient_linecuts.csv"
 )
 DEFAULT_OUTPUT = (
-    PROJECT_ROOT
-    / "outputs"
-    / "diagnostics"
+    COMPARISON_FIGURES
     / "three_model_force_gradient_overlay_20261020"
 )
 

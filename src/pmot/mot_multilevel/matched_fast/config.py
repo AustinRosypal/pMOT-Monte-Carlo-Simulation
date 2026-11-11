@@ -4,6 +4,8 @@ from dataclasses import asdict
 import os
 import tempfile
 import numpy as np
+from ...comparison_paths import COMPARISON_FIGURES as COMPARISON_FIGURE_ROOT
+from ...comparison_paths import COMPARISON_NOTEBOOKS, COMPARISON_NOTEBOOK_NAMES
 from scipy.stats import t
 from .. import matched_benchmark as original
 
@@ -14,10 +16,10 @@ PREVIOUS=original.STATISTICS
 PREVIOUS_CACHE=original.CACHE
 STATISTICS=ROOT/'outputs/statistics/mot_multilevel_population_rate_v1'/NAME
 FIGURES=ROOT/'outputs/figures/mot_multilevel_population_rate_v1'/NAME
-COMPARISON_FIGURES=ROOT/'outputs/figures/mot_comparison'/NAME
+COMPARISON_FIGURES=COMPARISON_FIGURE_ROOT/NAME
 CACHE=Path(os.environ.get('LOCALAPPDATA',tempfile.gettempdir()))/'pmot-campaigns'/NAME
 NOTEBOOK=ROOT/'notebooks/mot_multilevel'/f'{NAME}.ipynb'
-COMPARISON_NOTEBOOK=ROOT/'notebooks/mot_comparison'/f'{NAME}.ipynb'
+COMPARISON_NOTEBOOK=COMPARISON_NOTEBOOKS/COMPARISON_NOTEBOOK_NAMES['loading_two_refined']
 PILOT_DISCS=tuple(range(837,869))
 VALIDATION_DISCS=tuple(range(869,901))
 PILOT_POINTS=tuple(range(16))

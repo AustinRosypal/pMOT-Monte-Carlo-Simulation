@@ -55,8 +55,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_OUTPUT = (
     PROJECT_ROOT
     / "outputs"
-    / "diagnostics"
-    / "mot_strange"
+    / "figures"
+    / "model_comparisons"
     / "three_model_force_field_gradient_comparison_20261016"
 )
 

@@ -16,6 +16,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import nbformat
 import numpy as np
+from pmot.comparison_paths import COMPARISON_FIGURES, COMPARISON_NOTEBOOKS, COMPARISON_NOTEBOOK_NAMES
 
 import extend_mot_strange_gradient_loading as extension
 
@@ -25,8 +26,8 @@ OUTPUT = (REPO / extension.OUTPUT).resolve()
 SIMPLE = REPO / "outputs/statistics/mot_simple/loading_scans_exact_D2_20261103"
 MULTI = REPO / "outputs/statistics/mot_multilevel_population_rate_v1/matched_two_level_exact_D2_fast_20261104"
 PMOT = REPO / "outputs/statistics/pMOT_2Level/loading_20261109/impact_stratified"
-FIGURES = REPO / "outputs/figures/mot_loading/extended_comparison_20261111"
-NOTEBOOKS = REPO / "notebooks/mot_comparisons"
+FIGURES = COMPARISON_FIGURES / "extended_loading_40gcm_20261111"
+NOTEBOOKS = COMPARISON_NOTEBOOKS
 COLORS = {"2-level MOT": "#2563eb", "Multilevel MOT": "#6d28d9",
           "Strange MOT": "#d97706", "2-level pMOT": "#15803d"}
 CONTEXT = (
@@ -280,7 +281,8 @@ def build_notebook(name, specs):
     book = nbformat.v4.new_notebook(cells=cells, metadata={
         "kernelspec": {"display_name": "Python 3", "language": "python", "name": "python3"}})
     nbformat.validate(book)
-    nbformat.write(book, NOTEBOOKS / f"{name}_loading_20261111.ipynb")
+    key = {"three_model": "loading_three", "four_model": "loading_four"}[name]
+    nbformat.write(book, NOTEBOOKS / COMPARISON_NOTEBOOK_NAMES[key])
 
 
 def main():

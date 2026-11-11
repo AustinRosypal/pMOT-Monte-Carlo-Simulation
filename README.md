@@ -22,7 +22,7 @@ Development is separated into explicit model branches:
 | Area | Two-level MOT | Physical multilevel MOT | MOT with pMOT Fields | 2-Level pMOT | Vector-only 2-Level pMOT |
 |---|---|---|---|---|---|
 | Source | `src/pmot/mot_simple` | `src/pmot/mot_multilevel` | `src/pmot/mot_strange/surrogate_effective_field*.py` | `src/pmot/pMOT_2Level`, with wavelength paths under `scalar_tensor_cancellation/` and `scalar_zero/` | `src/pmot/pmot_vec_2Level` |
-| Primary entry points | `notebooks/mot_simple` and CLI | `notebooks/mot_multilevel` | `notebooks/mot_strange/mot_strange_trajectory_lab.ipynb` and CLI | `notebooks/pMOT_2Level/trajectory_simulation.ipynb` and Python API | `notebooks/model_comparison/updated_force_gradient_overlays.ipynb`, Python API, and plotting script |
+| Primary entry points | `notebooks/mot_simple` and CLI | `notebooks/mot_multilevel` | `notebooks/mot_strange/mot_strange_trajectory_lab.ipynb` and CLI | `notebooks/pMOT_2Level/trajectory_simulation.ipynb` and Python API | `notebooks/model_comparisons/force_and_gradient_multilevel_mot_strange_mot_2level_pmot_svt_vs_vector.ipynb`, Python API, and plotting script |
 | Tests | `tests/mot_simple` | `tests/mot_multilevel` | surrogate-field tests under `tests/mot_strange` | `tests/pMOT_2Level` | `tests/pmot_vec_2Level` |
 | Documentation | `docs/mot_simple` | `docs/mot_multilevel` | `MOT_STRANGE_EFFECTIVE_FIELD_CODEX.md` and `docs/pmot` | package docstrings and `docs/pmot` | `src/pmot/pmot_vec_2Level/README.md` |
 
@@ -238,14 +238,18 @@ force-law comparisons.
 
 #### Interactive comparison notebook
 
+All cross-model notebooks are indexed in
+[`notebooks/model_comparisons/README.md`](notebooks/model_comparisons/README.md).
+Generated comparison figures use `outputs/figures/model_comparisons`.
+
 The primary interactive plotting entry point is
-[`notebooks/model_comparison/updated_force_gradient_overlays.ipynb`](notebooks/model_comparison/updated_force_gradient_overlays.ipynb).
+[`notebooks/model_comparisons/force_and_gradient_multilevel_mot_strange_mot_2level_pmot_svt_vs_vector.ipynb`](notebooks/model_comparisons/force_and_gradient_multilevel_mot_strange_mot_2level_pmot_svt_vs_vector.ipynb).
 Open that exact file from the repository explorer in VS Code or Codex, select
 the repository's `.venv` Python kernel, and choose **Run All**. It can also be
 opened from the repository root with:
 
 ```bash
-uv run jupyter lab notebooks/model_comparison/updated_force_gradient_overlays.ipynb
+uv run jupyter lab notebooks/model_comparisons/force_and_gradient_multilevel_mot_strange_mot_2level_pmot_svt_vs_vector.ipynb
 ```
 
 The notebook is organized as a numbered workflow:

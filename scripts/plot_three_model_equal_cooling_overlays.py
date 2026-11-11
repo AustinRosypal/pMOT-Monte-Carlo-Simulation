@@ -417,7 +417,8 @@ def main() -> None:
     output_directory = (
         PROJECT_ROOT
         / "outputs"
-        / "diagnostics"
+        / "figures"
+        / "model_comparisons"
         / (
             f"three_model_mot_{multilevel_cooling_token}mW_"
             f"pmot_cooling_{pmot_cooling_token}mW_trapping_"

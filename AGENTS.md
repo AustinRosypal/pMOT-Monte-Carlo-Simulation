@@ -200,6 +200,15 @@ radiation pressure explicitly and state when gravity is excluded.
   `src/pmot/pMOT_multilevel`, not `mot_strange`.
 - `data/raw/pmot`: differential-polarizability datasets for the later pMOT phase.
 - `notebooks/mot_simple`: current interactive validation and sampling notebooks.
+- `notebooks/model_comparisons`: the only directory for cross-model comparison
+  notebooks. Save generated comparison plots and accompanying exports beneath
+  `outputs/figures/model_comparisons/<descriptive-study-name>`; use the canonical
+  paths in `pmot.comparison_paths`. Do not recreate singular comparison folders
+  or separate MOT-only comparison folders. Notebook and study names must identify
+  the observable, compared models, and relevant scan or variant, followed by a
+  campaign date where applicable. Avoid names such as `updated` or `comparison`
+  alone. Keep simulation datasets and immutable audit provenance in their
+  existing campaign roots when reorganizing presentation artifacts.
 - `tests`: automated physics and numerical checks.
 - `docs/pmot/DIAGNOSTIC_TESTS.md`: canonical ordered pMOT construction-QA
   procedure. Generated campaigns live under `outputs/diagnostics/mot_strange` and

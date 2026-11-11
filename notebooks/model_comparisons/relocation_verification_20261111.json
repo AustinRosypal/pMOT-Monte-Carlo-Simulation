@@ -1,0 +1,44 @@
+{
+  "passed": true,
+  "original_records_unchanged": 69,
+  "new_settings": 20,
+  "notebooks": [
+    {
+      "path": "notebooks\\mot_strange\\symmetric_exact_D2_loading_20261105.ipynb",
+      "figures": 4,
+      "sha256": "1d480202e0344ffba9bd7acb759aae618c243432ccfd562048eb52cc960e9b21"
+    },
+    {
+      "path": "notebooks\\model_comparisons\\loading_gradient_detuning_diameter_2level_mot_multilevel_mot_strange_mot_20261111.ipynb",
+      "figures": 4,
+      "sha256": "9dc53945e9057d7931687f6bd03fca7a52a0e253678d44358439a7f05e70308b"
+    },
+    {
+      "path": "notebooks\\model_comparisons\\loading_gradient_2level_mot_multilevel_mot_strange_mot_2level_pmot_20261111.ipynb",
+      "figures": 12,
+      "sha256": "4d0a0a214d117982eae8bf4de7f516260c2d4eeacc080e3796854731f67cd3a3"
+    }
+  ],
+  "html_sha256": "003c85785e7f7b253e6e16444a8a26b3fdd07c4b58999737df46959868ed8633",
+  "figures": {
+    "outputs\\figures\\model_comparisons\\extended_loading_40gcm_20261111\\four_model_gradient_axial_sv_1529p268881048958.png": "19b5a71942dd53d96fafc69b1801e2a5bb328014a209a6b729b64ecf9d518f97",
+    "outputs\\figures\\model_comparisons\\extended_loading_40gcm_20261111\\four_model_gradient_axial_sv_1529p273195181438.png": "bf662ca7ebca20914c0bced4f0a094df02730361b62f65b546d116bf9069e0ee",
+    "outputs\\figures\\model_comparisons\\extended_loading_40gcm_20261111\\four_model_gradient_axial_svt_1529p268881048958.png": "016bb9dd42f2f8f68b7112aa6a5841a535a3150560e5cf8866ce527c0257fbb2",
+    "outputs\\figures\\model_comparisons\\extended_loading_40gcm_20261111\\four_model_gradient_axial_svt_1529p273195181438.png": "4070903bdf80a93116736714ca7572cb0baddbb3a153af99780d291a62960df6",
+    "outputs\\figures\\model_comparisons\\extended_loading_40gcm_20261111\\four_model_gradient_axial_v_1529p268881048958.png": "8c26d3d807a8bfbbdbf6b2a4ec3fd3b6d1c637020cec7c2150a3ec7107150f26",
+    "outputs\\figures\\model_comparisons\\extended_loading_40gcm_20261111\\four_model_gradient_axial_v_1529p273195181438.png": "85188c218780466ba793c2aec85f6d472bbd6b8d47ed3c6ec518946b878e03aa",
+    "outputs\\figures\\model_comparisons\\extended_loading_40gcm_20261111\\four_model_gradient_isotropic_sv_1529p268881048958.png": "c3648c11384e0bf8122b1d0ad09dac76cbd795925ccb431eabd37514b310eec6",
+    "outputs\\figures\\model_comparisons\\extended_loading_40gcm_20261111\\four_model_gradient_isotropic_sv_1529p273195181438.png": "6ce8e810bc9381bdf6e4871f0c23e3c723d50c7eedbcf0e7e8bff7dfb448e14d",
+    "outputs\\figures\\model_comparisons\\extended_loading_40gcm_20261111\\four_model_gradient_isotropic_svt_1529p268881048958.png": "0fd380b5431a92ffe9dbff656fdedd561ba075c1cbddd8c23b677aa81dcf1a2e",
+    "outputs\\figures\\model_comparisons\\extended_loading_40gcm_20261111\\four_model_gradient_isotropic_svt_1529p273195181438.png": "99e2332db0cccbdf975d7b46302cf010eea1b119c3b59732f736b8a74d70c19d",
+    "outputs\\figures\\model_comparisons\\extended_loading_40gcm_20261111\\four_model_gradient_isotropic_v_1529p268881048958.png": "a2e8cda658fa4d967d5eeaea85fc692f5eb9e4ba03058123d7bad4dedefa724a",
+    "outputs\\figures\\model_comparisons\\extended_loading_40gcm_20261111\\four_model_gradient_isotropic_v_1529p273195181438.png": "423548ba016d03f8a511ebc2df8d205a840c2ff819fc7921aa137eedc3289e72",
+    "outputs\\figures\\model_comparisons\\extended_loading_40gcm_20261111\\strange_trap_power_axial_through40G.png": "59ec0f024f1a00ff15ab050f431ae80e1a8e93f534539c4cd2561d9188a8bef4",
+    "outputs\\figures\\model_comparisons\\extended_loading_40gcm_20261111\\strange_trap_power_isotropic_through40G.png": "1228a8627835e74d675979a1bc17cb772868e421b76022be83fb0ff5d19566dd",
+    "outputs\\figures\\model_comparisons\\extended_loading_40gcm_20261111\\three_model_detuning_axial.png": "f7cd726733443b2dc6f71725a13aeb70e1b0e6f01e4b65b3d22e231c9f950b39",
+    "outputs\\figures\\model_comparisons\\extended_loading_40gcm_20261111\\three_model_diameter_axial.png": "05f115ab26b0ba6a70b058c4675471bfe7b107fbcbf67aaebfcf5e8d90939773",
+    "outputs\\figures\\model_comparisons\\extended_loading_40gcm_20261111\\three_model_gradient_axial.png": "0a2f523b265cd428b5673a686bde47c1ef000eb20cf9347149bf741978f01367",
+    "outputs\\figures\\model_comparisons\\extended_loading_40gcm_20261111\\three_model_gradient_isotropic.png": "f2b85d30e04f2c0d5ae47cb06a3b38c4104118911b880860e631da352e108ee1"
+  },
+  "scope": "Clean-kernel revalidation after presentation-only relocation; historical audit records preserved."
+}

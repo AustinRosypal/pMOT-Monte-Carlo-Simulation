@@ -19,6 +19,7 @@ from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 import numpy as np
 import pandas as pd
+from pmot.comparison_paths import COMPARISON_FIGURES
 
 from pmot.magnetic_fields import default_anti_helmholtz_config
 from pmot.mot_multilevel import build_multilevel_mot_beams
@@ -41,9 +42,7 @@ from pmot.pMOT_2Level import pmot_stark_component_model_label
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 OUTPUT_DIRECTORY = (
-    PROJECT_ROOT
-    / "outputs"
-    / "diagnostics"
+    COMPARISON_FIGURES
     / "updated_force_gradient_overlays_20261023"
 )
 AXES = ("x", "y", "z")

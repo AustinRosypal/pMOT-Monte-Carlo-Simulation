@@ -56,19 +56,22 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_OUTPUT_DIRECTORY = (
     PROJECT_ROOT
     / "outputs"
-    / "diagnostics"
+    / "figures"
+    / "model_comparisons"
     / "pmot_derived_strange_overlay_20261025"
 )
 DEFAULT_VECTOR_OUTPUT_DIRECTORY = (
     PROJECT_ROOT
     / "outputs"
-    / "diagnostics"
+    / "figures"
+    / "model_comparisons"
     / "pmot_vector_only_derived_strange_overlay_20261025"
 )
 DEFAULT_FOUR_MODEL_OUTPUT_DIRECTORY = (
     PROJECT_ROOT
     / "outputs"
-    / "diagnostics"
+    / "figures"
+    / "model_comparisons"
     / "pmot_matched_four_model_overlay_20261025"
 )
 AXES = "xyz"
@@ -524,7 +527,7 @@ def main() -> None:
     }[args.two_level_variant]
     if args.pmot_components is not None:
         tag = "_vs_".join(normalize_pmot_stark_component_code(code) or "none" for code in args.pmot_components)
-        default_output_directory = PROJECT_ROOT / "outputs" / "diagnostics" / f"pmot_derived_{args.pathway}_{tag}"
+        default_output_directory = PROJECT_ROOT / "outputs" / "figures" / "model_comparisons" / f"pmot_derived_{args.pathway}_{tag}"
     output_directory = (
         default_output_directory
         if args.output_directory is None

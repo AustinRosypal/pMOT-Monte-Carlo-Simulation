@@ -67,8 +67,8 @@ def main():
             raise ValueError("Low-gradient equilibrium did not pass stability and return checks")
     notebooks = (
         (report.REPO / f"notebooks/mot_strange/{extension.ORIGINAL.name}.ipynb", 4),
-        (report.NOTEBOOKS / "three_model_loading_20261111.ipynb", 4),
-        (report.NOTEBOOKS / "four_model_loading_20261111.ipynb", 12),
+        (report.NOTEBOOKS / report.COMPARISON_NOTEBOOK_NAMES["loading_three"], 4),
+        (report.NOTEBOOKS / report.COMPARISON_NOTEBOOK_NAMES["loading_four"], 12),
     )
     results = []
     for path, count in notebooks:

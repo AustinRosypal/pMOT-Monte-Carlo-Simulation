@@ -136,10 +136,13 @@ The campaign name is `matched_two_level_exact_D2_20261104`:
 - Multilevel figures:
   `outputs/figures/mot_multilevel_population_rate_v1/<name>`.
 - Comparison figures:
-  `outputs/figures/mot_comparison/<name>`.
+  `outputs/figures/model_comparisons/<campaign-name>`.
 - HTML previews: [MOT loading report archive](../../visualizations/mot_loading/archive/2026-11-04_original_multilevel/).
 - Notebook: `notebooks/mot_multilevel/<name>.ipynb`.
-- Comparison notebook: `notebooks/mot_comparison/<name>.ipynb`.
+- Original comparison notebook:
+  `notebooks/model_comparisons/loading_2level_mot_vs_multilevel_mot_exact_d2_20261104.ipynb`.
+- Refined-sampling comparison notebook:
+  `notebooks/model_comparisons/loading_2level_mot_vs_multilevel_mot_exact_d2_refined_20261104.ipynb`.
 
 Both notebooks contain saved figure previews and editable plotting cells.
 Both HTML files are self-contained browser visualizers. Temperature changes
